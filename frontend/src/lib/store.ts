@@ -14,6 +14,8 @@ interface AuthStore {
   user: User | null
   token: string | null
   isLoading: boolean
+  /** True once the cached user has been confirmed (or corrected) by the server. */
+  sessionVerified: boolean
   setAuth: (user: User, token: string) => void
   logout: () => void
   loadFromStorage: () => void
@@ -28,12 +30,13 @@ export const useAuthStore = create<AuthStore>((set, get) => {
       const res = await fetch(`${API_URL}/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
       if (get().token !== token) return
       if (res.status === 401 || res.status === 404) return get().logout()
-      if (!res.ok) return
+      if (!res.ok) return set({ sessionVerified: true })
       const user = (await res.json()) as User
       localStorage.setItem('user', JSON.stringify(user))
-      set({ user })
+      set({ user, sessionVerified: true })
     } catch {
       // Offline or API hiccup: keep the cached session.
+      set({ sessionVerified: true })
     }
   }
 
@@ -41,18 +44,19 @@ export const useAuthStore = create<AuthStore>((set, get) => {
     user: null,
     token: null,
     isLoading: true,
+    sessionVerified: false,
 
     setAuth: (user, token) => {
       localStorage.setItem('token', token)
       localStorage.setItem('user', JSON.stringify(user))
       sessionChecked = true
-      set({ user, token, isLoading: false })
+      set({ user, token, isLoading: false, sessionVerified: true })
     },
 
     logout: () => {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
-      set({ user: null, token: null, isLoading: false })
+      set({ user: null, token: null, isLoading: false, sessionVerified: true })
     },
 
     loadFromStorage: () => {
@@ -67,10 +71,10 @@ export const useAuthStore = create<AuthStore>((set, get) => {
             verifySession(token)
           }
         } else {
-          set({ isLoading: false })
+          set({ isLoading: false, sessionVerified: true })
         }
       } catch {
-        set({ isLoading: false })
+        set({ isLoading: false, sessionVerified: true })
       }
     },
   }

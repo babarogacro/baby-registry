@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Modal from '@/components/Modal'
+import { Toast, useToast } from '@/components/Toast'
 import { adminApi, productsApi, apiError } from '@/lib/api'
 import { formatPrice, plural } from '@/lib/format'
 import { useAuthStore } from '@/lib/store'
@@ -61,10 +62,10 @@ function UserCard({ u, onOpen, onToggleRole, isSelf }: { u: AdminUser; onOpen: (
 
 export default function AdminPage() {
   const router = useRouter()
-  const { user, isLoading, loadFromStorage } = useAuthStore()
+  const { user, isLoading, sessionVerified, loadFromStorage } = useAuthStore()
   const isAdmin = user?.role === 'ADMIN'
   const [tab, setTab] = useState<Tab>('overview')
-  const [toast, setToast] = useState<string | null>(null)
+  const { toast, showToast } = useToast()
 
   const [stats, setStats] = useState<Record<string, number> | null>(null)
   const [recentUsers, setRecentUsers] = useState<AdminUser[]>([])
@@ -85,15 +86,12 @@ export default function AdminPage() {
   const [unmapped, setUnmapped] = useState<{ externalName: string; shopSlug: string; count: number }[]>([])
   const [allCategories, setAllCategories] = useState<Category[]>([])
   const [newMapping, setNewMapping] = useState({ externalName: '', shopSlug: '', categoryId: '' })
-
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000) }
-
   useEffect(() => { loadFromStorage() }, [loadFromStorage])
   useEffect(() => {
     if (isLoading) return
     if (!user) router.replace('/prijava?next=/admin')
-    else if (!isAdmin) router.replace('/')
-  }, [user, isAdmin, isLoading, router])
+    else if (!isAdmin && sessionVerified) router.replace('/')
+  }, [user, isAdmin, isLoading, sessionVerified, router])
 
   const loadShops = useCallback(() => adminApi.getShops().then(r => setShops(r.data)).catch(() => {}), [])
 
@@ -281,7 +279,7 @@ export default function AdminPage() {
                         <h3 className="font-medium text-charcoal">{shop.name}</h3>
                         <p className="text-xs text-warm-gray">
                           {shop.productsCount?.toLocaleString('hr-HR')} proizvoda ·{' '}
-                          {shop.isRunning ? 'upravo radi...' : shop.lastStatus === 'success' ? 'uspješno' : shop.lastStatus === 'error' ? 'greška' : 'nije pokrenut'}
+                          {shop.isRunning || shop.lastStatus === 'running' ? 'upravo radi...' : shop.lastStatus === 'success' ? 'uspješno' : shop.lastStatus === 'error' ? 'greška' : 'nije pokrenut'}
                           {shop.lastRun && ` · ${new Date(shop.lastRun).toLocaleString('hr-HR')}`}
                         </p>
                         {shop.errorMsg && <p className="text-xs text-rose mt-0.5">{shop.errorMsg}</p>}
@@ -511,9 +509,7 @@ export default function AdminPage() {
         </Modal>
       )}
 
-      {toast && (
-        <div role="status" className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-6 py-3 bg-charcoal text-white text-sm rounded-full shadow-2xl fade-in">{toast}</div>
-      )}
+      <Toast message={toast} />
     </>
   )
 }

@@ -93,7 +93,7 @@ export const listsApi = {
 export const productsApi = {
   getAll: (params?: {
     q?: string; categoryId?: string; categorySlug?: string; shopSlug?: string
-    minPrice?: number; maxPrice?: number; inStock?: boolean
+    minPrice?: number; maxPrice?: number
     page?: number; limit?: number; sortBy?: string
   }) => api.get('/products', { params }),
   getOne: (id: string) => api.get(`/products/${id}`),

@@ -5,6 +5,7 @@ import { publicApi, addRefToUrl, apiError } from '@/lib/api'
 import { getMyReservations, rememberReservation, forgetReservation, lastUsedName, MyReservation } from '@/lib/myReservations'
 import { formatPrice, parseAmount, formatDateHR, plural, shopLabel } from '@/lib/format'
 import Modal from '@/components/Modal'
+import { Toast, useToast } from '@/components/Toast'
 import { BabyList, ListItem, GroupContributor, Product } from '@/types'
 import { ExternalLink, Heart, Gift, Check, User, MessageSquare, Users, ShoppingBag, Undo2 } from 'lucide-react'
 import clsx from 'clsx'
@@ -378,6 +379,7 @@ function PublicListItem({ item, mine, busy, onStart, onPurchased, onCancel, onLe
           <p className="text-sm font-medium text-charcoal line-clamp-2 leading-snug">{product.name}</p>
         )}
         {item.note && <span className="inline-block mt-1 text-xs px-2 py-0.5 bg-blush/30 text-charcoal/80 rounded-full font-medium">📝 {item.note}</span>}
+        {!product.inStock && <p className="mt-1 text-xs text-warm-gray">⚠️ Shop ovo možda više nema u ponudi — provjeri prije kupnje.</p>}
         <div className="flex items-center gap-2 mt-1 flex-wrap">
           {product.price > 0 && <span className="text-sm font-medium text-rose">{formatPrice(product.price, product.currency)}</span>}
           {product.price > 0 && <span className="text-xs text-warm-gray/50">·</span>}
@@ -444,11 +446,8 @@ export default function PublicListClient({ slug, initialList, initialError }: {
   const [flow, setFlow] = useState<Flow>(null)
   const [mine, setMine] = useState<MyMap>({})
   const [busyItem, setBusyItem] = useState<string | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
+  const { toast, showToast } = useToast()
   const [filter, setFilter] = useState<'all' | 'available' | 'reserved'>('all')
-
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000) }
-
   const hasList = useRef(!!initialList)
   const refresh = useCallback(async () => {
     try {
@@ -689,11 +688,7 @@ export default function PublicListClient({ slug, initialList, initialError }: {
         </Modal>
       )}
 
-      {toast && (
-        <div role="status" className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 bg-charcoal text-white text-sm rounded-full shadow-2xl fade-in whitespace-nowrap">
-          {toast}
-        </div>
-      )}
+      <Toast message={toast} />
     </div>
   )
 }

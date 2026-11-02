@@ -1,6 +1,6 @@
 # 🍼 Bebina Lista — Baby Registry App
 
-Baby registry aplikacija s web scraperom za Baby Centar. Buduće mame kreiraju wish liste, dijele ih s prijateljima, a prijatelji rezerviraju poklone upisivanjem svog imena.
+Mame kreiraju liste želja iz kataloga hrvatskih baby shopova (ili zalijepe link iz bilo kojeg shopa), dijele ih s obitelji i prijateljima, a oni rezerviraju poklone upisivanjem imena, bez registracije. Poklon se može kupiti i zajednički (grupna kupovina).
 
 ---
 
@@ -8,192 +8,68 @@ Baby registry aplikacija s web scraperom za Baby Centar. Buduće mame kreiraju w
 
 ```
 baby-registry/
-├── backend/          # Node.js + Express + Prisma + Playwright
-└── frontend/         # Next.js 14 + Tailwind CSS
+├── backend/    # Node 20 + Express 5 + Prisma 6 + Zod 4, scraperi (axios + cheerio)
+└── frontend/   # Next.js 16 + React 19 + Tailwind CSS 3
 ```
 
 ---
 
-## 🚀 Setup
-
-### 1. Baza podataka
-
-Trebaš PostgreSQL. Lokalno s Dockerom:
+## 🚀 Lokalni razvoj
 
 ```bash
-docker run -d \
-  --name baby-registry-db \
-  -e POSTGRES_USER=baby \
-  -e POSTGRES_PASSWORD=baby123 \
-  -e POSTGRES_DB=baby_registry \
-  -p 5432:5432 \
-  postgres:16
+make install   # ovisnosti
+make db        # PostgreSQL u Dockeru + tablice (kopira backend/.env.example u .env)
+make dev       # backend na :3001, frontend na :3000
+make scrape    # napuni katalog (traje dugo jer pauzira između zahtjeva prema shopovima)
+make check     # TypeScript provjera
 ```
 
-### 2. Backend
+Frontend čita `frontend/.env.local`:
 
 ```bash
-cd backend
-
-# Kopiraj .env
-cp .env.example .env
-# Uredi DATABASE_URL i JWT_SECRET u .env
-
-# Instaliraj ovisnosti
-npm install
-
-# Installiraj Playwright browser
-npx playwright install chromium
-
-# Kreiraj bazu
-npm run db:push
-
-# Pokreni dev server
-npm run dev
+NEXT_PUBLIC_API_URL=http://localhost:3001/api
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=      # opcionalno
+NEXT_PUBLIC_FRONTEND_URL=          # javna adresa, za Open Graph linkove
 ```
 
-Backend radi na `http://localhost:3001`
-
-### 3. Frontend
-
-```bash
-cd frontend
-
-# Kopiraj .env
-echo "NEXT_PUBLIC_API_URL=http://localhost:3001/api" > .env.local
-
-# Instaliraj ovisnosti
-npm install
-
-# Pokreni dev server
-npm run dev
-```
-
-Frontend radi na `http://localhost:3000`
-
-### 4. Pokretanje scrapera
-
-```bash
-cd backend
-npm run scrape
-```
-
-Ovo će scrapati sve kategorije s Baby Centar i pohraniti ih u bazu.
+Backend varijable su opisane u `backend/.env.example`. `JWT_SECRET` je obavezan: server se bez njega ne pokreće. Prvog admina postavi u bazi (`role = 'ADMIN'`).
 
 ---
 
-## 📡 API Endpointi
+## 🔐 Sigurnosni model
 
-### Auth
-| Metoda | Endpoint             | Opis                    |
-|--------|---------------------|-------------------------|
-| POST   | /api/auth/register  | Registracija             |
-| POST   | /api/auth/login     | Prijava                  |
-| GET    | /api/auth/me        | Trenutni korisnik        |
-| PATCH  | /api/auth/profile   | Ažuriranje profila       |
-
-### Liste
-| Metoda | Endpoint                         | Opis                          |
-|--------|----------------------------------|-------------------------------|
-| GET    | /api/lists                       | Sve liste korisnika           |
-| POST   | /api/lists                       | Nova lista                    |
-| GET    | /api/lists/:id                   | Jedna lista                   |
-| PATCH  | /api/lists/:id                   | Ažuriranje liste              |
-| DELETE | /api/lists/:id                   | Brisanje liste                |
-| POST   | /api/lists/:id/items             | Dodaj proizvod na listu       |
-| PATCH  | /api/lists/:id/items/:itemId     | Ažuriranje stavke             |
-| DELETE | /api/lists/:id/items/:itemId     | Ukloni stavku                 |
-
-### Javna lista (bez prijave)
-| Metoda | Endpoint                                    | Opis                              |
-|--------|---------------------------------------------|-----------------------------------|
-| GET    | /api/public/lista/:slug                     | Dohvati javnu listu               |
-| POST   | /api/public/lista/:slug/rezerviraj/:itemId  | **Rezervacija s imenom**          |
-| DELETE | /api/public/lista/:slug/rezerviraj/:itemId  | Otkazivanje rezervacije           |
-
-### Proizvodi
-| Metoda | Endpoint                 | Opis                            |
-|--------|--------------------------|---------------------------------|
-| GET    | /api/products            | Pretraživanje (q, kategorija, cijena...) |
-| GET    | /api/products/categories | Sve kategorije                  |
-| GET    | /api/products/:id        | Jedan proizvod                  |
-
-### Admin
-| Metoda | Endpoint                       | Opis                          |
-|--------|-------------------------------|-------------------------------|
-| GET    | /api/admin/shops              | Popis shopova                 |
-| POST   | /api/admin/shops/:slug/scrape | Pokretanje scrapera           |
-| GET    | /api/admin/stats              | Statistike                    |
+- **Admin API** (`/api/admin/*`) traži JWT korisnika s ulogom `ADMIN`.
+- **Rezervacije** su bez prijave: pri rezervaciji gost dobije tajni `ownerToken` koji ostaje u njegovom browseru (localStorage). Samo s njim može otkazati rezervaciju ili je označiti kao kupljenu. Mama može osloboditi bilo koju rezervaciju na svojoj listi.
+- **Smart paste** dohvaća samo javne http(s) adrese; privatne i interne IP adrese blokirane su na razini konekcije, uključujući redirecte.
+- **Javne liste** su `noindex` jer sadrže imena i termine poroda.
+- Rate limiting: prijava (broji samo neuspjele pokušaje), javne rezervacije, pretraga, smart paste.
 
 ---
 
-## 📱 Stranice frontenda
+## 📡 API
 
-| URL                  | Opis                                           |
-|----------------------|------------------------------------------------|
-| `/`                  | Landing page                                   |
-| `/katalog`           | Pretraživanje i filtriranje proizvoda           |
-| `/moja-lista`        | Dashboard mame — upravljanje listama           |
-| `/lista/:slug`       | **Javna lista za prijatelje + rezervacija**    |
-| `/prijava`           | Login stranica                                 |
-| `/registracija`      | Registracija                                   |
+Auth: `POST /api/auth/register|login|google`, `GET /api/auth/me`, `PATCH /api/auth/profile`, `DELETE /api/auth/account`
 
----
+Liste (prijava): `GET|POST /api/lists`, `GET|PATCH|DELETE /api/lists/:id`, `POST /api/lists/:id/items`, `PATCH|DELETE /api/lists/:id/items/:itemId`, `DELETE /api/lists/:id/items/:itemId/reservation`, `POST /api/lists/smart-paste`
 
-## 🕷️ Scraper detalji
+Javno: `GET /api/public/lista/:slug`, `GET /api/public/pretraga?q=`, `GET /api/public/settings`, `POST|DELETE /api/public/lista/:slug/rezerviraj/:itemId`, `PATCH /api/public/lista/:slug/rezerviraj/:itemId/status`, `POST /api/public/lista/:slug/group/:itemId/join`, `DELETE /api/public/lista/:slug/group/:itemId/leave/:contributorId`
 
-Scraper koristi **Playwright** (headless Chromium) za scraping Baby Centar-a.
+Proizvodi: `GET /api/products`, `/api/products/categories`, `/api/products/featured`, `/api/products/:id`
 
-**Kategorije koje se scrapeaju:**
-- Kolica
-- Autosjedalice  
-- Nosiljke
-- Kod kuće (kreveti, posteljina, igračke...)
-- Hranjenje i njega
-- Igračke
-- Za mame
-- Odjeća
-
-**Automatski re-scrape:** Svaku noć u 02:00 (node-cron).
-
-**Što se sprema:** naziv, cijena, slika, URL, dostupnost, shop, kategorija.
+Admin: `/api/admin/stats|users|shops|featured|settings|products|category-mappings|unmapped-categories|categories`
 
 ---
 
-## 🔄 Tok rezervacije (prijatelji)
+## 🕷️ Scraperi
 
-1. Mama kreira listu i dobiva share link: `/lista/abc123def456`
-2. Šalje link prijateljima (WhatsApp, email, Instagram...)
-3. Prijatelji otvore link — **bez registracije**
-4. Kliknu "Kupit ću ovo" na željenom proizvodu
-5. **Upisuju svoje ime** (i opcionalnu poruku za mamu)
-6. Proizvod se označi kao rezerviran s njihovim imenom
-7. Mama u svom dashboardu vidi tko je što rezervirao
-8. Prijatelji se preusmjeravaju direktno na shop za kupnju
+`backend/src/scraper/`: `babycenter.ts` i `svijetbeba.ts` definiraju kategorije i parsiranje, `shared.ts` sadrži zajednički tok rada.
+
+- **Automatski:** svaku noć u 02:00 (Baby Center) i 03:00 (Svijet Beba), po zagrebačkom vremenu. Ručno: admin panel ili `npm run scrape [shop]`.
+- **Povlačenje proizvoda:** proizvod koji shop više ne prikazuje dobiva `inStock = false` i nestaje iz kataloga, ali ostaje na listama s upozorenjem. To se događa samo nakon zdravog prolaza, tako da blokiran ili pokvaren scrape ne može isprazniti katalog.
+- **Kad shop promijeni strukturu:** neuspjele kategorije vide se u admin panelu pod *Scraper*. Tada ažuriraj `TARGETS` u odgovarajućoj datoteci.
 
 ---
 
-## 🛠️ Tech Stack
+## 🗄️ Promjene baze
 
-| Sloj      | Tehnologija                          |
-|-----------|--------------------------------------|
-| Frontend  | Next.js 14, TypeScript, Tailwind CSS |
-| Backend   | Node.js, Express, TypeScript         |
-| ORM       | Prisma                               |
-| Baza      | PostgreSQL                           |
-| Scraping  | Playwright (Chromium)                |
-| Scheduler | node-cron                            |
-| Auth      | JWT (bcryptjs)                       |
-| Validacija| Zod                                  |
-
----
-
-## 📋 Sljedeći koraci
-
-- [ ] Email notifikacije (Resend) — mama dobiva email kad netko rezervira
-- [ ] Admin panel UI
-- [ ] Dodavanje još shopova (Mothercare, Amazon...)
-- [ ] Promjena statusa iz "rezervirano" u "kupljeno"
-- [ ] Slanje poruke mami
-- [ ] PWA za mobilne uređaje
-- [ ] Social sharing preview (OG tags)
+Sheme se primjenjuju s `prisma db push`. **Mijenjaj je samo aditivno** (nova polja s defaultom ili nullable, indeksi), da deploy ne obriše produkcijske podatke.

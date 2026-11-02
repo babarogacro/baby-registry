@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Modal from '@/components/Modal'
+import { Toast, useToast } from '@/components/Toast'
 import { listsApi, authApi, addRefToUrl, apiError } from '@/lib/api'
 import { formatPrice, parseAmount, parseDMY, maskDMY, formatDateHR, plural, shopLabel } from '@/lib/format'
 import { useAuthStore } from '@/lib/store'
@@ -205,6 +206,7 @@ function ListItemRow({ item, onDelete, onPriorityChange, onNoteChange, onClearRe
           </a>
         ) : <p className="text-sm font-medium text-charcoal line-clamp-2">{product.name}</p>}
         <p className="text-xs text-warm-gray mt-0.5">{shopLabel(product)}</p>
+        {!product.inStock && <p className="text-xs text-rose mt-0.5">⚠️ Shop ovo možda više nema u ponudi — razmisli o zamjeni.</p>}
 
         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
           {product.price > 0 && <span className="text-sm font-medium text-rose">{formatPrice(product.price, product.currency)}</span>}
@@ -573,7 +575,7 @@ export default function MojaListaPage() {
   const [shareList, setShareList] = useState<BabyList | null>(null)
   const [smartPasteListId, setSmartPasteListId] = useState<string | null>(null)
   const [deleteList, setDeleteList] = useState<BabyList | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
+  const { toast, showToast } = useToast()
 
   useEffect(() => { loadFromStorage() }, [loadFromStorage])
 
@@ -588,9 +590,6 @@ export default function MojaListaPage() {
       .catch(err => setLoadError(apiError(err, 'Liste se trenutno ne mogu učitati.')))
       .finally(() => setLoading(false))
   }, [user, authLoading, router])
-
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000) }
-
   const patchList = (listId: string, fn: (l: BabyList) => BabyList) => setLists(prev => prev.map(l => l.id === listId ? fn(l) : l))
 
   const withToast = async (fn: () => Promise<unknown>, success?: string) => {
@@ -793,11 +792,7 @@ export default function MojaListaPage() {
           onConfirm={confirmDeleteList} onClose={() => setDeleteList(null)} />
       )}
 
-      {toast && (
-        <div role="status" className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 bg-charcoal text-white text-sm rounded-full shadow-2xl fade-in whitespace-nowrap">
-          {toast}
-        </div>
-      )}
+      <Toast message={toast} />
     </>
   )
 }

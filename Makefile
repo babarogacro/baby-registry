@@ -1,4 +1,4 @@
-.PHONY: help install dev db scrape
+.PHONY: help install dev db scrape check
 
 help:
 	@echo ""
@@ -7,22 +7,17 @@ help:
 	@echo "  make install    Instaliraj sve ovisnosti (backend + frontend)"
 	@echo "  make db         Pokreni PostgreSQL u Dockeru + kreiraj tablice"
 	@echo "  make dev        Pokreni backend i frontend u dev modu"
-	@echo "  make scrape     Pokreni Baby Centar scraper"
+	@echo "  make scrape     Pokreni scrapere (Baby Center + Svijet Beba)"
+	@echo "  make check      TypeScript provjera backenda i frontenda"
 	@echo ""
 
 install:
 	cd backend && npm install
 	cd frontend && npm install
-	cd backend && npx playwright install chromium
 	@echo "✅ Instalacija završena!"
 
 db:
-	docker run -d --name baby-registry-db \
-		-e POSTGRES_USER=baby \
-		-e POSTGRES_PASSWORD=baby123 \
-		-e POSTGRES_DB=baby_registry \
-		-p 5432:5432 \
-		postgres:16-alpine 2>/dev/null || docker start baby-registry-db
+	docker compose up -d db
 	@echo "Čekam bazu..."
 	@sleep 3
 	cd backend && cp -n .env.example .env || true
@@ -37,3 +32,7 @@ dev:
 
 scrape:
 	cd backend && npm run scrape
+
+check:
+	cd backend && npm run typecheck
+	cd frontend && npm run typecheck

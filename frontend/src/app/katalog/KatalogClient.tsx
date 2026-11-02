@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import ProductCard from '@/components/ProductCard'
 import Modal from '@/components/Modal'
+import { Toast, useToast } from '@/components/Toast'
 import { productsApi, listsApi, apiError } from '@/lib/api'
 import { formatPrice, plural } from '@/lib/format'
 import { useAuthStore } from '@/lib/store'
@@ -154,7 +155,7 @@ export default function KatalogClient() {
   const [loadError, setLoadError] = useState('')
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 })
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
+  const { toast, showToast } = useToast()
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set())
 
@@ -225,9 +226,6 @@ export default function KatalogClient() {
   }, [])
 
   useEffect(() => { if (user) loadLists() }, [user, loadLists])
-
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000) }
-
   const handleAddClick = (product: Product) => {
     if (!user) {
       router.push(`/prijava?next=${encodeURIComponent(`${pathname}?${searchParams.toString()}`)}`)
@@ -449,9 +447,7 @@ export default function KatalogClient() {
           }} />
       )}
 
-      {toast && (
-        <div role="status" className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-6 py-3 bg-charcoal text-white text-sm rounded-full shadow-2xl fade-in">{toast}</div>
-      )}
+      <Toast message={toast} />
     </>
   )
 }

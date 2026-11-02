@@ -24,18 +24,18 @@ async function categoryWithDescendants(where: Prisma.CategoryWhereUniqueInput) {
   return [category.id, ...children.map(c => c.id), ...grandchildren.map(c => c.id)]
 }
 
-// Products visible in the public catalog: active scraped shops only. Hand-added
-// products ("custom") belong to individual lists and must not leak to everyone.
+// Products visible in the public catalog: still listed by an active scraped shop.
+// Hand-added products ("custom") belong to individual lists and must not leak to everyone.
 async function catalogShopFilter(): Promise<Prisma.ProductWhereInput> {
   const activeShops = await prisma.scrapedShop.findMany({ where: { isActive: true }, select: { slug: true } })
-  return { shopSlug: { in: activeShops.map(s => s.slug) } }
+  return { shopSlug: { in: activeShops.map(s => s.slug) }, inStock: true }
 }
 
 // GET /api/products
 productsRouter.get('/', async (req, res) => {
   try {
     const q = typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 100) : ''
-    const { categoryId, categorySlug, shopSlug, inStock, sortBy } = req.query as Record<string, string | undefined>
+    const { categoryId, categorySlug, shopSlug, sortBy } = req.query as Record<string, string | undefined>
     const page = toInt(req.query.page, 1, 1, 10_000)
     const take = toInt(req.query.limit, 24, 1, 100)
     const minPrice = toPrice(req.query.minPrice)
@@ -44,7 +44,6 @@ productsRouter.get('/', async (req, res) => {
     const and: Prisma.ProductWhereInput[] = [await catalogShopFilter()]
     if (q) and.push({ OR: [{ name: { contains: q, mode: 'insensitive' } }, { description: { contains: q, mode: 'insensitive' } }] })
     if (shopSlug) and.push({ shopSlug })
-    if (inStock === 'true') and.push({ inStock: true })
     if (minPrice !== undefined || maxPrice !== undefined) and.push({ price: { gte: minPrice, lte: maxPrice } })
 
     if (categorySlug || categoryId) {
@@ -115,6 +114,7 @@ productsRouter.get('/categories', async (_req, res) => {
 productsRouter.get('/featured', async (_req, res) => {
   try {
     const featured = await prisma.featuredProduct.findMany({
+      where: { product: { inStock: true } },
       include: { product: { include: { category: true } } },
       orderBy: { position: 'asc' },
       take: 12,
