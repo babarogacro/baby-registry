@@ -65,6 +65,7 @@ export interface CustomProductInput {
   imageUrl?: string
   productUrl?: string
   description?: string
+  shopName?: string
 }
 
 export const listsApi = {

@@ -1,3 +1,22 @@
+/** Croatian plural: plural(1, 'stavka', 'stavke', 'stavki') → "stavka"; 3 → "stavke"; 5, 11, 12 → "stavki". */
+export function plural(n: number, one: string, few: string, many: string) {
+  const mod10 = n % 10
+  const mod100 = n % 100
+  if (mod10 === 1 && mod100 !== 11) return one
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few
+  return many
+}
+
+/** Items added from a link used to store a placeholder shop name; fall back to the link's domain. */
+export function shopLabel(product: { shopName: string; productUrl?: string }) {
+  if (product.shopName !== 'Ručno dodano' || !product.productUrl) return product.shopName
+  try {
+    return new URL(product.productUrl).hostname.replace(/^www\./, '')
+  } catch {
+    return product.shopName
+  }
+}
+
 const formatters = new Map<string, Intl.NumberFormat>()
 
 export function formatPrice(amount: number, currency = 'EUR') {

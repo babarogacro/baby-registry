@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Modal from '@/components/Modal'
 import { listsApi, authApi, addRefToUrl, apiError } from '@/lib/api'
-import { formatPrice, parseAmount, parseDMY, maskDMY, formatDateHR } from '@/lib/format'
+import { formatPrice, parseAmount, parseDMY, maskDMY, formatDateHR, plural, shopLabel } from '@/lib/format'
 import { useAuthStore } from '@/lib/store'
 import { BabyList, ListItem, Priority, SmartPasteResult, GroupContributor } from '@/types'
 import {
@@ -79,6 +79,7 @@ function SmartPasteModal({ listId, onClose, onAdded }: {
         imageUrl: result.imageUrl,
         productUrl: result.productUrl,
         description: result.description,
+        shopName: result.shopName,
       }, priority, note.trim() || undefined)
       onAdded(res.data)
     } catch (err) {
@@ -203,7 +204,7 @@ function ListItemRow({ item, onDelete, onPriorityChange, onNoteChange, onClearRe
             <ExternalLink size={11} className="text-warm-gray/50 group-hover:text-rose flex-shrink-0 mt-1" />
           </a>
         ) : <p className="text-sm font-medium text-charcoal line-clamp-2">{product.name}</p>}
-        <p className="text-xs text-warm-gray mt-0.5">{product.shopName}</p>
+        <p className="text-xs text-warm-gray mt-0.5">{shopLabel(product)}</p>
 
         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
           {product.price > 0 && <span className="text-sm font-medium text-rose">{formatPrice(product.price, product.currency)}</span>}
@@ -653,7 +654,7 @@ export default function MojaListaPage() {
             <div className="min-w-0">
               <h1 className="font-serif text-2xl sm:text-3xl text-charcoal truncate">Hej, {user?.name?.split(' ')[0]}! 👋</h1>
               <p className="text-warm-gray text-sm mt-1">
-                {lists.length === 0 ? 'Kreiraj svoju prvu listu' : `Imaš ${lists.length} ${lists.length === 1 ? 'listu' : lists.length < 5 ? 'liste' : 'lista'}`}
+                {lists.length === 0 ? 'Kreiraj svoju prvu listu' : `Imaš ${lists.length} ${plural(lists.length, 'listu', 'liste', 'lista')}`}
               </p>
             </div>
             <button onClick={() => setShowNewModal(true)}
@@ -690,7 +691,7 @@ export default function MojaListaPage() {
                     <div className="flex-1 min-w-0">
                       <EditableListName name={list.name} onSave={name => updateListFields(list, { name })} />
                       <p className="text-xs text-warm-gray mt-0.5 flex items-center gap-1.5 flex-wrap">
-                        <span>{total} stavki · {reserved} rez.{purchased > 0 && ` · ${purchased} kupljeno`}</span>
+                        <span>{total} {plural(total, 'stavka', 'stavke', 'stavki')} · {reserved} rez.{purchased > 0 && ` · ${purchased} kupljeno`}</span>
                         {!list.isPublic && <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-warm-gray/10 rounded-full"><Lock size={9} /> privatna</span>}
                       </p>
                     </div>

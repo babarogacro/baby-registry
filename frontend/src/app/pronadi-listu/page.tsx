@@ -5,7 +5,7 @@ import Navbar from '@/components/Navbar'
 import { searchApi } from '@/lib/api'
 import { BabyList } from '@/types'
 import { Search, X, ArrowRight, Calendar } from 'lucide-react'
-import { formatDateHR } from '@/lib/format'
+import { formatDateHR, plural } from '@/lib/format'
 
 const OCC: Record<string, { emoji: string; label: string }> = {
   birth:    { emoji: '🍼', label: 'Rođenje djeteta' },
@@ -34,7 +34,7 @@ function ListCard({ list }: { list: BabyList }) {
           </div>
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             {occ && <span className="text-xs px-2.5 py-1 bg-blush/40 text-rose rounded-full font-medium">{occ.emoji} {occ.label}</span>}
-            {list._count && <span className="text-xs px-2.5 py-1 bg-cream text-warm-gray rounded-full">{list._count.items} poklona</span>}
+            {list._count && <span className="text-xs px-2.5 py-1 bg-cream text-warm-gray rounded-full">{list._count.items} {plural(list._count.items, 'poklon', 'poklona', 'poklona')}</span>}
             {list.user?.babyGender && list.user.babyGender !== 'surprise' && (
               <span className="text-xs px-2.5 py-1 bg-cream text-warm-gray rounded-full">
                 {list.user.babyGender === 'boy' ? '💙 Dječak' : '💗 Djevojčica'}
@@ -45,7 +45,7 @@ function ListCard({ list }: { list: BabyList }) {
             <div className="flex items-center gap-1.5 mt-2 text-xs text-warm-gray">
               <Calendar size={11} />
               {formatDateHR(dueDate)}
-              {daysLeft !== null && daysLeft > 0 && <span className="text-rose font-medium">({daysLeft} dana)</span>}
+              {daysLeft !== null && daysLeft > 0 && <span className="text-rose font-medium">(još {daysLeft} {plural(daysLeft, 'dan', 'dana', 'dana')})</span>}
               {daysLeft !== null && daysLeft <= 0 && <span className="text-sage font-medium">(već je tu! 🎉)</span>}
             </div>
           )}
@@ -106,7 +106,7 @@ export default function PronadiListuPage() {
               </div>
             ) : (
               <>
-                <p className="text-sm text-warm-gray mb-4">Pronađeno <strong>{results.length}</strong> lista</p>
+                <p className="text-sm text-warm-gray mb-4">Pronađeno <strong>{results.length}</strong> {plural(results.length, 'lista', 'liste', 'lista')}</p>
                 <div className="space-y-3">{results.map(list => <ListCard key={list.id} list={list} />)}</div>
               </>
             )

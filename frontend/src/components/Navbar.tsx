@@ -1,15 +1,14 @@
 'use client'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { useAuthStore } from '@/lib/store'
+import { useAuthStore, leaveToHome } from '@/lib/store'
 import { Heart, User, LogOut, Menu, X, Shield, Search } from 'lucide-react'
 import clsx from 'clsx'
 
 export default function Navbar() {
   const { user, logout, loadFromStorage } = useAuthStore()
   const pathname = usePathname()
-  const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
 
@@ -23,7 +22,7 @@ export default function Navbar() {
 
   useEffect(() => { setMenuOpen(false) }, [pathname])
 
-  const handleLogout = () => { logout(); router.push('/') }
+  const handleLogout = () => { leaveToHome(); logout() }
   const isActive = (href: string) => pathname === href
 
   const navLink = (href: string, label: string, icon?: React.ReactNode) => (

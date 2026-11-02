@@ -110,6 +110,7 @@ listsRouter.post('/:id/items', async (req: AuthRequest, res) => {
         imageUrl: httpUrl.optional(),
         productUrl: httpUrl.optional(),
         description: z.string().max(2000).optional(),
+        shopName: z.string().trim().min(1).max(100).optional(),
       }).optional(),
       priority: priority.default('MEDIUM'),
       note: itemNote.optional(),
@@ -129,7 +130,7 @@ listsRouter.post('/:id/items', async (req: AuthRequest, res) => {
           imageUrl: data.customProduct.imageUrl ?? null,
           productUrl: data.customProduct.productUrl ?? '',
           description: data.customProduct.description ?? null,
-          shopName: 'Ručno dodano',
+          shopName: data.customProduct.shopName ?? 'Ručno dodano',
           shopSlug: 'custom',
           currency: 'EUR',
           inStock: true,
@@ -169,6 +170,17 @@ function findPrice(obj: any): number | undefined {
   return undefined
 }
 
+// Page titles usually end with the shop name: "Kolica Joie | Svijet Beba".
+function stripSiteName(title: string, site?: string) {
+  if (!site) return title
+  const name = site.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const cleaned = title
+    .replace(new RegExp(`\\s*[|–—·:-]\\s*${name}\\s*$`, 'i'), '')
+    .replace(new RegExp(`^${name}\\s*[|–—·:-]\\s*`, 'i'), '')
+    .trim()
+  return cleaned || title
+}
+
 function absoluteHttpUrl(value: string | undefined, base: string) {
   if (!value) return undefined
   try {
@@ -188,7 +200,7 @@ listsRouter.post('/smart-paste', smartPasteLimiter, async (req: AuthRequest, res
     const title = meta('meta[property="og:title"]') || meta('meta[name="twitter:title"]') || $('title').first().text().trim()
     const imageUrl = absoluteHttpUrl(meta('meta[property="og:image"]') || meta('meta[name="twitter:image"]'), url)
     const description = meta('meta[property="og:description"]') || meta('meta[name="description"]')
-    const shopName = meta('meta[property="og:site_name"]') || new URL(url).hostname.replace(/^www\./, '')
+    const shopName = (meta('meta[property="og:site_name"]') || new URL(url).hostname.replace(/^www\./, '')).slice(0, 100)
 
     let price: number | undefined
     $('script[type="application/ld+json"]').each((_, el) => {
@@ -209,11 +221,11 @@ listsRouter.post('/smart-paste', smartPasteLimiter, async (req: AuthRequest, res
     }
 
     res.json({
-      title: (title || '').slice(0, 300),
+      title: stripSiteName(title || '', shopName).slice(0, 300),
       imageUrl,
       description: description?.slice(0, 2000),
       price,
-      shopName: shopName?.slice(0, 100),
+      shopName,
       productUrl: url,
     })
   } catch (err) {

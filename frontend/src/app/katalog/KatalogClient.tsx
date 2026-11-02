@@ -6,7 +6,7 @@ import Navbar from '@/components/Navbar'
 import ProductCard from '@/components/ProductCard'
 import Modal from '@/components/Modal'
 import { productsApi, listsApi, apiError } from '@/lib/api'
-import { formatPrice } from '@/lib/format'
+import { formatPrice, plural } from '@/lib/format'
 import { useAuthStore } from '@/lib/store'
 import { Product, Category, BabyList, Priority } from '@/types'
 import { Search, X, ChevronLeft, ChevronRight, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react'
@@ -30,6 +30,8 @@ const PRIORITIES: { value: Priority; label: string; cls: string }[] = [
   { value: 'MEDIUM', label: '🌿 Srednje', cls: 'priority-MEDIUM' },
   { value: 'LOW', label: '✨ Luksuz', cls: 'priority-LOW' },
 ]
+
+const listCount = (list: BabyList) => list._count?.items ?? list.items?.length ?? 0
 
 function AddToListModal({ product, lists, onClose, onAdded }: {
   product: Product
@@ -80,7 +82,7 @@ function AddToListModal({ product, lists, onClose, onAdded }: {
                     <button key={list.id} type="button" aria-pressed={listId === list.id} onClick={() => setListId(list.id)}
                       className={clsx('w-full text-left px-4 py-3 rounded-2xl border text-sm transition-all',
                         listId === list.id ? 'border-rose bg-blush/20 text-charcoal font-medium' : 'border-blush/40 text-warm-gray hover:border-blush-mid')}>
-                      {list.name} <span className="opacity-60 text-xs">({list._count?.items ?? list.items?.length ?? 0} stavki)</span>
+                      {list.name} <span className="opacity-60 text-xs">({listCount(list)} {plural(listCount(list), 'stavka', 'stavke', 'stavki')})</span>
                     </button>
                   ))}
                 </div>
@@ -395,7 +397,7 @@ export default function KatalogClient() {
               ) : (
                 <>
                   <p className="text-sm text-warm-gray mb-4" aria-live="polite">
-                    {pagination.total.toLocaleString('hr-HR')} proizvoda
+                    {pagination.total.toLocaleString('hr-HR')} {plural(pagination.total, 'proizvod', 'proizvoda', 'proizvoda')}
                     {filters.q && <> za „<strong>{filters.q}</strong>"</>}
                     {(filters.min || filters.max) && <> · {filters.min || '0'} € – {filters.max || '∞'} €</>}
                     {hasFilters && <button onClick={resetAll} className="ml-2 text-rose hover:underline">Očisti filtere</button>}
@@ -431,7 +433,7 @@ export default function KatalogClient() {
           <div className="px-5 sm:px-6 pb-6">
             {filterSidebar}
             <button onClick={() => setFiltersOpen(false)} className="mt-6 w-full py-3 bg-charcoal text-white rounded-full text-sm font-medium">
-              Prikaži {pagination.total.toLocaleString('hr-HR')} proizvoda
+              Prikaži {pagination.total.toLocaleString('hr-HR')} {plural(pagination.total, 'proizvod', 'proizvoda', 'proizvoda')}
             </button>
           </div>
         </Modal>

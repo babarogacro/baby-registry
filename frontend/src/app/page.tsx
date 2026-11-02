@@ -4,6 +4,7 @@ import ProductCard from '@/components/ProductCard'
 import AuthAwareLink from '@/components/AuthAwareLink'
 import Footer from '@/components/Footer'
 import { getCategories, getFeaturedProducts, getPublicSettings } from '@/lib/server'
+import { plural } from '@/lib/format'
 import { Heart, Share2, Gift, ShoppingBag, ArrowRight } from 'lucide-react'
 
 export const revalidate = 300
@@ -132,7 +133,7 @@ export default async function HomePage() {
                     className="group p-4 bg-white rounded-2xl border border-blush/30 hover:border-blush-mid hover:shadow-md transition-all text-center">
                     <span className="text-3xl block mb-2" aria-hidden>{CATEGORY_EMOJI[cat.slug] ?? '🎁'}</span>
                     <span className="text-sm font-medium text-charcoal group-hover:text-rose transition-colors">{cat.name}</span>
-                    <span className="block text-xs text-warm-gray/70 mt-0.5">{cat.totalCount} proizvoda</span>
+                    <span className="block text-xs text-warm-gray/70 mt-0.5">{cat.totalCount} {plural(cat.totalCount ?? 0, 'proizvod', 'proizvoda', 'proizvoda')}</span>
                   </Link>
                 ))}
               </div>

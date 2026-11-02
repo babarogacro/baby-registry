@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Modal from '@/components/Modal'
 import { authApi, apiError } from '@/lib/api'
-import { useAuthStore } from '@/lib/store'
+import { useAuthStore, leaveToHome } from '@/lib/store'
 import { User, Calendar, Baby, Save, Check } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -161,7 +161,7 @@ export default function ProfilPage() {
 
       {deleting && (
         <DeleteAccountModal onClose={() => setDeleting(false)}
-          onDeleted={() => { logout(); router.replace('/') }} />
+          onDeleted={() => { leaveToHome(); logout() }} />
       )}
     </>
   )

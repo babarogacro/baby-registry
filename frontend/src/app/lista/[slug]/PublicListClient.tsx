@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { publicApi, addRefToUrl, apiError } from '@/lib/api'
 import { getMyReservations, rememberReservation, forgetReservation, lastUsedName, MyReservation } from '@/lib/myReservations'
-import { formatPrice, parseAmount, formatDateHR } from '@/lib/format'
+import { formatPrice, parseAmount, formatDateHR, plural, shopLabel } from '@/lib/format'
 import Modal from '@/components/Modal'
 import { BabyList, ListItem, GroupContributor, Product } from '@/types'
 import { ExternalLink, Heart, Gift, Check, User, MessageSquare, Users, ShoppingBag, Undo2 } from 'lucide-react'
@@ -44,7 +44,7 @@ function ProductSummary({ item }: { item: ListItem }) {
         <p className="text-sm font-medium text-charcoal line-clamp-2 leading-snug">{product.name}</p>
         {item.note && <p className="text-xs text-warm-gray mt-0.5">📝 {item.note}</p>}
         {product.price > 0 && <p className="text-sm text-rose font-medium mt-0.5">{formatPrice(product.price, product.currency)}</p>}
-        <p className="text-xs text-warm-gray">{product.shopName}</p>
+        <p className="text-xs text-warm-gray">{shopLabel(product)}</p>
       </div>
     </div>
   )
@@ -132,7 +132,7 @@ function ReserveStep({ item, slug, onDone, onConflict, onClose }: {
         {link && (
           <a href={link} target="_blank" rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-6 py-3 bg-sage text-white rounded-full text-sm font-medium hover:bg-sage/90 transition-colors">
-            <ExternalLink size={14} /> Idi na {item.product.shopName}
+            <ExternalLink size={14} /> Idi na {shopLabel(item.product)}
           </a>
         )}
       </SuccessStep>
@@ -280,7 +280,7 @@ function GroupBuyInfo({ reservation, mine, onLeave }: {
   return (
     <div className="mt-2 p-3 bg-sage-light/20 rounded-xl border border-sage/10">
       <div className="flex items-center justify-between text-xs text-warm-gray mb-1.5">
-        <span>{formatPrice(total)} / {formatPrice(target)} · {contributors.length} {contributors.length === 1 ? 'osoba' : 'osobe'}</span>
+        <span>{formatPrice(total)} / {formatPrice(target)} · {contributors.length} {plural(contributors.length, 'osoba', 'osobe', 'osoba')}</span>
         <span className="font-medium text-sage">{progress}%</span>
       </div>
       <div className="h-2.5 bg-white/80 rounded-full border border-sage/20 overflow-hidden mb-2" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
@@ -381,7 +381,7 @@ function PublicListItem({ item, mine, busy, onStart, onPurchased, onCancel, onLe
         <div className="flex items-center gap-2 mt-1 flex-wrap">
           {product.price > 0 && <span className="text-sm font-medium text-rose">{formatPrice(product.price, product.currency)}</span>}
           {product.price > 0 && <span className="text-xs text-warm-gray/50">·</span>}
-          <span className="text-xs text-warm-gray">{product.shopName}</span>
+          <span className="text-xs text-warm-gray">{shopLabel(product)}</span>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2 mt-2 flex-wrap">
           <span className={clsx('text-xs px-2 py-0.5 rounded-full font-medium', priority.cls)}>{priority.label}</span>
@@ -593,7 +593,7 @@ export default function PublicListClient({ slug, initialList, initialError }: {
             {dueDate && (
               <span className="flex items-center gap-1.5 text-xs sm:text-sm text-warm-gray bg-white/70 px-2.5 sm:px-3 py-1.5 rounded-full border border-blush/30">
                 🗓️ {formatDateHR(dueDate)}
-                {daysUntilDue !== null && daysUntilDue > 0 && <span className="text-rose font-medium">(još {daysUntilDue} {daysUntilDue === 1 ? 'dan' : 'dana'})</span>}
+                {daysUntilDue !== null && daysUntilDue > 0 && <span className="text-rose font-medium">(još {daysUntilDue} {plural(daysUntilDue, 'dan', 'dana', 'dana')})</span>}
               </span>
             )}
             {owner.babyGender && (
@@ -626,7 +626,7 @@ export default function PublicListClient({ slug, initialList, initialError }: {
       <main className="max-w-2xl mx-auto px-3 sm:px-4 pb-16">
         {myCount > 0 && (
           <p className="mb-4 p-3 bg-white rounded-2xl border border-gold/30 text-sm text-charcoal text-center">
-            ⭐ Ovdje imaš {myCount} {myCount === 1 ? 'rezervaciju' : 'rezervacije'} — možeš ih označiti kao kupljene ili otkazati.
+            ⭐ Ovdje imaš {myCount} {plural(myCount, 'rezervaciju', 'rezervacije', 'rezervacija')} — {myCount === 1 ? 'možeš je označiti kao kupljenu ili otkazati' : 'možeš ih označiti kao kupljene ili otkazati'}.
           </p>
         )}
 

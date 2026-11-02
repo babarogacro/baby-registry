@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Modal from '@/components/Modal'
 import { adminApi, productsApi, apiError } from '@/lib/api'
-import { formatPrice } from '@/lib/format'
+import { formatPrice, plural } from '@/lib/format'
 import { useAuthStore } from '@/lib/store'
 import { Product, AdminUser, CategoryMapping, Category } from '@/types'
 import { RefreshCw, Search, Shield, ArrowRight, Trash2 } from 'lucide-react'
@@ -43,7 +43,7 @@ function UserCard({ u, onOpen, onToggleRole, isSelf }: { u: AdminUser; onOpen: (
           {u.role === 'ADMIN' && <span className="px-2 py-0.5 bg-rose/10 text-rose text-xs rounded-full font-medium">Admin</span>}
         </div>
         <p className="text-sm text-warm-gray break-all">{u.email}</p>
-        <p className="text-xs text-warm-gray/70 mt-0.5">{u._count.lists} {u._count.lists === 1 ? 'lista' : 'liste'} · registriran {new Date(u.createdAt).toLocaleDateString('hr-HR')}</p>
+        <p className="text-xs text-warm-gray/70 mt-0.5">{u._count.lists} {plural(u._count.lists, 'lista', 'liste', 'lista')} · registriran {new Date(u.createdAt).toLocaleDateString('hr-HR')}</p>
       </div>
       <div className="flex gap-2">
         <button onClick={onOpen} className="px-3 py-1.5 text-xs font-medium bg-sage-light/60 text-sage rounded-full hover:bg-sage-light transition-colors">Vidi liste</button>
@@ -250,7 +250,7 @@ export default function AdminPage() {
                     onChange={e => { setUserSearch(e.target.value); setUserPage(1) }}
                     className="w-full pl-9 pr-4 py-2.5 bg-white border border-blush/40 rounded-xl text-sm focus:outline-none focus:border-rose" />
                 </div>
-                <span className="text-sm text-warm-gray">{usersTotal} korisnika</span>
+                <span className="text-sm text-warm-gray">{usersTotal} {plural(usersTotal, 'korisnik', 'korisnika', 'korisnika')}</span>
               </div>
               <ul className="space-y-3">
                 {users.map(u => (
@@ -497,7 +497,7 @@ export default function AdminPage() {
                         <div className="flex items-center justify-between gap-3">
                           <div>
                             <p className="font-medium text-charcoal">{list.name}</p>
-                            <p className="text-xs text-warm-gray mt-0.5">{list._count?.items ?? list.items.length} stavki{reserved > 0 && ` · ${reserved} rezervirano`}</p>
+                            <p className="text-xs text-warm-gray mt-0.5">{list._count?.items ?? list.items.length} {plural(list._count?.items ?? list.items.length, 'stavka', 'stavke', 'stavki')}{reserved > 0 && ` · ${reserved} rezervirano`}</p>
                           </div>
                           <span className="text-xs text-rose">/lista/{list.shareSlug.slice(0, 8)}…</span>
                         </div>
