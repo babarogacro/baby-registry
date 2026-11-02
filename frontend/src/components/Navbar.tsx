@@ -16,15 +16,18 @@ export default function Navbar() {
   useEffect(() => {
     loadFromStorage()
     const onScroll = () => setScrolled(window.scrollY > 10)
-    window.addEventListener('scroll', onScroll)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
-  }, [])
+  }, [loadFromStorage])
+
+  useEffect(() => { setMenuOpen(false) }, [pathname])
 
   const handleLogout = () => { logout(); router.push('/') }
   const isActive = (href: string) => pathname === href
 
   const navLink = (href: string, label: string, icon?: React.ReactNode) => (
-    <Link href={href} className={clsx('text-sm font-medium transition-colors flex items-center gap-1.5',
+    <Link href={href} aria-current={isActive(href) ? 'page' : undefined} className={clsx('text-sm font-medium transition-colors flex items-center gap-1.5',
       isActive(href) ? 'text-rose' : 'text-warm-gray hover:text-charcoal')}>
       {icon}{label}
     </Link>
@@ -67,14 +70,15 @@ export default function Navbar() {
             )}
           </div>
 
-          <button className="md:hidden p-2 text-warm-gray" onClick={() => setMenuOpen(!menuOpen)}>
+          <button className="md:hidden p-2 -mr-2 text-warm-gray" onClick={() => setMenuOpen(!menuOpen)}
+            aria-label={menuOpen ? 'Zatvori izbornik' : 'Otvori izbornik'} aria-expanded={menuOpen} aria-controls="mobile-menu">
             {menuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
       </div>
 
       {menuOpen && (
-        <div className="md:hidden bg-white border-t border-blush/40 px-4 py-4 space-y-1">
+        <div id="mobile-menu" className="md:hidden bg-white border-t border-blush/40 px-4 py-4 space-y-1">
           {[
             { href: '/katalog', label: 'Katalog' },
             { href: '/pronadi-listu', label: '🔍 Pronađi listu' },

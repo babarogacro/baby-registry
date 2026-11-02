@@ -85,6 +85,8 @@ export default function PrivatnostPage() {
               </p>
               <ul className="list-disc pl-5 mt-2 space-y-1">
                 <li><strong>Autentifikacijski token</strong> — pohranjen u localStorage preglednika za održavanje sesije.</li>
+                <li><strong>Token rezervacije</strong> — kad rezervirate poklon, u localStorage vašeg preglednika spremamo
+                  nasumični ključ i ime koje ste upisali, kako biste kasnije s istog uređaja mogli otkazati rezervaciju ili je označiti kao kupljenu.</li>
               </ul>
               <p className="mt-2">Ne koristimo kolačiće za praćenje ili reklamiranje.</p>
             </section>
@@ -101,7 +103,8 @@ export default function PrivatnostPage() {
                 <li><strong>Prigovor</strong> — uložiti prigovor na obradu podataka.</li>
               </ul>
               <p className="mt-2">
-                Za ostvarivanje bilo kojeg od navedenih prava, kontaktirajte nas na
+                Račun i sve povezane liste možete sami trajno obrisati u postavkama profila („Obriši moj račun").
+                Za ostvarivanje ostalih prava kontaktirajte nas na
                 <strong> info@bebinalista.hr</strong>.
               </p>
             </section>

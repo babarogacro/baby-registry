@@ -1,6 +1,7 @@
-import express from 'express'
+import 'dotenv/config'
+import express, { NextFunction, Request, Response } from 'express'
 import cors from 'cors'
-import dotenv from 'dotenv'
+import helmet from 'helmet'
 import { authRouter } from './routes/auth'
 import { listsRouter } from './routes/lists'
 import { productsRouter } from './routes/products'
@@ -9,28 +10,24 @@ import { adminRouter } from './routes/admin'
 import { scheduleScraper } from './scraper/scheduler'
 import { prisma } from './utils/prisma'
 
-dotenv.config()
+if (!process.env.JWT_SECRET) {
+  console.error('❌ JWT_SECRET nije postavljen. Postavi ga u environment varijablama.')
+  process.exit(1)
+}
+if (process.env.JWT_SECRET.length < 32) {
+  console.warn('⚠️  JWT_SECRET je kraći od 32 znaka — preporuka je dulji nasumični ključ.')
+}
 
 const app = express()
 const PORT = process.env.PORT || 3001
 
-const allowedOrigins = [
-  process.env.FRONTEND_URL || 'http://localhost:3000',
-  'http://localhost:3000',
-  'https://heroic-caring-production.up.railway.app',
-]
+// Railway terminates TLS in one proxy hop; needed so rate limits see real client IPs.
+app.set('trust proxy', 1)
+app.disable('x-powered-by')
 
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.some(o => origin.startsWith(o.replace('https://', '').replace('http://', '')))) {
-      callback(null, true)
-    } else {
-      callback(null, true) // Allow all in dev
-    }
-  },
-  credentials: true
-}))
-app.use(express.json({ limit: '10mb' }))
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }))
+app.use(cors({ origin: true, credentials: true }))
+app.use(express.json({ limit: '100kb' }))
 
 app.use('/api/auth', authRouter)
 app.use('/api/lists', listsRouter)
@@ -38,12 +35,15 @@ app.use('/api/products', productsRouter)
 app.use('/api/public', publicRouter)
 app.use('/api/admin', adminRouter)
 
-app.get('/api/health', (_, res) => res.json({ status: 'ok', ts: new Date().toISOString() }))
+app.get('/api/health', (_req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }))
 
-app.post('/api/run-scraper', async (_, res) => {
-  res.json({ message: 'Scraper pokrenut!' })
-  const { runBabyCenterScraper } = await import('./scraper/babycenter')
-  runBabyCenterScraper().catch(console.error)
+app.use((_req, res) => res.status(404).json({ error: 'Ruta ne postoji' }))
+
+app.use((err: Error & { status?: number; type?: string }, _req: Request, res: Response, _next: NextFunction) => {
+  if (err.type === 'entity.parse.failed') return res.status(400).json({ error: 'Neispravan JSON' })
+  if (err.type === 'entity.too.large') return res.status(413).json({ error: 'Zahtjev je prevelik' })
+  console.error('Unhandled error:', err)
+  res.status(err.status || 500).json({ error: 'Greška na serveru' })
 })
 
 app.listen(PORT, async () => {

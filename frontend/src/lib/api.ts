@@ -1,9 +1,9 @@
 import axios from 'axios'
+import type { Priority } from '@/types'
 
-const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api',
-  withCredentials: true,
-})
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+
+const api = axios.create({ baseURL: API_URL })
 
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
@@ -16,12 +16,12 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   res => res,
   err => {
-    if (err.response?.status === 401 && typeof window !== 'undefined') {
+    // Only an expired/invalid session should log the user out — not a 401 from a public call.
+    const hadToken = typeof window !== 'undefined' && !!localStorage.getItem('token')
+    if (err.response?.status === 401 && hadToken) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
-      if (!window.location.pathname.includes('/prijava')) {
-        window.location.href = '/prijava'
-      }
+      if (!window.location.pathname.startsWith('/prijava')) window.location.href = '/prijava'
     }
     return Promise.reject(err)
   }
@@ -29,8 +29,10 @@ api.interceptors.response.use(
 
 export default api
 
-// Referral helper
-export const REF_PARAM = 'ref=bebinalista'
+export function apiError(err: unknown, fallback = 'Nešto je pošlo po krivu. Pokušaj ponovno.') {
+  const anyErr = err as { response?: { data?: { error?: string } } }
+  return anyErr?.response?.data?.error || fallback
+}
 
 export function addRefToUrl(url: string): string {
   try {
@@ -40,7 +42,7 @@ export function addRefToUrl(url: string): string {
     u.searchParams.set('utm_medium', 'wishlist')
     return u.toString()
   } catch {
-    return url + (url.includes('?') ? '&' : '?') + REF_PARAM
+    return url
   }
 }
 
@@ -52,7 +54,17 @@ export const authApi = {
   googleLogin: (credential: string) =>
     api.post('/auth/google', { credential }),
   me: () => api.get('/auth/me'),
-  updateProfile: (data: any) => api.patch('/auth/profile', data),
+  updateProfile: (data: { name?: string; dueDate?: string | null; babyGender?: string | null }) =>
+    api.patch('/auth/profile', data),
+  deleteAccount: () => api.delete('/auth/account'),
+}
+
+export interface CustomProductInput {
+  name: string
+  price?: number
+  imageUrl?: string
+  productUrl?: string
+  description?: string
 }
 
 export const listsApi = {
@@ -60,16 +72,19 @@ export const listsApi = {
   getOne: (id: string) => api.get(`/lists/${id}`),
   create: (data: { name: string; occasion?: string; description?: string; isPublic?: boolean }) =>
     api.post('/lists', data),
-  update: (id: string, data: any) => api.patch(`/lists/${id}`, data),
+  update: (id: string, data: { name?: string; occasion?: string | null; description?: string | null; isPublic?: boolean }) =>
+    api.patch(`/lists/${id}`, data),
   delete: (id: string) => api.delete(`/lists/${id}`),
-  addItem: (listId: string, productId: string, priority = 'MEDIUM', note?: string) =>
+  addItem: (listId: string, productId: string, priority: Priority = 'MEDIUM', note?: string) =>
     api.post(`/lists/${listId}/items`, { productId, priority, note }),
-  addCustomItem: (listId: string, customProduct: { name: string; price?: number; imageUrl?: string; productUrl?: string; description?: string }, priority = 'MEDIUM', note?: string) =>
+  addCustomItem: (listId: string, customProduct: CustomProductInput, priority: Priority = 'MEDIUM', note?: string) =>
     api.post(`/lists/${listId}/items`, { customProduct, priority, note }),
-  updateItem: (listId: string, itemId: string, data: any) =>
+  updateItem: (listId: string, itemId: string, data: { priority?: Priority; note?: string | null }) =>
     api.patch(`/lists/${listId}/items/${itemId}`, data),
   removeItem: (listId: string, itemId: string) =>
     api.delete(`/lists/${listId}/items/${itemId}`),
+  clearReservation: (listId: string, itemId: string) =>
+    api.delete(`/lists/${listId}/items/${itemId}/reservation`),
   smartPaste: (url: string) =>
     api.post('/lists/smart-paste', { url }),
 }
@@ -87,16 +102,19 @@ export const productsApi = {
 
 export const publicApi = {
   getList: (slug: string) => api.get(`/public/lista/${slug}`),
+  getSettings: () => api.get<{ heroImage: string | null }>('/public/settings'),
   reserve: (slug: string, itemId: string, reservedBy: string, note?: string) =>
-    api.post(`/public/lista/${slug}/rezerviraj/${itemId}`, { reservedBy, note }),
+    api.post<{ ownerToken: string }>(`/public/lista/${slug}/rezerviraj/${itemId}`, { reservedBy, note }),
   reserveGroupBuy: (slug: string, itemId: string, data: { reservedBy: string; note?: string; isGroupBuy: true; targetAmount: number; amount: number; role: 'ORDERER' | 'CONTRIBUTOR' }) =>
-    api.post(`/public/lista/${slug}/rezerviraj/${itemId}`, data),
+    api.post<{ ownerToken: string; contributorId: string }>(`/public/lista/${slug}/rezerviraj/${itemId}`, data),
   joinGroupBuy: (slug: string, itemId: string, data: { name: string; role: 'ORDERER' | 'CONTRIBUTOR'; amount: number; note?: string }) =>
-    api.post(`/public/lista/${slug}/group/${itemId}/join`, data),
-  leaveGroupBuy: (slug: string, itemId: string, contributorId: string) =>
-    api.delete(`/public/lista/${slug}/group/${itemId}/leave/${contributorId}`),
-  cancelReservation: (slug: string, itemId: string, reservedBy: string) =>
-    api.delete(`/public/lista/${slug}/rezerviraj/${itemId}`, { data: { reservedBy } }),
+    api.post<{ ownerToken: string; contributor: { id: string } }>(`/public/lista/${slug}/group/${itemId}/join`, data),
+  leaveGroupBuy: (slug: string, itemId: string, contributorId: string, token: string) =>
+    api.delete(`/public/lista/${slug}/group/${itemId}/leave/${contributorId}`, { data: { token } }),
+  cancelReservation: (slug: string, itemId: string, token: string) =>
+    api.delete(`/public/lista/${slug}/rezerviraj/${itemId}`, { data: { token } }),
+  setReservationStatus: (slug: string, itemId: string, token: string, status: 'RESERVED' | 'PURCHASED') =>
+    api.patch(`/public/lista/${slug}/rezerviraj/${itemId}/status`, { token, status }),
 }
 
 export const adminApi = {
@@ -122,7 +140,6 @@ export const adminApi = {
   getCategories: () => api.get('/admin/categories'),
 }
 
-// Dodaj search endpoint
 export const searchApi = {
   findLists: (q: string) => api.get('/public/pretraga', { params: { q } }),
 }

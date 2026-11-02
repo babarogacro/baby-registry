@@ -5,7 +5,7 @@ import Navbar from '@/components/Navbar'
 import { searchApi } from '@/lib/api'
 import { BabyList } from '@/types'
 import { Search, X, ArrowRight, Calendar } from 'lucide-react'
-import clsx from 'clsx'
+import { formatDateHR } from '@/lib/format'
 
 const OCC: Record<string, { emoji: string; label: string }> = {
   birth:    { emoji: '🍼', label: 'Rođenje djeteta' },
@@ -44,7 +44,7 @@ function ListCard({ list }: { list: BabyList }) {
           {dueDate && (
             <div className="flex items-center gap-1.5 mt-2 text-xs text-warm-gray">
               <Calendar size={11} />
-              {dueDate.toLocaleDateString('hr-HR', { day: 'numeric', month: 'long', year: 'numeric' })}
+              {formatDateHR(dueDate)}
               {daysLeft !== null && daysLeft > 0 && <span className="text-rose font-medium">({daysLeft} dana)</span>}
               {daysLeft !== null && daysLeft <= 0 && <span className="text-sage font-medium">(već je tu! 🎉)</span>}
             </div>

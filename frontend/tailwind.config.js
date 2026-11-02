@@ -15,8 +15,8 @@ module.exports = {
         gold:      '#C9A96E',
       },
       fontFamily: {
-        serif: ['"DM Serif Display"', 'serif'],
-        sans:  ['"DM Sans"', 'sans-serif'],
+        serif: ['var(--font-serif)', '"DM Serif Display"', 'Georgia', 'serif'],
+        sans:  ['var(--font-sans)', '"DM Sans"', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         '2xl': '1rem',

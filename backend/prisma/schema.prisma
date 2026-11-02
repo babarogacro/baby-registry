@@ -49,6 +49,8 @@ model BabyList {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   items       ListItem[]
+
+  @@index([userId])
 }
 
 model ListItem {
@@ -61,6 +63,9 @@ model ListItem {
   note        String?
   createdAt   DateTime     @default(now())
   reservation Reservation?
+
+  @@index([listId])
+  @@index([productId])
 }
 
 model Reservation {
@@ -73,6 +78,8 @@ model Reservation {
   note          String?
   isGroupBuy    Boolean           @default(false)
   targetAmount  Float?
+  // Secret held only by the reserver's browser; lets them cancel or mark purchased.
+  ownerToken    String?
   contributors  GroupContributor[]
 }
 
@@ -89,7 +96,10 @@ model GroupContributor {
   role          ContributorRole @default(CONTRIBUTOR)
   amount        Float
   note          String?
+  ownerToken    String?
   createdAt     DateTime        @default(now())
+
+  @@index([reservationId])
 }
 
 model Category {
@@ -133,6 +143,10 @@ model Product {
   updatedAt        DateTime          @updatedAt
   listItems        ListItem[]
   featuredProducts FeaturedProduct[]
+
+  @@index([productUrl])
+  @@index([shopSlug])
+  @@index([categoryId])
 }
 
 model FeaturedProduct {
