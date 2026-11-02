@@ -18,8 +18,11 @@ const getList = cache(async (slug: string): Promise<ListResult> => {
   }
 })
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const { list } = await getList(params.slug)
+type PageProps = { params: Promise<{ slug: string }> }
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params
+  const { list } = await getList(slug)
   // Lists contain names and due dates of private people — keep them out of search engines.
   const robots = { index: false, follow: false }
   if (!list) return { title: 'Lista nije pronađena — Bebina Lista', robots }
@@ -39,7 +42,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
       siteName: 'Bebina Lista',
       type: 'website',
       locale: 'hr_HR',
-      url: `/lista/${params.slug}`,
+      url: `/lista/${slug}`,
       ...(ogImage && { images: [{ url: ogImage, width: 600, height: 600, alt: list.name }] }),
     },
     twitter: {
@@ -51,7 +54,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   }
 }
 
-export default async function Page({ params }: { params: { slug: string } }) {
-  const { list, error } = await getList(params.slug)
-  return <PublicListClient slug={params.slug} initialList={list} initialError={error} />
+export default async function Page({ params }: PageProps) {
+  const { slug } = await params
+  const { list, error } = await getList(slug)
+  return <PublicListClient slug={slug} initialList={list} initialError={error} />
 }

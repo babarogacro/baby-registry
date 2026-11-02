@@ -15,11 +15,11 @@ const amount = z.number().positive('Iznos mora biti pozitivan').max(100_000)
 
 // Resolves a public list item, or sends the error response and returns null.
 async function findPublicListItem(req: Request, res: Response) {
-  const list = await prisma.babyList.findUnique({ where: { shareSlug: req.params.slug }, select: { id: true, isPublic: true } })
+  const list = await prisma.babyList.findUnique({ where: { shareSlug: String(req.params.slug) }, select: { id: true, isPublic: true } })
   if (!list) { res.status(404).json({ error: 'Lista nije pronađena' }); return null }
   if (!list.isPublic) { res.status(403).json({ error: 'Lista je privatna' }); return null }
   const item = await prisma.listItem.findFirst({
-    where: { id: req.params.itemId, listId: list.id },
+    where: { id: String(req.params.itemId), listId: list.id },
     include: { reservation: { include: { contributors: true } } },
   })
   if (!item) { res.status(404).json({ error: 'Stavka nije pronađena' }); return null }

@@ -2,7 +2,8 @@ import { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
 import { prisma } from '../utils/prisma'
 
-export interface AuthRequest extends Request {
+// Route params here are always plain path segments, never repeated wildcard arrays.
+export interface AuthRequest extends Request<Record<string, string>> {
   userId?: string
 }
 
