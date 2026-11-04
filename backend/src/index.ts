@@ -68,6 +68,9 @@ app.listen(PORT, async () => {
     }).catch(() => {})
   }
 
+  // Products saved before the "mixed" catalog order existed have no place in it yet.
+  await prisma.$executeRaw`UPDATE "Product" SET "sortKey" = random() WHERE "sortKey" IS NULL`.catch(() => {})
+
   // A restart kills any scrape in progress; don't leave it marked as running forever.
   await prisma.scrapedShop.updateMany({
     where: { lastStatus: 'running' },

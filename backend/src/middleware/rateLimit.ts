@@ -28,6 +28,14 @@ export const searchLimiter = rateLimit({
   message: message('Previše pretraga. Pričekaj trenutak.'),
 })
 
+export const facetsLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 120,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: message('Previše zahtjeva. Pričekaj trenutak.'),
+})
+
 export const smartPasteLimiter = rateLimit({
   windowMs: 60 * 1000,
   limit: 10,

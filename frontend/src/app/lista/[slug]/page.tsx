@@ -25,15 +25,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { list } = await getList(slug)
   // Lists contain names and due dates of private people — keep them out of search engines.
   const robots = { index: false, follow: false }
-  if (!list) return { title: 'Lista nije pronađena — Bebina Lista', robots }
+  if (!list) return { title: 'Lista nije pronađena | Bebina Lista', robots }
 
   const total = list.items.length
   const available = list.items.filter(i => !i.reservation).length
-  const description = `Lista od ${list.user?.name || 'nove mame'} — ${total} poklona, ${available} slobodno. Pogledaj i rezerviraj poklon!`
+  const description = `Lista od ${list.user?.name || 'budućih roditelja'}: ${total} poklona, ${available} slobodno. Odaberi poklon i rezerviraj ga.`
   const ogImage = list.items.find(i => i.product.imageUrl)?.product.imageUrl
 
   return {
-    title: `${list.name} — Bebina Lista`,
+    title: `${list.name} | Bebina Lista`,
     description,
     robots,
     openGraph: {

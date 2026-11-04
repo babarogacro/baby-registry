@@ -113,7 +113,7 @@ publicRouter.post('/lista/:slug/rezerviraj/:itemId', publicWriteLimiter, async (
     const found = await findPublicListItem(req, res)
     if (!found) return
     const { list, item } = found
-    if (item.reservation) return res.status(409).json({ error: 'Netko je upravo rezervirao ovaj poklon' })
+    if (item.reservation) return res.status(409).json({ error: 'Ovaj poklon je upravo rezerviran' })
 
     const ownerToken = newOwnerToken()
     const note = data.note || null
@@ -149,7 +149,7 @@ publicRouter.post('/lista/:slug/rezerviraj/:itemId', publicWriteLimiter, async (
     })
   } catch (err) {
     if (err instanceof z.ZodError) return res.status(400).json({ error: firstIssue(err) })
-    if (isUniqueViolation(err)) return res.status(409).json({ error: 'Netko je upravo rezervirao ovaj poklon' })
+    if (isUniqueViolation(err)) return res.status(409).json({ error: 'Ovaj poklon je upravo rezerviran' })
     console.error('Reserve error:', err)
     res.status(500).json({ error: 'Greška na serveru' })
   }

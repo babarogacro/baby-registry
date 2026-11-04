@@ -23,14 +23,13 @@ function button(href: string, label: string) {
   </div>`
 }
 
-function layout({ icon, title, subtitle, body }: { icon: string; title: string; subtitle?: string; body: string }) {
+function layout({ title, subtitle, body }: { title: string; subtitle?: string; body: string }) {
   return `<!DOCTYPE html>
 <html lang="hr">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>${esc(title)}</title></head>
 <body style="margin:0;padding:0;background:#FAF7F2;font-family:'Helvetica Neue',Arial,sans-serif;">
   <div style="max-width:560px;margin:40px auto;background:#ffffff;border-radius:24px;overflow:hidden;border:1px solid #F2D9D0;">
     <div style="background:linear-gradient(135deg,#F2D9D0 0%,#FAF7F2 100%);padding:40px 40px 32px;text-align:center;">
-      <p style="font-size:48px;margin:0 0 16px;">${icon}</p>
       <h1 style="font-family:Georgia,serif;font-size:28px;font-weight:400;color:#2C2320;margin:0 0 8px;">${esc(title)}</h1>
       ${subtitle ? `<p style="color:#6B6360;font-size:15px;margin:0;">${subtitle}</p>` : ''}
     </div>
@@ -38,7 +37,7 @@ function layout({ icon, title, subtitle, body }: { icon: string; title: string; 
       ${body}
       <hr style="border:none;border-top:1px solid #F2D9D0;margin:0 0 24px;">
       <p style="color:#9B9490;font-size:13px;margin:0;text-align:center;line-height:1.6;">
-        Ovo je automatska obavijest s <a href="${esc(APP_URL)}" style="color:#C97B6B;text-decoration:none;">Bebine Liste</a>.<br>Napravljeno s ljubavlju 💕
+        Ovo je automatska poruka s <a href="${esc(APP_URL)}" style="color:#C97B6B;text-decoration:none;">Bebine Liste</a>.
       </p>
     </div>
   </div>
@@ -75,9 +74,9 @@ export async function sendReservationEmail(p: ListContext & {
   reservedNote?: string
 }) {
   const body = `
-    <p style="color:#2C2320;font-size:16px;margin:0 0 24px;">Hej <strong>${esc(p.mamaName)}</strong>! 💕</p>
+    <p style="color:#2C2320;font-size:16px;margin:0 0 24px;">Bok, <strong>${esc(p.mamaName)}</strong>.</p>
     <p style="color:#6B6360;font-size:15px;margin:0 0 24px;line-height:1.6;">
-      <strong style="color:#C97B6B;">${esc(p.reservedBy)}</strong> upravo je rezervirao/la poklon s tvoje liste!
+      <strong style="color:#C97B6B;">${esc(p.reservedBy)}</strong> upravo rezervira poklon s tvoje liste. Nitko drugi ga više ne može odabrati.
     </p>
     <div style="background:#FAF7F2;border-radius:16px;padding:20px;margin:0 0 24px;border:1px solid #F2D9D0;">
       <p style="font-size:13px;color:#6B6360;margin:0 0 6px;text-transform:uppercase;letter-spacing:0.05em;">Rezervirani proizvod</p>
@@ -89,12 +88,12 @@ export async function sendReservationEmail(p: ListContext & {
       <p style="font-size:13px;color:#6B6360;margin:0 0 6px;text-transform:uppercase;letter-spacing:0.05em;">Poruka</p>
       <p style="font-size:15px;color:#2C2320;margin:0;font-style:italic;">„${esc(p.reservedNote)}"</p>
     </div>` : ''}
-    ${button(`${APP_URL}/moja-lista`, 'Pogledaj svoju listu')}`
+    ${button(`${APP_URL}/moja-lista`, 'Otvori listu')}`
 
   return send(
     p.mamaEmail,
-    `🎁 ${p.reservedBy} rezervira poklon za tvoju bebu!`,
-    layout({ icon: '🎁', title: 'Netko je rezervirao poklon!', subtitle: `Vijest s tvoje liste <strong>${esc(p.listName)}</strong>`, body }),
+    `${p.reservedBy} rezervira poklon s tvoje liste`,
+    layout({ title: 'Novi rezervirani poklon', subtitle: `S liste <strong>${esc(p.listName)}</strong>`, body }),
   )
 }
 
@@ -108,10 +107,10 @@ export async function sendGroupBuyJoinEmail(p: ListContext & {
 }) {
   const progress = p.targetAmount > 0 ? Math.min(100, Math.round((p.totalCollected / p.targetAmount) * 100)) : 0
   const body = `
-    <p style="color:#2C2320;font-size:16px;margin:0 0 24px;">Hej <strong>${esc(p.mamaName)}</strong>!</p>
+    <p style="color:#2C2320;font-size:16px;margin:0 0 24px;">Bok, <strong>${esc(p.mamaName)}</strong>.</p>
     <p style="color:#6B6360;font-size:15px;margin:0 0 24px;line-height:1.6;">
-      <strong style="color:#C97B6B;">${esc(p.contributorName)}</strong> se pridružio/la grupnoj kupovini za
-      <strong>${esc(p.productName)}</strong> (${esc(money(p.contributorAmount, p.contributorCurrency))})
+      <strong style="color:#C97B6B;">${esc(p.contributorName)}</strong> daje ${esc(money(p.contributorAmount, p.contributorCurrency))} za
+      <strong>${esc(p.productName)}</strong> u grupnoj kupovini.
     </p>
     <div style="background:#FAF7F2;border-radius:16px;padding:20px;margin:0 0 24px;border:1px solid #F2D9D0;">
       <p style="font-size:13px;color:#6B6360;margin:0 0 10px;text-transform:uppercase;letter-spacing:0.05em;">Napredak grupne kupovine</p>
@@ -121,27 +120,27 @@ export async function sendGroupBuyJoinEmail(p: ListContext & {
       <div style="background:#F2D9D0;border-radius:8px;height:8px;overflow:hidden;">
         <div style="background:linear-gradient(90deg,#C9A96E,#D4B87A);height:100%;width:${progress}%;border-radius:8px;"></div>
       </div>
-      ${progress >= 100 ? '<p style="font-size:14px;color:#8BA888;margin:8px 0 0;font-weight:500;">🎉 Cilj je dostignut!</p>' : ''}
+      ${progress >= 100 ? '<p style="font-size:14px;color:#8BA888;margin:8px 0 0;font-weight:500;">Iznos je skupljen.</p>' : ''}
     </div>
-    ${button(`${APP_URL}/moja-lista`, 'Pogledaj svoju listu')}`
+    ${button(`${APP_URL}/moja-lista`, 'Otvori listu')}`
 
   return send(
     p.mamaEmail,
-    `👥 ${p.contributorName} se pridružio/la grupnoj kupovini za ${p.productName}`,
-    layout({ icon: '👥', title: 'Netko se pridružio grupnoj kupovini!', subtitle: `Vijest s tvoje liste <strong>${esc(p.listName)}</strong>`, body }),
+    `${p.contributorName} daje ${money(p.contributorAmount, p.contributorCurrency)} za ${p.productName}`,
+    layout({ title: 'Novi doprinos za grupnu kupovinu', subtitle: `S liste <strong>${esc(p.listName)}</strong>`, body }),
   )
 }
 
 export async function sendWelcomeEmail(p: { email: string; name: string }) {
   const body = `
-    <p style="color:#6B6360;font-size:15px;line-height:1.7;margin:0 0 20px;">Tvoj račun na <strong>Bebinoj Listi</strong> je kreiran. Sada možeš:</p>
+    <p style="color:#6B6360;font-size:15px;line-height:1.7;margin:0 0 20px;">Registracija je uspjela. Sada možeš:</p>
     <ul style="color:#6B6360;font-size:15px;line-height:2;padding-left:20px;margin:0 0 28px;">
-      <li>Kreirati svoju listu željenih poklona</li>
-      <li>Pretraživati tisuće proizvoda iz hrvatskih baby shopova</li>
-      <li>Podijeliti link s obitelji i prijateljima</li>
-      <li>Pratiti tko je što rezervirao</li>
+      <li>napraviti listu onoga što ti treba za bebu ili što dijete želi za rođendan</li>
+      <li>birati iz tisuća proizvoda iz hrvatskih dućana ili zalijepiti link iz bilo kojeg web shopa</li>
+      <li>poslati link obitelji i prijateljima</li>
+      <li>vidjeti tko je što rezervirao, da nitko ne kupi isto</li>
     </ul>
-    ${button(`${APP_URL}/moja-lista`, 'Kreiraj svoju listu →')}`
+    ${button(`${APP_URL}/moja-lista`, 'Napravi listu')}`
 
-  return send(p.email, '🍼 Dobrodošla na Bebinu Listu!', layout({ icon: '🍼', title: `Dobrodošla, ${p.name}!`, body }))
+  return send(p.email, 'Tvoja Bebina Lista je spremna', layout({ title: `Bok, ${p.name}`, body }))
 }

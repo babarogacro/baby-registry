@@ -22,7 +22,7 @@ export function authMiddleware(req: AuthRequest, res: Response, next: NextFuncti
     req.userId = payload.userId
     next()
   } catch {
-    return res.status(401).json({ error: 'Nevažeći token' })
+    return res.status(401).json({ error: 'Prijava je istekla. Prijavi se ponovno.' })
   }
 }
 

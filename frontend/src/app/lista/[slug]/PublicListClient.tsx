@@ -1,23 +1,26 @@
 'use client'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
+import { AnimatePresence, m } from 'motion/react'
 import { publicApi, addRefToUrl, apiError } from '@/lib/api'
 import { getMyReservations, rememberReservation, forgetReservation, lastUsedName, MyReservation } from '@/lib/myReservations'
-import { formatPrice, parseAmount, formatDateHR, plural, shopLabel } from '@/lib/format'
+import { categoryMeta, type Tone } from '@/lib/categories'
+import { displayName, formatPrice, parseAmount, formatDateHR, plural, shopLabel } from '@/lib/format'
+import { genderLabel } from '@/lib/occasions'
+import { priorityLabel } from '@/lib/priorities'
+import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
 import Modal from '@/components/Modal'
+import Loader from '@/components/Loader'
+import Burst from '@/components/Burst'
+import ProgressBar from '@/components/ProgressBar'
+import Segmented from '@/components/Segmented'
+import Vrtuljak, { type Hanger, type VrtuljakHandle } from '@/components/Vrtuljak'
+import { Art, type ArtName } from '@/components/art'
 import { Toast, useToast } from '@/components/Toast'
 import { BabyList, ListItem, GroupContributor, Product } from '@/types'
-import { ExternalLink, Heart, Gift, Check, User, MessageSquare, Users, ShoppingBag, Undo2 } from 'lucide-react'
+import { AlertTriangle, ArrowUpRight, Check, Gift, ShoppingBag, StickyNote, Undo2, Users, Wallet } from 'lucide-react'
 import clsx from 'clsx'
-
-const PRIORITY = {
-  HIGH: { label: '❤️ Jako želi', cls: 'priority-HIGH' },
-  MEDIUM: { label: '🌿 Bilo bi lijepo', cls: 'priority-MEDIUM' },
-  LOW: { label: '✨ Luksuz', cls: 'priority-LOW' },
-} as const
-
-const inputCls = 'w-full px-4 py-3 bg-cream border border-blush/40 rounded-xl text-base sm:text-sm focus:outline-none focus:border-blush-mid transition-colors'
-const labelCls = 'flex items-center gap-1.5 text-xs font-medium text-warm-gray mb-1.5 uppercase tracking-wide'
 
 type Flow = { step: 'choose' | 'solo' | 'group' | 'join'; item: ListItem } | null
 type MyMap = Record<string, MyReservation>
@@ -26,12 +29,13 @@ function shopLink(product: Product) {
   return product.productUrl ? addRefToUrl(product.productUrl) : undefined
 }
 
-function Thumb({ product, className }: { product: Product; className: string }) {
+function Thumb({ product, className, children }: { product: Product; className: string; children?: React.ReactNode }) {
+  const meta = categoryMeta(product.category?.slug)
   return (
-    <div className={clsx('bg-cream rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0', className)}>
-      {product.imageUrl
-        ? <img src={product.imageUrl} alt="" loading="lazy" className="w-full h-full object-contain p-1" />
-        : <span className="text-2xl opacity-20">🍼</span>}
+    <div className={clsx(`tone-${meta.tone}`, 'photo-tile relative flex flex-shrink-0 items-center justify-center overflow-hidden', className)}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      {product.imageUrl ? <img src={product.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain p-2" /> : <Art name={meta.art} className="h-3/5 w-3/5" />}
+      {children}
     </div>
   )
 }
@@ -39,13 +43,16 @@ function Thumb({ product, className }: { product: Product; className: string }) 
 function ProductSummary({ item }: { item: ListItem }) {
   const { product } = item
   return (
-    <div className="flex gap-3 p-3 bg-cream rounded-2xl mb-5">
-      <Thumb product={product} className="w-14 h-14 bg-white" />
+    <div className="mb-5 flex gap-3 rounded-3xl bg-sunken/70 p-3">
+      <Thumb product={product} className="h-16 w-16 rounded-2xl" />
       <div className="min-w-0">
-        <p className="text-sm font-medium text-charcoal line-clamp-2 leading-snug">{product.name}</p>
-        {item.note && <p className="text-xs text-warm-gray mt-0.5">📝 {item.note}</p>}
-        {product.price > 0 && <p className="text-sm text-rose font-medium mt-0.5">{formatPrice(product.price, product.currency)}</p>}
-        <p className="text-xs text-warm-gray">{shopLabel(product)}</p>
+        {product.brand && <p className="text-[13px] font-bold text-muted">{product.brand}</p>}
+        <p className="line-clamp-2 text-sm font-semibold leading-snug">{displayName(product)}</p>
+        {item.note && <p className="mt-0.5 text-[13px] text-muted">Napomena: {item.note}</p>}
+        <p className="mt-0.5 text-[13px] text-muted">
+          {product.price > 0 && <span className="font-display font-extrabold tracking-tight text-ink">{formatPrice(product.price, product.currency)}</span>}
+          {product.price > 0 && ' · '}{shopLabel(product)}
+        </p>
       </div>
     </div>
   )
@@ -53,28 +60,22 @@ function ProductSummary({ item }: { item: ListItem }) {
 
 function ChooseStep({ item, onPick }: { item: ListItem; onPick: (step: 'solo' | 'group') => void }) {
   return (
-    <div className="px-5 sm:px-6 pb-6">
+    <div className="px-5 pb-6 sm:px-7 sm:pb-7">
       <ProductSummary item={item} />
-      <div className="space-y-3">
-        <button onClick={() => onPick('solo')}
-          className="w-full p-4 border border-blush/40 rounded-2xl text-left hover:border-rose hover:bg-blush/10 transition-all group active:scale-[0.98]">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-rose/10 rounded-xl flex items-center justify-center flex-shrink-0"><Gift size={18} className="text-rose" /></div>
-            <div>
-              <p className="font-medium text-charcoal group-hover:text-rose transition-colors">Kupujem sam/a</p>
-              <p className="text-xs text-warm-gray mt-0.5">Rezerviraj cijeli poklon za sebe</p>
-            </div>
-          </div>
+      <div className="space-y-2.5">
+        <button onClick={() => onPick('solo')} className="tone-tomato choice flex w-full items-center gap-3 p-3 text-left">
+          <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-tone p-1.5"><Art name="gift" /></span>
+          <span>
+            <span className="block font-display text-lg font-extrabold leading-tight tracking-tight text-ink">Kupujem cijeli poklon</span>
+            <span className="block text-[13px]">Poklon je tvoj, nitko ga drugi neće uzeti</span>
+          </span>
         </button>
-        <button onClick={() => onPick('group')}
-          className="w-full p-4 border border-blush/40 rounded-2xl text-left hover:border-sage hover:bg-sage-light/20 transition-all group active:scale-[0.98]">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-sage-light/60 rounded-xl flex items-center justify-center flex-shrink-0"><Users size={18} className="text-sage" /></div>
-            <div>
-              <p className="font-medium text-charcoal group-hover:text-sage transition-colors">Skupljamo zajedno 👥</p>
-              <p className="text-xs text-warm-gray mt-0.5">Više osoba može doprinijeti za ovaj poklon</p>
-            </div>
-          </div>
+        <button onClick={() => onPick('group')} className="tone-mint choice flex w-full items-center gap-3 p-3 text-left">
+          <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-tone text-coal"><Users size={22} aria-hidden /></span>
+          <span>
+            <span className="block font-display text-lg font-extrabold leading-tight tracking-tight text-ink">Dajem dio, skupljamo zajedno</span>
+            <span className="block text-[13px]">Više vas daje po dio, jedna osoba ga naruči</span>
+          </span>
         </button>
       </div>
     </div>
@@ -83,13 +84,15 @@ function ChooseStep({ item, onPick }: { item: ListItem; onPick: (step: 'solo' | 
 
 function SuccessStep({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
   return (
-    <div className="p-8 text-center">
-      <div className="w-16 h-16 bg-sage-light/60 rounded-full flex items-center justify-center mx-auto mb-4">
-        <Check size={28} className="text-sage" />
-      </div>
-      <h3 className="font-serif text-2xl text-charcoal mb-2">{title}</h3>
-      {children}
-      <button onClick={onClose} className="block mx-auto mt-4 text-sm text-warm-gray hover:text-charcoal transition-colors">Zatvori</button>
+    <div className="relative overflow-hidden px-6 pb-7 pt-10 text-center">
+      <Burst className="!top-20" />
+      <m.div initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 320, damping: 14 }}
+        className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-mint text-coal">
+        <Check size={38} strokeWidth={3} aria-hidden />
+      </m.div>
+      <h2 className="display mt-4 text-4xl">{title}</h2>
+      <div className="mt-2">{children}</div>
+      <button onClick={onClose} className="btn btn-sm btn-soft mt-4">Zatvori</button>
     </div>
   )
 }
@@ -125,15 +128,13 @@ function ReserveStep({ item, slug, onDone, onConflict, onClose }: {
 
   if (done) {
     return (
-      <SuccessStep title="Rezervirano!" onClose={onClose}>
-        <p className="text-warm-gray text-sm mb-6">
-          Hvala, <strong>{name}</strong>! Poklon je označen kao tvoj — kupi ga direktno u shopu.
-          Rezervaciju možeš otkazati s ovog uređaja.
+      <SuccessStep title="Poklon je rezerviran." onClose={onClose}>
+        <p className="mx-auto max-w-xs text-muted">
+          Hvala, <strong className="text-ink">{name}</strong>. Nitko drugi ovo neće kupiti. Ništa ti nije naplaćeno: poklon sad kupi u dućanu {shopLabel(item.product)}, preko gumba ispod ili u trgovini. Ako se predomisliš, otvori ovaj link na istom mobitelu i klikni Otkaži.
         </p>
         {link && (
-          <a href={link} target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-sage text-white rounded-full text-sm font-medium hover:bg-sage/90 transition-colors">
-            <ExternalLink size={14} /> Idi na {shopLabel(item.product)}
+          <a href={link} target="_blank" rel="noopener noreferrer" className="btn btn-primary mt-5">
+            Otvori u dućanu {shopLabel(item.product)} <ArrowUpRight size={17} aria-hidden />
           </a>
         )}
       </SuccessStep>
@@ -141,26 +142,23 @@ function ReserveStep({ item, slug, onDone, onConflict, onClose }: {
   }
 
   return (
-    <form onSubmit={submit} className="px-5 sm:px-6 pb-6">
+    <form onSubmit={submit} className="px-5 pb-6 sm:px-7 sm:pb-7">
       <ProductSummary item={item} />
       <div className="space-y-4">
         <div>
-          <label htmlFor="reserve-name" className={labelCls}><User size={11} /> Tvoje ime *</label>
-          <input id="reserve-name" type="text" autoComplete="name" maxLength={100} placeholder='npr. "Teta Ana" ili "Obitelj Kovač"'
-            value={name} onChange={e => setName(e.target.value)} className={inputCls} />
-          <p className="text-xs text-warm-gray/70 mt-1.5">Mama će vidjeti tko je rezervirao ovaj poklon</p>
+          <label htmlFor="reserve-name" className="field-label">Tvoje ime</label>
+          <input id="reserve-name" type="text" autoComplete="name" maxLength={100} placeholder="npr. Teta Ana ili Obitelj Kovač"
+            value={name} onChange={e => setName(e.target.value)} className="field" />
+          <p className="field-hint">Vidjet će ga roditelji i ostali s linkom.</p>
         </div>
         <div>
-          <label htmlFor="reserve-note" className={labelCls}><MessageSquare size={11} /> Poruka za mamu (opcionalno)</label>
-          <textarea id="reserve-note" rows={2} maxLength={500} placeholder="Čestitke! Jedva čekamo upoznati bebu"
-            value={note} onChange={e => setNote(e.target.value)} className={clsx(inputCls, 'resize-none')} />
+          <label htmlFor="reserve-note" className="field-label">Poruka za roditelje <span className="font-medium text-muted">(ako želiš)</span></label>
+          <textarea id="reserve-note" rows={2} maxLength={500} placeholder="Jedva čekamo upoznati bebu."
+            value={note} onChange={e => setNote(e.target.value)} className="field resize-none" />
         </div>
-        {error && <p role="alert" className="text-sm text-rose">{error}</p>}
+        {error && <p role="alert" className="field-error">{error}</p>}
       </div>
-      <button type="submit" disabled={loading}
-        className="w-full mt-5 py-3 bg-rose text-white text-sm font-medium rounded-full hover:bg-rose/90 transition-colors disabled:opacity-50 active:scale-[0.98]">
-        {loading ? 'Rezerviram...' : '🎁 Rezerviraj'}
-      </button>
+      <button type="submit" disabled={loading} className="btn btn-primary mt-5 w-full">{loading ? 'Rezerviram...' : 'Rezerviraj'}</button>
     </form>
   )
 }
@@ -210,59 +208,56 @@ function GroupStep({ item, slug, isJoin, onDone, onConflict, onClose }: {
 
   if (done) {
     return (
-      <SuccessStep title={isJoin ? 'Pridružio/la si se!' : 'Grupna kupovina pokrenuta!'} onClose={onClose}>
-        <p className="text-warm-gray text-sm">
-          Hvala, <strong>{name}</strong>! Tvoj doprinos od <strong>{formatPrice(parseAmount(amount))}</strong> je zabilježen.
+      <SuccessStep title={isJoin ? 'Tvoj dio je upisan.' : 'Skupljanje je pokrenuto.'} onClose={onClose}>
+        <p className="mx-auto max-w-xs text-muted">
+          Hvala, <strong className="text-ink">{name}</strong>. Zapisali smo da daješ <strong className="text-ink">{formatPrice(parseAmount(amount))}</strong>. Ništa ti nije naplaćeno: svoj dio daj osobi koja naručuje, njezino ime piše na kartici poklona.
         </p>
       </SuccessStep>
     )
   }
 
   return (
-    <form onSubmit={submit} className="px-5 sm:px-6 pb-6">
+    <form onSubmit={submit} className="px-5 pb-6 sm:px-7 sm:pb-7">
       <ProductSummary item={item} />
+      <p className="mb-4 rounded-2xl bg-mint-soft p-3 text-[13px] font-medium leading-snug">Novac ne ide preko ove stranice. Ovdje samo zapišeš koliko daješ, a tko naručuje poklon dogovorite među sobom.</p>
       <div className="space-y-4">
         <div>
-          <label htmlFor="group-name" className={labelCls}><User size={11} /> Tvoje ime *</label>
-          <input id="group-name" type="text" autoComplete="name" maxLength={100} placeholder='npr. "Teta Ana"'
-            value={name} onChange={e => setName(e.target.value)} className={inputCls} />
+          <label htmlFor="group-name" className="field-label">Tvoje ime</label>
+          <input id="group-name" type="text" autoComplete="name" maxLength={100} placeholder="npr. Teta Ana" value={name} onChange={e => setName(e.target.value)} className="field" />
         </div>
         <fieldset>
-          <legend className={labelCls}>Tvoja uloga</legend>
+          <legend className="field-label">Tvoja uloga</legend>
           <div className="grid grid-cols-2 gap-2">
             {([
-              { value: 'ORDERER', icon: '🛒', label: 'Ja naručujem i plaćam', active: 'border-rose bg-blush/20' },
-              { value: 'CONTRIBUTOR', icon: '💰', label: 'Dajem novce, netko drugi naručuje', active: 'border-sage bg-sage-light/30' },
+              { value: 'ORDERER', icon: <ShoppingBag size={18} aria-hidden />, label: 'Ja ću naručiti u dućanu' },
+              { value: 'CONTRIBUTOR', icon: <Wallet size={18} aria-hidden />, label: 'Dat ću svoj dio onome tko naručuje' },
             ] as const).map(opt => (
-              <button key={opt.value} type="button" aria-pressed={role === opt.value} onClick={() => setRole(opt.value)}
-                className={clsx('p-3 rounded-xl border text-left transition-all text-sm active:scale-[0.97]',
-                  role === opt.value ? `${opt.active} text-charcoal` : 'border-blush/40 text-warm-gray hover:border-blush-mid')}>
-                <span className="text-lg block mb-1">{opt.icon}</span>
-                <span className="font-medium block text-xs leading-snug">{opt.label}</span>
+              <button key={opt.value} type="button" aria-pressed={role === opt.value} onClick={() => setRole(opt.value)} className="choice p-3 text-left">
+                {opt.icon}
+                <span className="mt-1.5 block text-[13px] font-semibold leading-snug">{opt.label}</span>
               </button>
             ))}
           </div>
         </fieldset>
         {!isJoin && (
           <div>
-            <label htmlFor="group-target" className={labelCls}>Ciljni iznos (EUR) *</label>
-            <input id="group-target" inputMode="decimal" value={target} onChange={e => setTarget(e.target.value)} className={inputCls} />
-            {item.product.price > 0 && <p className="text-xs text-warm-gray/70 mt-1">Cijena proizvoda: {formatPrice(item.product.price, item.product.currency)}</p>}
+            <label htmlFor="group-target" className="field-label">Koliko treba skupiti (€)</label>
+            <input id="group-target" inputMode="decimal" value={target} onChange={e => setTarget(e.target.value)} className="field" />
+            {item.product.price > 0 && <p className="field-hint">Cijena proizvoda: {formatPrice(item.product.price, item.product.currency)}</p>}
           </div>
         )}
         <div>
-          <label htmlFor="group-amount" className={labelCls}>Tvoj doprinos (EUR) *</label>
-          <input id="group-amount" inputMode="decimal" placeholder="npr. 50" value={amount} onChange={e => setAmount(e.target.value)} className={inputCls} />
+          <label htmlFor="group-amount" className="field-label">Koliko daješ (€)</label>
+          <input id="group-amount" inputMode="decimal" placeholder="npr. 50" value={amount} onChange={e => setAmount(e.target.value)} className="field" />
         </div>
         <div>
-          <label htmlFor="group-note" className={labelCls}><MessageSquare size={11} /> Poruka (opcionalno)</label>
-          <textarea id="group-note" rows={2} maxLength={500} placeholder="Sretno s bebom!" value={note} onChange={e => setNote(e.target.value)} className={clsx(inputCls, 'resize-none')} />
+          <label htmlFor="group-note" className="field-label">Poruka <span className="font-medium text-muted">(ako želiš)</span></label>
+          <textarea id="group-note" rows={2} maxLength={500} placeholder="Sretno s bebom." value={note} onChange={e => setNote(e.target.value)} className="field resize-none" />
         </div>
-        {error && <p role="alert" className="text-sm text-rose">{error}</p>}
+        {error && <p role="alert" className="field-error">{error}</p>}
       </div>
-      <button type="submit" disabled={loading}
-        className="w-full mt-5 py-3 bg-sage text-white text-sm font-medium rounded-full hover:bg-sage/90 transition-colors disabled:opacity-50 active:scale-[0.98]">
-        {loading ? 'Šaljem...' : isJoin ? '👥 Pridruži se' : '👥 Pokreni skupljanje'}
+      <button type="submit" disabled={loading} className="btn btn-primary mt-5 w-full">
+        {loading ? 'Šaljem...' : isJoin ? 'Dodaj svoj dio' : 'Pokreni skupljanje'}
       </button>
     </form>
   )
@@ -279,25 +274,23 @@ function GroupBuyInfo({ reservation, mine, onLeave }: {
   const progress = target > 0 ? Math.min(100, Math.round((total / target) * 100)) : 0
 
   return (
-    <div className="mt-2 p-3 bg-sage-light/20 rounded-xl border border-sage/10">
-      <div className="flex items-center justify-between text-xs text-warm-gray mb-1.5">
-        <span>{formatPrice(total)} / {formatPrice(target)} · {contributors.length} {plural(contributors.length, 'osoba', 'osobe', 'osoba')}</span>
-        <span className="font-medium text-sage">{progress}%</span>
+    <div className="mt-3 rounded-2xl bg-mint-soft p-3">
+      <div className="mb-1.5 flex items-center justify-between gap-2 text-[13px] font-semibold">
+        <span>Skupljeno {formatPrice(total)} od {formatPrice(target)}</span>
+        <span className="flex-shrink-0">{progress} %</span>
       </div>
-      <div className="h-2.5 bg-white/80 rounded-full border border-sage/20 overflow-hidden mb-2" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
-        <div className={clsx('h-full rounded-full transition-all duration-700 ease-out', progress >= 100 ? 'bg-gradient-to-r from-sage to-[#6B9B68]' : 'bg-gradient-to-r from-gold to-[#D4B87A]')}
-          style={{ width: `${progress}%` }} />
-      </div>
-      {progress >= 100 && <p className="text-xs text-sage font-medium mb-2">🎉 Cilj je dostignut!</p>}
+      <ProgressBar value={progress} label="Skupljeno" className="mb-2" barClass={progress >= 100 ? 'bg-mint' : 'bg-sun'} />
+      {progress >= 100 && <p className="mb-2 text-[13px] font-bold text-mint-ink">Iznos je skupljen. Još samo naručiti.</p>}
+      <p className="mb-1 text-xs font-semibold text-muted">Dosad {plural(contributors.length, 'daje', 'daju', 'daje')}:</p>
       <ul className="space-y-1">
         {contributors.map(c => (
-          <li key={c.id} className="flex items-center gap-2 text-xs flex-wrap">
-            <span aria-hidden>{c.role === 'ORDERER' ? '🛒' : '💰'}</span>
-            <span className="font-medium text-charcoal">{c.name}</span>
-            <span className="text-warm-gray">{formatPrice(c.amount)}</span>
-            {c.note && <span className="text-warm-gray/70 italic truncate max-w-[140px]">„{c.note}"</span>}
+          <li key={c.id} className="flex flex-wrap items-center gap-1.5 text-[13px]">
+            {c.role === 'ORDERER' ? <ShoppingBag size={13} aria-label="Naručuje" /> : <Wallet size={13} aria-label="Daje novac" />}
+            <span className="font-semibold">{c.name}</span>
+            <span className="text-muted">{formatPrice(c.amount)}</span>
+            {c.note && <span className="max-w-[140px] truncate text-muted">„{c.note}"</span>}
             {mine?.contributorId === c.id && (
-              <button onClick={() => onLeave(c)} className="ml-auto text-warm-gray hover:text-rose underline underline-offset-2">Odustani</button>
+              <button onClick={() => onLeave(c)} className="ml-auto font-semibold underline underline-offset-2">Odustani</button>
             )}
           </li>
         ))}
@@ -315,31 +308,28 @@ function MyReservationActions({ item, onPurchased, onCancel, busy }: {
   const [confirming, setConfirming] = useState(false)
   const purchased = item.reservation?.status === 'PURCHASED'
   return (
-    <div className="mt-3 p-3 rounded-xl bg-gold/10 border border-gold/20">
-      <p className="text-xs font-medium text-charcoal mb-2">⭐ Ovo je tvoja rezervacija</p>
+    <div className="mt-3 rounded-2xl bg-sun-soft p-3">
+      <p className="mb-2 text-[13px] font-bold">Ovo je tvoja rezervacija</p>
       <div className="flex flex-wrap gap-2">
-        <button disabled={busy} onClick={() => onPurchased(!purchased)}
-          className={clsx('flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl transition-colors disabled:opacity-50',
-            purchased ? 'bg-sage text-white' : 'bg-white border border-sage/30 text-sage hover:bg-sage-light/40')}>
-          {purchased ? <><Check size={12} /> Kupljeno</> : <><ShoppingBag size={12} /> Označi kao kupljeno</>}
+        <button disabled={busy} onClick={() => onPurchased(!purchased)} className={clsx('btn btn-sm', purchased ? 'btn-ink' : 'btn-outline')}>
+          {purchased ? <><Check size={15} strokeWidth={3} aria-hidden /> Kupljeno</> : <><ShoppingBag size={15} aria-hidden /> Označi kao kupljeno</>}
         </button>
         {confirming ? (
           <>
-            <button disabled={busy} onClick={onCancel} className="px-3 py-2 text-xs font-medium rounded-xl bg-rose text-white disabled:opacity-50">Da, otkaži</button>
-            <button onClick={() => setConfirming(false)} className="px-3 py-2 text-xs text-warm-gray">Ne</button>
+            <button disabled={busy} onClick={onCancel} className="btn btn-sm btn-danger">Da, otkaži</button>
+            <button onClick={() => setConfirming(false)} className="btn btn-sm btn-soft">Ne</button>
           </>
         ) : (
-          <button onClick={() => setConfirming(true)} className="flex items-center gap-1.5 px-3 py-2 text-xs text-warm-gray hover:text-rose transition-colors">
-            <Undo2 size={12} /> Otkaži rezervaciju
-          </button>
+          <button onClick={() => setConfirming(true)} className="btn btn-sm btn-soft"><Undo2 size={15} aria-hidden /> Otkaži</button>
         )}
       </div>
     </div>
   )
 }
 
-function PublicListItem({ item, mine, busy, onStart, onPurchased, onCancel, onLeave }: {
+function PublicListItem({ item, index, mine, busy, onStart, onPurchased, onCancel, onLeave }: {
   item: ListItem
+  index: number
   mine?: MyReservation
   busy: boolean
   onStart: (step: 'choose' | 'join') => void
@@ -353,86 +343,99 @@ function PublicListItem({ item, mine, busy, onStart, onPurchased, onCancel, onLe
   const isMineSolo = isSolo && !!mine && !mine.contributorId
   const purchased = reservation?.status === 'PURCHASED'
   const link = shopLink(product)
-  const priority = PRIORITY[item.priority]
+  const meta = categoryMeta(product.category?.slug)
+  const taken = isSolo && !isMineSolo
 
   return (
-    <li className={clsx('bg-white rounded-2xl border p-3 sm:p-4 flex gap-3 sm:gap-4 transition-all',
-      isMineSolo ? 'border-gold/50' : isSolo ? 'border-gold/30 opacity-75' : isGroupBuy ? 'border-sage/30' : 'border-blush/30 hover:border-blush-mid hover:shadow-sm')}>
-      <a href={link} target="_blank" rel="noopener noreferrer" tabIndex={-1} aria-hidden className="relative">
-        <Thumb product={product} className="w-16 h-16 sm:w-20 sm:h-20" />
-        {isSolo && (
-          <div className="absolute inset-0 bg-white/60 flex items-center justify-center rounded-xl">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gold rounded-full flex items-center justify-center"><Check size={14} className="text-white" /></div>
-          </div>
-        )}
-        {isGroupBuy && (
-          <div className="absolute top-1 right-1 w-5 h-5 sm:w-6 sm:h-6 bg-sage rounded-full flex items-center justify-center"><Users size={10} className="text-white" /></div>
-        )}
+    <m.li layout="position" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.12 } }}
+      transition={{ type: 'spring', stiffness: 300, damping: 28, delay: Math.min(index, 10) * 0.03 }}
+      className={clsx(`tone-${meta.tone}`, 'card flex gap-3 p-2.5 sm:gap-5 sm:p-3', isMineSolo && '!border-sun ring-2 ring-sun')}>
+      <a href={link} target="_blank" rel="noopener noreferrer" tabIndex={-1} aria-hidden className="self-start">
+        <Thumb product={product} className={clsx('h-24 w-24 rounded-2xl transition-[filter,opacity] duration-300 sm:h-36 sm:w-36', taken && 'opacity-60 grayscale')}>
+          {isSolo && (
+            <span className="stamp stamp-in absolute left-1/2 top-1/2 -ml-[46px] -mt-3 w-[92px] border-coal bg-white/90 text-center text-[10px] text-coal">
+              {purchased ? 'Kupljeno' : 'Rezervirano'}
+            </span>
+          )}
+          {isGroupBuy && <span className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-mint text-coal"><Users size={14} aria-hidden /></span>}
+        </Thumb>
       </a>
 
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0 flex-1 py-0.5 pr-1">
+        {product.brand && <p className="text-[13px] font-bold text-tone-ink">{product.brand}</p>}
         {link ? (
-          <a href={link} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-charcoal line-clamp-2 leading-snug hover:text-rose transition-colors">
-            {product.name}
-          </a>
+          <a href={link} target="_blank" rel="noopener noreferrer" className="line-clamp-2 text-[15px] font-semibold leading-snug hover:underline sm:text-base">{displayName(product)}</a>
         ) : (
-          <p className="text-sm font-medium text-charcoal line-clamp-2 leading-snug">{product.name}</p>
+          <p className="line-clamp-2 text-[15px] font-semibold leading-snug sm:text-base">{displayName(product)}</p>
         )}
-        {item.note && <span className="inline-block mt-1 text-xs px-2 py-0.5 bg-blush/30 text-charcoal/80 rounded-full font-medium">📝 {item.note}</span>}
-        {!product.inStock && <p className="mt-1 text-xs text-warm-gray">⚠️ Shop ovo možda više nema u ponudi — provjeri prije kupnje.</p>}
-        <div className="flex items-center gap-2 mt-1 flex-wrap">
-          {product.price > 0 && <span className="text-sm font-medium text-rose">{formatPrice(product.price, product.currency)}</span>}
-          {product.price > 0 && <span className="text-xs text-warm-gray/50">·</span>}
-          <span className="text-xs text-warm-gray">{shopLabel(product)}</span>
+        <p className="mt-0.5 text-[13px] text-muted">
+          {product.price > 0 && <span className="font-display text-base font-extrabold tracking-tight text-ink">{formatPrice(product.price, product.currency)}</span>}
+          {product.price > 0 && ' · '}{shopLabel(product)}
+        </p>
+
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          <span className={clsx('chip', `priority-${item.priority}`)}>{priorityLabel(item.priority)}</span>
+          {item.note && <span className="chip chip-neutral"><StickyNote size={12} aria-hidden /> {item.note}</span>}
+          {isSolo && <span className="chip bg-sun-soft text-sun-ink">{purchased ? 'Kupljeno' : 'Uzeto'}: {reservation!.reservedBy}</span>}
+          {isGroupBuy && <span className="chip bg-mint-soft text-mint-ink"><Users size={12} aria-hidden /> Skupljamo zajedno{purchased ? ', kupljeno' : ''}</span>}
         </div>
-        <div className="flex items-center gap-1.5 sm:gap-2 mt-2 flex-wrap">
-          <span className={clsx('text-xs px-2 py-0.5 rounded-full font-medium', priority.cls)}>{priority.label}</span>
-          {isSolo && (
-            <span className="text-xs px-2 py-0.5 bg-gold/15 text-[#9A7B3F] rounded-full font-medium">
-              {purchased ? '✅ Kupljeno' : '🎁 Rezervirano'} · {reservation!.reservedBy}
-            </span>
-          )}
-          {isGroupBuy && (
-            <span className="text-xs px-2 py-0.5 bg-sage-light/60 text-sage rounded-full font-medium">
-              👥 Grupna{purchased ? ' · kupljeno' : ''}
-            </span>
-          )}
-        </div>
+
+        {!product.inStock && (
+          <p className="mt-1.5 flex items-center gap-1.5 text-[13px] font-medium text-tomato-ink">
+            <AlertTriangle size={14} aria-hidden /> Dućan ovo možda više nema. Provjeri prije kupnje.
+          </p>
+        )}
 
         {isGroupBuy && reservation && <GroupBuyInfo reservation={reservation} mine={mine} onLeave={onLeave} />}
-
         {isMineSolo && <MyReservationActions item={item} busy={busy} onPurchased={onPurchased} onCancel={onCancel} />}
 
-        <div className="flex items-center gap-2 mt-3">
-          {!reservation && (
-            <button onClick={() => onStart('choose')}
-              className="flex items-center gap-1.5 px-4 py-2 bg-rose text-white text-xs font-medium rounded-xl hover:bg-rose/90 transition-colors active:scale-[0.97]">
-              <Gift size={12} /> Kupit ću ovo
-            </button>
-          )}
-          {isGroupBuy && !purchased && !mine && (
-            <button onClick={() => onStart('join')}
-              className="flex items-center gap-1.5 px-4 py-2 bg-sage text-white text-xs font-medium rounded-xl hover:bg-sage/90 transition-colors active:scale-[0.97]">
-              <Users size={12} /> Pridruži se
-            </button>
-          )}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {!reservation && <button onClick={() => onStart('choose')} className="btn btn-sm btn-primary"><Gift size={15} aria-hidden /> Rezerviraj</button>}
+          {isGroupBuy && !purchased && !mine && <button onClick={() => onStart('join')} className="btn btn-sm btn-ink"><Users size={15} aria-hidden /> Dodaj svoj dio</button>}
           {isGroupBuy && mine && (
-            <button disabled={busy} onClick={() => onPurchased(!purchased)}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl border border-sage/30 text-sage hover:bg-sage-light/40 disabled:opacity-50">
-              {purchased ? <><Check size={12} /> Kupljeno</> : <><ShoppingBag size={12} /> Označi kao kupljeno</>}
+            <button disabled={busy} onClick={() => onPurchased(!purchased)} className="btn btn-sm btn-outline">
+              {purchased ? <><Check size={15} strokeWidth={3} aria-hidden /> Kupljeno</> : <><ShoppingBag size={15} aria-hidden /> Označi kao kupljeno</>}
             </button>
           )}
-          {isSolo && !isMineSolo && <span className="text-xs text-warm-gray italic">{purchased ? 'Već kupljeno' : 'Već rezervirano'}</span>}
           {link && (
-            <a href={link} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1 px-3 py-2 text-xs text-warm-gray hover:text-sage border border-blush/30 rounded-xl transition-colors">
-              <ExternalLink size={11} /> Shop
+            <a href={link} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-soft">
+              U dućan <ArrowUpRight size={15} aria-hidden /><span className="sr-only"> (otvara se u novoj kartici)</span>
             </a>
           )}
         </div>
       </div>
-    </li>
+    </m.li>
   )
+}
+
+const LIST_TONES: Tone[] = ['sun', 'sky', 'mint', 'bubble']
+
+const MOBILE_PIECES: { art: ArtName; tone: Tone; shape: string; x: number; drop: number; size: number; phone?: boolean }[] = [
+  { art: 'pram', tone: 'tomato', shape: 'rounded-full', x: 0.5, drop: 70, size: 112, phone: true },
+  { art: 'bottle', tone: 'cobalt', shape: 'rounded-[26%]', x: 0.3, drop: 120, size: 84, phone: true },
+  { art: 'rings', tone: 'mint', shape: 'rounded-t-full rounded-b-[18%]', x: 0.7, drop: 100, size: 90, phone: true },
+  { art: 'heart', tone: 'bubble', shape: 'rounded-[30%]', x: 0.13, drop: 60, size: 72, phone: true },
+  { art: 'bear', tone: 'sky', shape: 'rounded-full', x: 0.87, drop: 56, size: 76, phone: true },
+]
+
+/** The list as a mobile: every share of reserved gifts hangs one more toy on it. */
+function ListMobile({ progress, ref }: { progress: number; ref?: React.Ref<VrtuljakHandle> }) {
+  const filled = Math.round((progress / 100) * MOBILE_PIECES.length)
+  const hangers: Hanger[] = MOBILE_PIECES.map((piece, i) => ({
+    key: piece.art,
+    x: piece.x,
+    drop: piece.drop,
+    size: piece.size,
+    children: i < filled ? (
+      <m.span initial={{ scale: 0.3 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 12 }}
+        className={clsx(`tone-${piece.tone}`, piece.shape, 'block aspect-square bg-tone p-[17%] shadow-float')}>
+        <Art name={piece.art} className="block h-full w-full" />
+      </m.span>
+    ) : (
+      <span className={clsx(piece.shape, 'block aspect-square border-[3px] border-dashed border-current opacity-35')} />
+    ),
+  }))
+  return <Vrtuljak ref={ref} hangers={hangers} heightClass="h-[240px] sm:h-[280px]" breeze={0.1} />
 }
 
 export default function PublicListClient({ slug, initialList, initialError }: {
@@ -449,6 +452,7 @@ export default function PublicListClient({ slug, initialList, initialError }: {
   const { toast, showToast } = useToast()
   const [filter, setFilter] = useState<'all' | 'available' | 'reserved'>('all')
   const hasList = useRef(!!initialList)
+  const mobileRef = useRef<VrtuljakHandle>(null)
   const refresh = useCallback(async () => {
     try {
       const res = await publicApi.getList(slug)
@@ -467,7 +471,7 @@ export default function PublicListClient({ slug, initialList, initialError }: {
     if (!initialList) refresh()
   }, [refresh, initialList])
 
-  // Drop remembered reservations that no longer exist (cancelled by mama or expired).
+  // Drop remembered reservations that no longer exist (cancelled by the parents or expired).
   useEffect(() => {
     if (!list) return
     setMine(prev => {
@@ -490,7 +494,7 @@ export default function PublicListClient({ slug, initialList, initialError }: {
   const onReserved = (itemId: string, entry: MyReservation) => {
     rememberReservation(itemId, entry)
     setMine(getMyReservations())
-    refresh()
+    refresh().then(() => MOBILE_PIECES.forEach(p => mobileRef.current?.nudge(p.art, 1.6)))
   }
 
   const setPurchased = async (item: ListItem, purchased: boolean) => {
@@ -499,7 +503,7 @@ export default function PublicListClient({ slug, initialList, initialError }: {
     setBusyItem(item.id)
     try {
       await publicApi.setReservationStatus(slug, item.id, entry.token, purchased ? 'PURCHASED' : 'RESERVED')
-      showToast(purchased ? 'Označeno kao kupljeno 🎉' : 'Vraćeno na "rezervirano"')
+      showToast(purchased ? 'Označeno kao kupljeno. Bravo.' : 'Vraćeno na rezervirano.')
       await refresh()
     } catch (err) {
       showToast(apiError(err))
@@ -516,7 +520,7 @@ export default function PublicListClient({ slug, initialList, initialError }: {
       await publicApi.cancelReservation(slug, item.id, entry.token)
       forgetReservation(item.id)
       setMine(getMyReservations())
-      showToast('Rezervacija je otkazana')
+      showToast('Rezervacija je otkazana.')
       await refresh()
     } catch (err) {
       showToast(apiError(err))
@@ -533,7 +537,7 @@ export default function PublicListClient({ slug, initialList, initialError }: {
       await publicApi.leaveGroupBuy(slug, item.id, contributor.id, entry.token)
       forgetReservation(item.id)
       setMine(getMyReservations())
-      showToast('Napustio/la si grupnu kupovinu')
+      showToast('Više nisi u grupnoj kupovini.')
       await refresh()
     } catch (err) {
       showToast(apiError(err))
@@ -542,24 +546,30 @@ export default function PublicListClient({ slug, initialList, initialError }: {
     }
   }
 
+  const tone = useMemo(() => LIST_TONES[[...slug].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % LIST_TONES.length], [slug])
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-cream flex items-center justify-center">
-        <div className="text-center"><span className="text-5xl animate-bounce block mb-4">🍼</span><p className="text-warm-gray">Učitavanje liste...</p></div>
-      </div>
+      <>
+        <Navbar />
+        <main className="flex min-h-screen items-center justify-center"><Loader label="Tražim listu." /></main>
+      </>
     )
   }
 
   if (error || !list) {
     return (
-      <div className="min-h-screen bg-cream flex items-center justify-center p-4">
-        <div className="text-center">
-          <span className="text-5xl block mb-4">😔</span>
-          <h1 className="font-serif text-2xl text-charcoal mb-2">Lista nije dostupna</h1>
-          <p className="text-warm-gray text-sm mb-6">{error}</p>
-          <Link href="/pronadi-listu" className="text-sm text-rose hover:underline">Pretraži liste po imenu →</Link>
-        </div>
-      </div>
+      <>
+        <Navbar />
+        <main className="flex min-h-[80vh] items-center justify-center p-5 pt-24">
+          <div className="max-w-md text-center">
+            <div className="tone-bubble mx-auto w-24"><Art name="moon" /></div>
+            <h1 className="display mt-3 text-5xl">Ove liste nema.</h1>
+            <p className="mt-3 text-muted">{error}</p>
+            <Link href="/pronadi-listu" className="btn btn-ink mt-6">Potraži listu po imenu</Link>
+          </div>
+        </main>
+      </>
     )
   }
 
@@ -571,124 +581,101 @@ export default function PublicListClient({ slug, initialList, initialError }: {
   const reservedCount = list.items.filter(i => i.reservation).length
   const progress = total > 0 ? Math.round((reservedCount / total) * 100) : 0
   const myCount = list.items.filter(i => mine[i.id]).length
+  const gender = genderLabel(owner.babyGender)
 
   const visible = list.items.filter(i => filter === 'available' ? !i.reservation : filter === 'reserved' ? !!i.reservation : true)
 
   return (
-    <div className="min-h-screen bg-cream">
-      <header className="relative overflow-hidden">
-        <div className="absolute inset-0 -z-10" aria-hidden>
-          <div className="absolute top-0 right-0 w-64 sm:w-96 h-48 sm:h-64 bg-blush/50 rounded-full blur-3xl translate-x-1/3" />
-          <div className="absolute bottom-0 left-0 w-56 sm:w-80 h-36 sm:h-48 bg-sage-light/40 rounded-full blur-3xl -translate-x-1/4" />
-        </div>
-        <div className="max-w-2xl mx-auto px-4 pt-8 sm:pt-12 pb-6 sm:pb-8 text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/80 backdrop-blur-sm rounded-full text-warm-gray text-xs mb-4 sm:mb-5 border border-blush/30">
-            <Heart size={11} className="text-rose" /> Baby lista
-          </div>
-          <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl text-charcoal mb-2 sm:mb-3 px-2 break-words">{list.name}</h1>
-          <p className="text-warm-gray mb-2 text-sm sm:text-base">Lista od <strong>{owner.name}</strong></p>
-
-          <div className="flex items-center justify-center gap-2 sm:gap-4 flex-wrap mt-3 sm:mt-4">
-            {dueDate && (
-              <span className="flex items-center gap-1.5 text-xs sm:text-sm text-warm-gray bg-white/70 px-2.5 sm:px-3 py-1.5 rounded-full border border-blush/30">
-                🗓️ {formatDateHR(dueDate)}
-                {daysUntilDue !== null && daysUntilDue > 0 && <span className="text-rose font-medium">(još {daysUntilDue} {plural(daysUntilDue, 'dan', 'dana', 'dana')})</span>}
-              </span>
-            )}
-            {owner.babyGender && (
-              <span className="flex items-center gap-1.5 text-xs sm:text-sm text-warm-gray bg-white/70 px-2.5 sm:px-3 py-1.5 rounded-full border border-blush/30">
-                {owner.babyGender === 'boy' ? '💙 Dječak' : owner.babyGender === 'girl' ? '💗 Djevojčica' : '🎀 Iznenađenje'}
-              </span>
-            )}
-          </div>
-
-          {list.description && <p className="mt-3 sm:mt-4 text-warm-gray text-sm italic max-w-md mx-auto px-2 whitespace-pre-line">{list.description}</p>}
-
-          <dl className="flex justify-center gap-6 mt-5 sm:mt-6">
-            <div className="text-center"><dd className="text-xl sm:text-2xl font-serif text-charcoal">{total}</dd><dt className="text-xs text-warm-gray">ukupno</dt></div>
-            <div className="text-center"><dd className="text-xl sm:text-2xl font-serif text-rose">{total - reservedCount}</dd><dt className="text-xs text-warm-gray">slobodno</dt></div>
-            <div className="text-center"><dd className="text-xl sm:text-2xl font-serif text-gold">{reservedCount}</dd><dt className="text-xs text-warm-gray">rezervirano</dt></div>
-          </dl>
-
-          {total > 0 && (
-            <div className="mt-5 sm:mt-6 max-w-sm mx-auto px-2">
-              <div className="h-3 bg-white/80 rounded-full border border-blush/30 overflow-hidden" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} aria-label="Rezervirano">
-                <div className={clsx('h-full rounded-full transition-all duration-700 ease-out', progress === 100 ? 'bg-gradient-to-r from-sage to-[#6B9B68]' : 'bg-gradient-to-r from-gold to-[#D4B87A]')}
-                  style={{ width: `${progress}%` }} />
-              </div>
-              {progress === 100 && <p className="text-xs text-sage font-medium mt-1.5">🎉 Svi pokloni su rezervirani!</p>}
+    <>
+      <Navbar />
+      <header className={clsx(`tone-${tone}`, 'list-hero rounded-b-5xl px-5 pb-10 sm:px-8 sm:pb-14')}>
+        <div className="mx-auto max-w-3xl pt-[72px]">
+          <ListMobile ref={mobileRef} progress={progress} />
+          <div className="page-in text-center">
+            <p className="font-semibold">Lista od {owner.name}</p>
+            <h1 className="display mt-1.5 break-words text-[clamp(2.9rem,9vw,5.6rem)]">{list.name}</h1>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              {dueDate && (
+                <span className="chip bg-coal/10 !px-3.5 !py-1.5 !text-sm">
+                  {list.occasion === 'birthday' ? 'Rođendan' : 'Termin'}: {formatDateHR(dueDate)}{daysUntilDue !== null && daysUntilDue > 0 && <> (za {daysUntilDue} {plural(daysUntilDue, 'dan', 'dana', 'dana')})</>}
+                </span>
+              )}
+              {gender && list.occasion !== 'birthday' && <span className="chip bg-coal/10 !px-3.5 !py-1.5 !text-sm">{owner.babyGender === 'surprise' ? 'Spol je iznenađenje' : gender}</span>}
             </div>
-          )}
+            {list.description && <p className="note mx-auto mt-5 max-w-lg whitespace-pre-line text-2xl">{list.description}</p>}
+            {total > 0 && (
+              <div className="mx-auto mt-6 max-w-sm">
+                <p className="mb-2 font-display text-lg font-extrabold tracking-tight">
+                  {progress === 100 ? 'Svi pokloni su rezervirani.' : `${reservedCount} od ${total} rezervirano`}
+                </p>
+                <ProgressBar value={progress} label="Rezervirano" className="!bg-coal/15" barClass="bg-coal" />
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-3 sm:px-4 pb-16">
+      <main id="sadrzaj" className="mx-auto max-w-3xl px-4 pb-16 pt-6 sm:px-6">
         {myCount > 0 && (
-          <p className="mb-4 p-3 bg-white rounded-2xl border border-gold/30 text-sm text-charcoal text-center">
-            ⭐ Ovdje imaš {myCount} {plural(myCount, 'rezervaciju', 'rezervacije', 'rezervacija')} — {myCount === 1 ? 'možeš je označiti kao kupljenu ili otkazati' : 'možeš ih označiti kao kupljene ili otkazati'}.
+          <p className="mb-4 rounded-3xl bg-sun-soft p-3.5 text-center text-[15px] font-medium">
+            Ovdje imaš {myCount} {plural(myCount, 'rezervaciju', 'rezervacije', 'rezervacija')}. Možeš {myCount === 1 ? 'je' : 'ih'} označiti kao {myCount === 1 ? 'kupljenu' : 'kupljene'} ili otkazati.
           </p>
         )}
 
-        <div className="flex gap-2 mb-4 sm:mb-5 overflow-x-auto pb-1 -mx-1 px-1" role="tablist">
-          {([
-            { key: 'all', label: 'Sve' },
-            { key: 'available', label: '✓ Slobodno' },
-            { key: 'reserved', label: '🎁 Rezervirano' },
-          ] as const).map(f => (
-            <button key={f.key} role="tab" aria-selected={filter === f.key} onClick={() => setFilter(f.key)}
-              className={clsx('px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap flex-shrink-0',
-                filter === f.key ? 'bg-charcoal text-white' : 'bg-white text-warm-gray border border-blush/40 hover:border-blush-mid')}>
-              {f.label}
-            </button>
-          ))}
-        </div>
+        {total > 0 && progress < 100 && (
+          <p className="mb-5 rounded-3xl bg-sun-soft p-4 text-[15px] font-medium leading-snug">
+            Klikni <strong>Rezerviraj</strong> kod poklona koji ćeš kupiti. Ostali će vidjeti da je zauzet. Ovdje ništa ne plaćaš i ne upisuješ karticu, poklon kupuješ u dućanu.
+          </p>
+        )}
+
+        <Segmented className="mb-5 w-fit" label="Prikaz poklona" value={filter} onChange={setFilter}
+          options={[
+            { value: 'all', label: 'Sve', count: total },
+            { value: 'available', label: 'Slobodno', count: total - reservedCount },
+            { value: 'reserved', label: 'Rezervirano', count: reservedCount },
+          ]} />
 
         {visible.length === 0 ? (
-          <div className="text-center py-12">
-            <span className="text-4xl block mb-3">{filter === 'reserved' ? '🎁' : '🔍'}</span>
-            <p className="text-warm-gray text-sm">
-              {total === 0 ? 'Lista je još prazna.' : filter === 'reserved' ? 'Još ništa nije rezervirano' : 'Sve je već rezervirano 🎉'}
+          <div className="py-12 text-center">
+            <div className="tone-sun mx-auto w-20"><Art name="gift" /></div>
+            <p className="mt-3 font-display text-xl font-extrabold tracking-tight">
+              {total === 0 ? 'Lista je još prazna.' : filter === 'reserved' ? 'Još ništa nije rezervirano.' : 'Sve je već rezervirano.'}
             </p>
           </div>
         ) : (
           <ul className="space-y-3">
-            {visible.map(item => (
-              <PublicListItem key={item.id} item={item} mine={mine[item.id]} busy={busyItem === item.id}
-                onStart={step => setFlow({ step, item })}
-                onPurchased={purchased => setPurchased(item, purchased)}
-                onCancel={() => cancelReservation(item)}
-                onLeave={c => leaveGroup(item, c)} />
-            ))}
+            <AnimatePresence initial={false} mode="popLayout">
+              {visible.map((item, i) => (
+                <PublicListItem key={item.id} item={item} index={i} mine={mine[item.id]} busy={busyItem === item.id}
+                  onStart={step => setFlow({ step, item })}
+                  onPurchased={purchased => setPurchased(item, purchased)}
+                  onCancel={() => cancelReservation(item)}
+                  onLeave={c => leaveGroup(item, c)} />
+              ))}
+            </AnimatePresence>
           </ul>
         )}
 
-        <div className="mt-10 p-4 sm:p-5 bg-white/60 rounded-2xl border border-blush/20 text-center">
-          <p className="text-xs sm:text-sm text-warm-gray">
-            🎀 Lista je napravljena na <Link href="/" className="text-rose hover:underline font-medium">Bebinoj Listi</Link>.
-            Kupuješ direktno u shopu — ovdje se ništa ne plaća.
-          </p>
-        </div>
-        <p className="mt-6 text-center text-xs text-warm-gray/60">
-          <Link href="/privatnost" className="hover:text-warm-gray transition-colors">Politika privatnosti</Link>
-          {' · '}
-          <Link href="/uvjeti" className="hover:text-warm-gray transition-colors">Uvjeti korištenja</Link>
+        <p className="mt-8 text-center text-[15px] font-medium text-muted">
+          Ovdje se ništa ne plaća, kupuje se izravno u dućanu. <Link href="/" className="font-semibold text-ink underline underline-offset-2">Što je Bebina Lista?</Link>
         </p>
       </main>
+      <Footer />
 
-      {flow && (
-        <Modal
-          onClose={closeFlow}
-          title={flow.step === 'choose' ? 'Kako želiš kupiti?' : flow.step === 'solo' ? 'Rezerviraj poklon' : flow.step === 'join' ? 'Pridruži se 👥' : 'Grupna kupovina 👥'}
-        >
-          {flow.step === 'choose' && <ChooseStep item={flow.item} onPick={step => setFlow({ step, item: flow.item })} />}
-          {flow.step === 'solo' && <ReserveStep item={flow.item} slug={slug} onDone={onReserved} onConflict={refresh} onClose={closeFlow} />}
-          {(flow.step === 'group' || flow.step === 'join') && (
-            <GroupStep item={flow.item} slug={slug} isJoin={flow.step === 'join'} onDone={onReserved} onConflict={refresh} onClose={closeFlow} />
-          )}
-        </Modal>
-      )}
+      <AnimatePresence>
+        {flow && (
+          <Modal key="flow" onClose={closeFlow}
+            title={flow.step === 'choose' ? 'Cijeli poklon ili dio?' : flow.step === 'solo' ? 'Rezerviraj poklon' : flow.step === 'join' ? 'Dodaj svoj dio' : 'Skupljamo zajedno'}>
+            {flow.step === 'choose' && <ChooseStep item={flow.item} onPick={step => setFlow({ step, item: flow.item })} />}
+            {flow.step === 'solo' && <ReserveStep item={flow.item} slug={slug} onDone={onReserved} onConflict={refresh} onClose={closeFlow} />}
+            {(flow.step === 'group' || flow.step === 'join') && (
+              <GroupStep item={flow.item} slug={slug} isJoin={flow.step === 'join'} onDone={onReserved} onConflict={refresh} onClose={closeFlow} />
+            )}
+          </Modal>
+        )}
+      </AnimatePresence>
 
       <Toast message={toast} />
-    </div>
+    </>
   )
 }

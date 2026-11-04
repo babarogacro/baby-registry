@@ -62,6 +62,10 @@ export function parseCards(html: string) {
     const productUrl = absoluteUrl(link.attr('href'), BASE_URL)
     if (!productUrl) return
 
+    const price = parseHRPrice(card.find('.price').first().text() || card.text())
+    // The listing shows only the percentage ("-14,62%") next to the discounted price.
+    const discount = parseFloat((card.find('figure').text().match(/-\s*(\d+(?:[,.]\d+)?)\s*%/)?.[1] ?? '').replace(',', '.'))
+
     const img = card.find('img').first()
     const name = cleanName(img.attr('alt') || '') || cleanName(link.text())
     if (name.length < 3) return
@@ -69,7 +73,9 @@ export function parseCards(html: string) {
     products.push({
       sku: card.attr('id')?.replace('article_id_', '') || undefined,
       name,
-      price: parseHRPrice(card.find('.price').first().text() || card.text()),
+      price,
+      brand: card.find('.man_title').first().text(),
+      originalPrice: discount > 0 && discount < 100 ? Math.round((price / (1 - discount / 100)) * 100) / 100 : undefined,
       imageUrl: absoluteUrl(img.attr('data-src') || img.attr('src'), BASE_URL),
       productUrl,
     })

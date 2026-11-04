@@ -1,25 +1,38 @@
 import Link from 'next/link'
+import { LogoMark } from '@/components/Logo'
 
 export default function Footer() {
   return (
-    <footer className="border-t border-blush/30 py-8 px-4">
-      <div className="max-w-5xl mx-auto">
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span aria-hidden>🍼</span>
-            <span className="font-serif text-charcoal">Bebina Lista</span>
+    <footer className="mt-10 rounded-t-5xl bg-coal px-5 pb-[max(1.75rem,env(safe-area-inset-bottom))] pt-14 text-white sm:px-8">
+      <div className="mx-auto max-w-6xl">
+        <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr]">
+          <div>
+            <LogoMark className="h-14 w-14" />
+            <p className="mt-4 max-w-sm text-lg font-medium leading-snug text-white/85">
+              Lista želja za bebu i dječji rođendan. Pokloni se kupuju u dućanu, ovdje se ništa ne plaća.
+            </p>
           </div>
-          <p className="text-xs text-warm-gray">© {new Date().getFullYear()} Bebina Lista. Napravljeno s ljubavlju. 💕</p>
+          <nav aria-label="Stranice">
+            <ul className="space-y-2.5 font-semibold">
+              <li><Link href="/katalog" className="transition-colors hover:text-sun">Katalog</Link></li>
+              <li><Link href="/pronadi-listu" className="transition-colors hover:text-sun">Pronađi listu</Link></li>
+              <li><Link href="/registracija" className="transition-colors hover:text-sun">Napravi listu</Link></li>
+              <li><Link href="/prijava" className="transition-colors hover:text-sun">Prijava</Link></li>
+            </ul>
+          </nav>
+          <nav aria-label="Pravne informacije">
+            <ul className="space-y-2.5 font-semibold">
+              <li><Link href="/privatnost" className="transition-colors hover:text-sun">Politika privatnosti</Link></li>
+              <li><Link href="/uvjeti" className="transition-colors hover:text-sun">Uvjeti korištenja</Link></li>
+            </ul>
+          </nav>
         </div>
-        <div className="mt-4 pt-4 border-t border-blush/20 flex flex-col sm:flex-row justify-between items-center gap-2 text-center">
-          <p className="text-xs text-warm-gray/70">
-            Babaroga, vl. Tvrtko Kračun · OIB: 72128351309 · Poljski put 16, Novalja
-          </p>
-          <div className="flex items-center gap-3 text-xs text-warm-gray/70">
-            <Link href="/privatnost" className="hover:text-warm-gray transition-colors">Politika privatnosti</Link>
-            <span aria-hidden>·</span>
-            <Link href="/uvjeti" className="hover:text-warm-gray transition-colors">Uvjeti korištenja</Link>
-          </div>
+
+        <p aria-hidden className="display mt-12 select-none overflow-hidden whitespace-nowrap text-[17.5vw] text-white/[0.09] lg:text-[11.5rem]">bebina lista</p>
+
+        <div className="mt-6 flex flex-col justify-between gap-2 border-t border-white/15 pt-5 text-[13px] text-white/65 sm:flex-row">
+          <p>Babaroga, vl. Tvrtko Kračun · OIB: 72128351309 · Poljski put 16, Novalja</p>
+          <p>© {new Date().getFullYear()} Bebina Lista</p>
         </div>
       </div>
     </footer>

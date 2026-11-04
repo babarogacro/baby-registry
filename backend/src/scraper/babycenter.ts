@@ -53,7 +53,7 @@ export function parseListing(html: string) {
 
   $('[id^="itemCard"]').each((_, el) => {
     const card = $(el)
-    let info: { item_id?: string; item_name?: string; price?: number } | undefined
+    let info: { item_id?: string; item_name?: string; item_brand?: string; price?: number; discount?: number } | undefined
     try {
       info = JSON.parse(card.attr('data-json') || '{}').items?.[0]
     } catch {
@@ -67,6 +67,8 @@ export function parseListing(html: string) {
       sku: info.item_id ? String(info.item_id) : undefined,
       name: info.item_name.trim(),
       price: Number(info.price),
+      brand: info.item_brand,
+      originalPrice: info.discount ? Number(info.price) + Number(info.discount) : undefined,
       imageUrl: absoluteUrl(img.attr('data-src') || img.attr('src'), BASE_URL),
       productUrl,
     })

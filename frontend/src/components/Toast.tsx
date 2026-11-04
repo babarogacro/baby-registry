@@ -1,5 +1,6 @@
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { AnimatePresence, m } from 'motion/react'
 
 export function useToast(duration = 3000) {
   const [toast, setToast] = useState<string | null>(null)
@@ -17,10 +18,16 @@ export function useToast(duration = 3000) {
 }
 
 export function Toast({ message }: { message: string | null }) {
-  if (!message) return null
   return (
-    <div role="status" className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 max-w-[calc(100vw-2rem)] bg-charcoal text-white text-sm text-center rounded-full shadow-2xl fade-in">
-      {message}
+    <div role="status" aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-toast flex justify-center px-4 sm:bottom-8">
+      <AnimatePresence>
+        {message && (
+          <m.div key={message} initial={{ opacity: 0, y: 24, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.96, transition: { duration: 0.14 } }}
+            className="max-w-full rounded-full bg-ink px-5 py-3 text-center text-sm font-semibold text-canvas shadow-lift ring-2 ring-canvas/25">
+            {message}
+          </m.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

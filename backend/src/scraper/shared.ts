@@ -95,10 +95,40 @@ async function ensureCategories() {
   return ids
 }
 
+// Shops write brands differently ("CYBEX", "Cybex"), so the catalog facet needs one spelling.
+const BRAND_SPELLING: Record<string, string> = {
+  'B.BOX': 'b.box',
+  'BABYBJORN': 'BabyBjörn',
+  'BABYBJÖRN': 'BabyBjörn',
+  'BABY BJORN': 'BabyBjörn',
+  'BABY BJÖRN': 'BabyBjörn',
+  'BEBE-JOU': 'Bébé-Jou',
+  'BÉBÉ-JOU': 'Bébé-Jou',
+  'BIBS': 'BIBS',
+  'BRITAX ROMER': 'Britax Römer',
+  'LASSIG': 'Lässig',
+  'MAGNA TILES': 'Magna-Tiles',
+  'MAM': 'MAM',
+  'MAXI COSI': 'Maxi-Cosi',
+  'NUK': 'NUK',
+  'SWEETDREAMERS': 'Sweet Dreamers',
+}
+
+export function normalizeBrand(raw: string | undefined) {
+  const clean = raw?.replace(/[®™]/g, '').replace(/\s+/g, ' ').trim()
+  if (!clean || clean.length < 2) return undefined
+  const key = clean.toLocaleUpperCase('hr-HR')
+  return BRAND_SPELLING[key]
+    ?? key.toLocaleLowerCase('hr-HR').replace(/(^|[\s-])(\p{L})/gu, (_, gap, letter) => gap + letter.toLocaleUpperCase('hr-HR'))
+}
+
 export interface ScrapedProduct {
   sku?: string
   name: string
   price: number
+  brand?: string
+  /** Price before the shop's discount, when the shop shows one. */
+  originalPrice?: number
   imageUrl?: string
   productUrl: string
 }
@@ -162,6 +192,8 @@ export async function runShopScrape<T extends ScrapeTarget>(
           const data = {
             name: p.name.slice(0, 500),
             price: p.price,
+            originalPrice: p.originalPrice && p.originalPrice > p.price ? p.originalPrice : null,
+            brand: normalizeBrand(p.brand),
             imageUrl: p.imageUrl?.slice(0, 1000) || null,
             productUrl: p.productUrl.slice(0, 1000),
             sku: p.sku ?? null,
@@ -176,7 +208,7 @@ export async function runShopScrape<T extends ScrapeTarget>(
             if (id) {
               await prisma.product.update({ where: { id }, data, select: { id: true } })
             } else {
-              const created = await prisma.product.create({ data, select: { id: true } })
+              const created = await prisma.product.create({ data: { ...data, sortKey: Math.random() }, select: { id: true } })
               byUrl.set(p.productUrl, created.id)
               if (p.sku) bySku.set(p.sku, created.id)
             }

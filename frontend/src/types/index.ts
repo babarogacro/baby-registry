@@ -31,7 +31,9 @@ export interface Product {
   name: string
   description?: string
   price: number
+  originalPrice?: number | null
   currency: string
+  brand?: string | null
   imageUrl?: string
   productUrl: string
   sku?: string
@@ -113,7 +115,15 @@ export interface BabyList {
 export interface PaginatedProducts {
   products: Product[]
   pagination: { page: number; limit: number; total: number; totalPages: number }
-  priceRange: { min: number; max: number }
+}
+
+export interface CatalogFacets {
+  total: number
+  shops: { slug: string; name: string; count: number }[]
+  brands: { name: string; count: number }[]
+  categories: Category[]
+  priceBuckets: { from: number; to: number | null; count: number }[]
+  onSale: number
 }
 
 export interface AdminUser {

@@ -1,123 +1,37 @@
 'use client'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import Link from 'next/link'
+import { AnimatePresence, m } from 'motion/react'
 import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
 import ProductCard from '@/components/ProductCard'
 import Modal from '@/components/Modal'
+import Segmented from '@/components/Segmented'
+import { Art } from '@/components/art'
 import { Toast, useToast } from '@/components/Toast'
-import { productsApi, listsApi, apiError } from '@/lib/api'
-import { formatPrice, plural } from '@/lib/format'
+import AddToListModal from './AddToListModal'
+import FilterPanel from './FilterPanel'
+import { productsApi, listsApi, apiError, type ProductFilters } from '@/lib/api'
+import { categoryMeta, sortRootCategories } from '@/lib/categories'
+import { plural } from '@/lib/format'
 import { useAuthStore } from '@/lib/store'
-import { Product, Category, BabyList, Priority } from '@/types'
-import { Search, X, ChevronLeft, ChevronRight, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react'
+import { Product, Category, BabyList, CatalogFacets } from '@/types'
+import { ChevronDown, Search, SlidersHorizontal, X } from 'lucide-react'
 import clsx from 'clsx'
 
-const PRICE_PRESETS = [
-  { label: 'Do 30 €', min: '', max: '30' },
-  { label: 'Do 50 €', min: '', max: '50' },
-  { label: '50–150 €', min: '50', max: '150' },
-  { label: '150–500 €', min: '150', max: '500' },
-  { label: '500 €+', min: '500', max: '' },
+const PAGE_SIZE = 24
+/** The API serves at most 100 rows per call, which also caps how much a reload can restore. */
+const MAX_RESTORED_PAGES = 4
+
+const SORTS = [
+  { value: '', label: 'Izmiješano' },
+  { value: 'price_asc', label: 'Cijena: od niže' },
+  { value: 'price_desc', label: 'Cijena: od više' },
+  { value: 'newest', label: 'Najnovije' },
+  { value: 'name', label: 'Po nazivu' },
 ]
 
-const SHOPS = [
-  { slug: 'babycenter', name: 'Baby Center' },
-  { slug: 'svijetbeba', name: 'Svijet Beba' },
-]
-
-const PRIORITIES: { value: Priority; label: string; cls: string }[] = [
-  { value: 'HIGH', label: '❤️ Jako', cls: 'priority-HIGH' },
-  { value: 'MEDIUM', label: '🌿 Srednje', cls: 'priority-MEDIUM' },
-  { value: 'LOW', label: '✨ Luksuz', cls: 'priority-LOW' },
-]
-
-const listCount = (list: BabyList) => list._count?.items ?? list.items?.length ?? 0
-
-function AddToListModal({ product, lists, onClose, onAdded }: {
-  product: Product
-  lists: BabyList[]
-  onClose: () => void
-  onAdded: (message: string) => void
-}) {
-  const [listId, setListId] = useState(lists[0]?.id || '')
-  const [priority, setPriority] = useState<Priority>('MEDIUM')
-  const [note, setNote] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-
-  const add = async () => {
-    setSaving(true); setError('')
-    try {
-      await listsApi.addItem(listId, product.id, priority, note.trim() || undefined)
-      onAdded('Dodano na listu! 💕')
-    } catch (err: any) {
-      setError(err?.response?.status === 409 ? 'Ovaj proizvod je već na toj listi.' : apiError(err))
-      setSaving(false)
-    }
-  }
-
-  return (
-    <Modal title="Dodaj na listu" onClose={onClose} sheet>
-      <div className="px-5 sm:px-6 pb-6">
-        <div className="flex gap-3 mb-5 p-3 bg-cream rounded-2xl">
-          <div className="w-14 h-14 bg-white rounded-xl flex-shrink-0 overflow-hidden flex items-center justify-center">
-            {product.imageUrl ? <img src={product.imageUrl} alt="" className="w-full h-full object-contain p-1" /> : <span className="text-2xl">🍼</span>}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-charcoal line-clamp-2">{product.name}</p>
-            <p className="text-sm text-rose font-medium mt-0.5">{formatPrice(product.price, product.currency)}</p>
-          </div>
-        </div>
-        {lists.length === 0 ? (
-          <p className="text-sm text-warm-gray text-center py-4">
-            Još nemaš listu. <Link href="/moja-lista" className="text-rose underline">Kreiraj listu</Link> pa se vrati.
-          </p>
-        ) : (
-          <>
-            {lists.length > 1 && (
-              <fieldset className="mb-4">
-                <legend className="block text-xs font-medium text-warm-gray mb-2 uppercase tracking-wide">Odaberi listu</legend>
-                <div className="space-y-2">
-                  {lists.map(list => (
-                    <button key={list.id} type="button" aria-pressed={listId === list.id} onClick={() => setListId(list.id)}
-                      className={clsx('w-full text-left px-4 py-3 rounded-2xl border text-sm transition-all',
-                        listId === list.id ? 'border-rose bg-blush/20 text-charcoal font-medium' : 'border-blush/40 text-warm-gray hover:border-blush-mid')}>
-                      {list.name} <span className="opacity-60 text-xs">({listCount(list)} {plural(listCount(list), 'stavka', 'stavke', 'stavki')})</span>
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
-            )}
-            <fieldset className="mb-4">
-              <legend className="block text-xs font-medium text-warm-gray mb-2 uppercase tracking-wide">Koliko ti treba?</legend>
-              <div className="grid grid-cols-3 gap-2">
-                {PRIORITIES.map(p => (
-                  <button key={p.value} type="button" aria-pressed={priority === p.value} onClick={() => setPriority(p.value)}
-                    className={clsx('px-2 py-2.5 rounded-xl text-xs font-medium transition-all border text-center',
-                      priority === p.value ? `${p.cls} border-current` : 'border-blush/30 text-warm-gray hover:border-blush-mid')}>
-                    {p.label}
-                  </button>
-                ))}
-              </div>
-            </fieldset>
-            <div className="mb-5">
-              <label htmlFor="add-note" className="block text-xs font-medium text-warm-gray mb-1.5 uppercase tracking-wide">Napomena (opcionalno)</label>
-              <input id="add-note" type="text" maxLength={200} value={note} onChange={e => setNote(e.target.value)}
-                placeholder="npr. veličina 62, plava boja"
-                className="w-full px-4 py-3 bg-cream border border-blush/40 rounded-xl text-base sm:text-sm focus:outline-none focus:border-rose" />
-            </div>
-            {error && <p role="alert" className="text-sm text-rose mb-3">{error}</p>}
-            <button onClick={add} disabled={saving || !listId}
-              className="w-full py-3 bg-rose text-white font-medium rounded-full hover:bg-rose/90 transition-colors disabled:opacity-50">
-              {saving ? 'Dodajem...' : 'Dodaj na listu'}
-            </button>
-          </>
-        )}
-      </div>
-    </Modal>
-  )
-}
+const proizvoda = (n: number) => plural(n, 'proizvod', 'proizvoda', 'proizvoda')
 
 function useDebounced<T>(value: T, ms: number) {
   const [debounced, setDebounced] = useState(value)
@@ -126,6 +40,83 @@ function useDebounced<T>(value: T, ms: number) {
     return () => clearTimeout(t)
   }, [value, ms])
   return debounced
+}
+
+function CategoryRail({ tree, active, onPick }: { tree: Category[]; active: string; onPick: (slug?: string) => void }) {
+  const roots = sortRootCategories(tree)
+  const openRoot = tree.find(c => c.slug === active || c.children?.some(ch => ch.slug === active))
+  const children = openRoot?.children?.filter(ch => (ch.totalCount ?? 0) > 0 || ch.slug === active) ?? []
+  const allCount = tree.reduce((sum, c) => sum + (c.totalCount ?? 0), 0)
+
+  const tile = (key: string, label: string, count: number, tone: string, art: Parameters<typeof Art>[0]['name'], isActive: boolean, slug?: string) => (
+    <li key={key} className="w-[108px] flex-shrink-0 snap-start lg:w-auto lg:flex-shrink">
+      <button onClick={() => onPick(slug)} aria-pressed={isActive} disabled={count === 0 && !isActive}
+        className={clsx(`tone-${tone}`, 'group h-full w-full rounded-3xl p-1.5 pb-2.5 text-left transition-[background-color,transform,opacity] duration-200 active:scale-[0.97] disabled:opacity-40',
+          isActive ? 'bg-ink text-canvas' : 'bg-surface hover:-translate-y-0.5')}>
+        <span className="block aspect-[5/4] overflow-hidden rounded-[1.1rem] bg-tone p-2.5">
+          <Art name={art} className="mx-auto h-full w-auto transition-transform duration-300 ease-[var(--ease-spring)] group-hover:-translate-y-0.5 group-hover:scale-110" />
+        </span>
+        <span className="mt-2 block px-1 text-[13px] font-bold leading-tight">{label}</span>
+        <span className={clsx('block px-1 text-xs font-medium tabular-nums', isActive ? 'opacity-70' : 'text-muted')}>{count.toLocaleString('hr-HR')}</span>
+      </button>
+    </li>
+  )
+
+  return (
+    <div>
+      <ul className="no-scrollbar -mx-5 flex snap-x gap-2 overflow-x-auto scroll-px-5 px-5 pb-1 pt-1 sm:-mx-8 sm:scroll-px-8 sm:px-8 lg:mx-0 lg:grid lg:grid-cols-9 lg:overflow-visible lg:px-0">
+        {tile('all', 'Sve', allCount, 'sun', 'mix', !active)}
+        {roots.map(cat => {
+          const meta = categoryMeta(cat.slug)
+          return tile(cat.id, cat.name, cat.totalCount ?? 0, meta.tone, meta.art, openRoot?.id === cat.id, cat.slug)
+        })}
+      </ul>
+
+      <AnimatePresence initial={false}>
+        {children.length > 0 && openRoot && (
+          <m.div key={openRoot.id} initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0, transition: { duration: 0.15 } }} className="overflow-hidden">
+            <ul className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 pt-3 sm:-mx-8 sm:px-8 lg:mx-0 lg:flex-wrap lg:px-0">
+              <li className="flex-shrink-0">
+                <button onClick={() => onPick(openRoot.slug)} aria-pressed={active === openRoot.slug}
+                  className={clsx('chip min-h-[40px] whitespace-nowrap px-4 transition-colors', active === openRoot.slug ? 'bg-ink text-canvas' : 'chip-neutral hover:bg-line/[0.13]')}>
+                  Sve iz kategorije {openRoot.name}
+                </button>
+              </li>
+              {children.map(child => (
+                <li key={child.id} className="flex-shrink-0">
+                  <button onClick={() => onPick(child.slug)} aria-pressed={active === child.slug}
+                    className={clsx('chip min-h-[40px] whitespace-nowrap px-4 transition-colors', active === child.slug ? 'bg-ink text-canvas' : 'chip-neutral hover:bg-line/[0.13]')}>
+                    {child.name}
+                    <span className="text-xs font-medium tabular-nums opacity-65">{(child.totalCount ?? 0).toLocaleString('hr-HR')}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </m.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+function findCategory(tree: Category[], slug: string): Category | undefined {
+  for (const cat of tree) {
+    if (cat.slug === slug) return cat
+    const child = cat.children?.find(ch => ch.slug === slug)
+    if (child) return child
+  }
+}
+
+function SortSelect({ value, onChange, className }: { value: string; onChange: (value: string) => void; className?: string }) {
+  return (
+    <div className={clsx('relative', className)}>
+      <select aria-label="Sortiranje" value={value} onChange={e => onChange(e.target.value)}
+        className="min-h-[44px] w-full appearance-none rounded-full bg-line/[0.07] pl-4 pr-9 text-sm font-semibold text-ink transition-colors hover:bg-line/[0.12]">
+        {SORTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+      </select>
+      <ChevronDown size={16} aria-hidden className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2" />
+    </div>
+  )
 }
 
 export default function KatalogClient() {
@@ -138,36 +129,47 @@ export default function KatalogClient() {
     q: searchParams.get('q') || '',
     category: searchParams.get('kategorija') || '',
     shop: searchParams.get('shop') || '',
-    sort: searchParams.get('sort') || 'price_asc',
+    sort: searchParams.get('sort') || '',
     min: searchParams.get('min') || '',
     max: searchParams.get('max') || '',
-    page: Math.max(1, parseInt(searchParams.get('str') || '1', 10) || 1),
+    brands: (searchParams.get('brend') || '').split('|').filter(Boolean),
+    sale: searchParams.get('akcija') === '1',
   }), [searchParams])
+  const startPage = Math.max(1, parseInt(searchParams.get('str') || '1', 10) || 1)
 
   const [queryInput, setQueryInput] = useState(filters.q)
-  const debouncedQuery = useDebounced(queryInput, 350)
+  const debouncedQuery = useDebounced(queryInput, 320)
 
   const [products, setProducts] = useState<Product[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
+  const [total, setTotal] = useState(0)
+  const [facets, setFacets] = useState<CatalogFacets | null>(null)
   const [userLists, setUserLists] = useState<BabyList[]>([])
   const [listProductIds, setListProductIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
+  const [everLoaded, setEverLoaded] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [loadError, setLoadError] = useState('')
-  const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 })
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const { toast, showToast } = useToast()
   const [filtersOpen, setFiltersOpen] = useState(false)
-  const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set())
+  const [reloadKey, setReloadKey] = useState(0)
+  const resultsRef = useRef<HTMLDivElement>(null)
+  const restoredPages = useRef(Math.min(startPage, MAX_RESTORED_PAGES))
 
-  const setParams = useCallback((patch: Record<string, string | number | undefined>, resetPage = true) => {
+  const setParams = useCallback((patch: Record<string, string | number | undefined>, keepPage = false) => {
     const next = new URLSearchParams(searchParams.toString())
     for (const [key, value] of Object.entries(patch)) {
       if (value === undefined || value === '' || (key === 'str' && value === 1)) next.delete(key)
       else next.set(key, String(value))
     }
-    if (resetPage && !('str' in patch)) next.delete('str')
+    if (!keepPage) next.delete('str')
     const qs = next.toString()
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+    if (!keepPage) {
+      // Changing a filter while deep in the grid would otherwise leave you looking at nothing familiar.
+      const top = resultsRef.current ? resultsRef.current.getBoundingClientRect().top + window.scrollY - 90 : 0
+      if (window.scrollY > top) window.scrollTo({ top, behavior: 'smooth' })
+    }
   }, [pathname, router, searchParams])
 
   useEffect(() => { loadFromStorage() }, [loadFromStorage])
@@ -181,41 +183,56 @@ export default function KatalogClient() {
     setQueryInput(prev => (prev.trim() === filters.q ? prev : filters.q))
   }, [filters.q])
 
-  const [reloadKey, setReloadKey] = useState(0)
+  const apiFilters: ProductFilters = useMemo(() => ({
+    q: filters.q || undefined,
+    categorySlug: filters.category || undefined,
+    shopSlug: filters.shop || undefined,
+    brand: filters.brands.join('|') || undefined,
+    onSale: filters.sale ? '1' : undefined,
+    minPrice: filters.min ? parseFloat(filters.min) : undefined,
+    maxPrice: filters.max ? parseFloat(filters.max) : undefined,
+  }), [filters])
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
     setLoadError('')
-    productsApi.getAll({
-      q: filters.q || undefined,
-      categorySlug: filters.category || undefined,
-      shopSlug: filters.shop || undefined,
-      sortBy: filters.sort,
-      page: filters.page,
-      limit: 24,
-      minPrice: filters.min ? parseFloat(filters.min) : undefined,
-      maxPrice: filters.max ? parseFloat(filters.max) : undefined,
-    }).then(res => {
+    const pages = restoredPages.current
+    restoredPages.current = 1
+    Promise.all([
+      productsApi.getAll({ ...apiFilters, sortBy: filters.sort || undefined, page: 1, limit: PAGE_SIZE * pages }),
+      productsApi.getFacets(apiFilters),
+    ]).then(([list, facetData]) => {
       if (cancelled) return
-      setProducts(res.data.products)
-      setPagination(res.data.pagination)
+      setProducts(list.data.products)
+      setTotal(list.data.pagination.total)
+      setFacets(facetData.data)
+      setEverLoaded(true)
     }).catch(err => {
       if (!cancelled) setLoadError(apiError(err, 'Katalog se trenutno ne može učitati.'))
     }).finally(() => {
       if (!cancelled) setLoading(false)
     })
     return () => { cancelled = true }
-  }, [filters, reloadKey])
+  }, [apiFilters, filters.sort, reloadKey])
 
-  useEffect(() => {
-    productsApi.getCategories().then(res => setCategories(res.data)).catch(() => {})
-  }, [])
-
-  useEffect(() => {
-    const parent = categories.find(c => c.children?.some(ch => ch.slug === filters.category))
-    if (parent) setExpandedCats(prev => prev.has(parent.id) ? prev : new Set(prev).add(parent.id))
-  }, [categories, filters.category])
+  const loadMore = async () => {
+    const nextPage = Math.floor(products.length / PAGE_SIZE) + 1
+    setLoadingMore(true)
+    try {
+      const res = await productsApi.getAll({ ...apiFilters, sortBy: filters.sort || undefined, page: nextPage, limit: PAGE_SIZE })
+      setProducts(prev => {
+        const known = new Set(prev.map(p => p.id))
+        return [...prev, ...(res.data.products as Product[]).filter(p => !known.has(p.id))]
+      })
+      setTotal(res.data.pagination.total)
+      setParams({ str: nextPage }, true)
+    } catch (err) {
+      showToast(apiError(err, 'Ne mogu učitati još proizvoda.'))
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   const loadLists = useCallback(() => {
     listsApi.getAll().then(res => {
@@ -226,6 +243,7 @@ export default function KatalogClient() {
   }, [])
 
   useEffect(() => { if (user) loadLists() }, [user, loadLists])
+
   const handleAddClick = (product: Product) => {
     if (!user) {
       router.push(`/prijava?next=${encodeURIComponent(`${pathname}?${searchParams.toString()}`)}`)
@@ -235,217 +253,171 @@ export default function KatalogClient() {
   }
 
   const resetAll = () => { setQueryInput(''); router.replace(pathname, { scroll: false }) }
-  const presetActive = (min: string, max: string) => filters.min === min && filters.max === max
-  const hasFilters = !!(filters.q || filters.category || filters.shop || filters.min || filters.max)
+  const setBrands = (next: string[]) => setParams({ brend: next.join('|') || undefined })
+  const setPrice = (min: string, max: string) => setParams({ min, max })
+  const setSale = (next: boolean) => setParams({ akcija: next ? '1' : undefined })
 
-  const filterSidebar = (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-xs font-medium text-warm-gray uppercase tracking-wide mb-3">Kategorija</h3>
-        <div className="space-y-0.5">
-          <button onClick={() => setParams({ kategorija: undefined })}
-            className={clsx('w-full text-left px-3 py-2 rounded-xl text-sm transition-colors',
-              !filters.category ? 'bg-blush/50 text-rose font-medium' : 'text-warm-gray hover:bg-cream')}>
-            Sve kategorije
-          </button>
-          {categories.filter(c => (c.totalCount ?? 0) > 0).map(cat => {
-            const children = cat.children?.filter(ch => (ch.totalCount ?? 0) > 0) ?? []
-            const expanded = expandedCats.has(cat.id)
-            return (
-              <div key={cat.id}>
-                <div className="flex items-center">
-                  <button onClick={() => setParams({ kategorija: cat.slug })}
-                    className={clsx('flex-1 text-left px-3 py-2 rounded-xl text-sm transition-colors',
-                      filters.category === cat.slug ? 'bg-blush/50 text-rose font-medium' : 'text-charcoal hover:bg-cream')}>
-                    {cat.name}
-                    <span className={clsx('ml-1.5 text-xs', filters.category === cat.slug ? 'text-rose/60' : 'text-warm-gray/60')}>({cat.totalCount})</span>
-                  </button>
-                  {children.length > 0 && (
-                    <button aria-label={expanded ? `Sakrij podkategorije: ${cat.name}` : `Prikaži podkategorije: ${cat.name}`} aria-expanded={expanded}
-                      onClick={() => setExpandedCats(prev => { const n = new Set(prev); if (n.has(cat.id)) n.delete(cat.id); else n.add(cat.id); return n })}
-                      className="p-1.5 text-warm-gray hover:text-charcoal">
-                      {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                    </button>
-                  )}
-                </div>
-                {expanded && children.map(sub => (
-                  <button key={sub.id} onClick={() => setParams({ kategorija: sub.slug })}
-                    className={clsx('w-full text-left pl-7 pr-3 py-1.5 rounded-xl text-xs transition-colors',
-                      filters.category === sub.slug ? 'text-rose font-medium' : 'text-warm-gray hover:text-charcoal')}>
-                    {sub.name} ({sub.totalCount})
-                  </button>
-                ))}
-              </div>
-            )
-          })}
-        </div>
-      </div>
+  const activeCategory = facets ? findCategory(facets.categories, filters.category) : undefined
+  const activeShop = facets?.shops.find(s => s.slug === filters.shop)
 
-      <div>
-        <h3 className="text-xs font-medium text-warm-gray uppercase tracking-wide mb-3">Cijena</h3>
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {PRICE_PRESETS.map(p => (
-            <button key={p.label} aria-pressed={presetActive(p.min, p.max)}
-              onClick={() => presetActive(p.min, p.max) ? setParams({ min: undefined, max: undefined }) : setParams({ min: p.min, max: p.max })}
-              className={clsx('px-2.5 py-1 rounded-full text-xs transition-colors border',
-                presetActive(p.min, p.max) ? 'bg-rose text-white border-rose' : 'border-blush/40 text-warm-gray hover:border-blush-mid')}>
-              {p.label}
-            </button>
-          ))}
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label htmlFor="price-min" className="text-xs text-warm-gray mb-1 block">Od (€)</label>
-            <input id="price-min" type="number" inputMode="decimal" min={0} placeholder="0" defaultValue={filters.min} key={`min-${filters.min}`}
-              onBlur={e => setParams({ min: e.target.value })} onKeyDown={e => e.key === 'Enter' && setParams({ min: e.currentTarget.value })}
-              className="w-full px-3 py-2 bg-white border border-blush/40 rounded-lg text-base sm:text-sm focus:outline-none focus:border-rose" />
-          </div>
-          <div>
-            <label htmlFor="price-max" className="text-xs text-warm-gray mb-1 block">Do (€)</label>
-            <input id="price-max" type="number" inputMode="decimal" min={0} placeholder="∞" defaultValue={filters.max} key={`max-${filters.max}`}
-              onBlur={e => setParams({ max: e.target.value })} onKeyDown={e => e.key === 'Enter' && setParams({ max: e.currentTarget.value })}
-              className="w-full px-3 py-2 bg-white border border-blush/40 rounded-lg text-base sm:text-sm focus:outline-none focus:border-rose" />
-          </div>
-        </div>
-      </div>
+  const applied: { key: string; label: string; clear: () => void }[] = [
+    ...(filters.q ? [{ key: 'q', label: `„${filters.q}"`, clear: () => { setQueryInput(''); setParams({ q: undefined }) } }] : []),
+    ...(activeShop ? [{ key: 'shop', label: activeShop.name, clear: () => setParams({ shop: undefined }) }] : []),
+    ...(filters.category ? [{ key: 'category', label: activeCategory?.name ?? filters.category, clear: () => setParams({ kategorija: undefined }) }] : []),
+    ...filters.brands.map(brand => ({ key: `brand-${brand}`, label: brand, clear: () => setBrands(filters.brands.filter(b => b !== brand)) })),
+    ...(filters.min || filters.max ? [{
+      key: 'price',
+      label: filters.min && filters.max ? `${filters.min} do ${filters.max} €` : filters.min ? `od ${filters.min} €` : `do ${filters.max} €`,
+      clear: () => setPrice('', ''),
+    }] : []),
+    ...(filters.sale ? [{ key: 'sale', label: 'Na akciji', clear: () => setSale(false) }] : []),
+  ]
 
-      <div>
-        <h3 className="text-xs font-medium text-warm-gray uppercase tracking-wide mb-3">Dućan</h3>
-        <div className="space-y-0.5">
-          <button onClick={() => setParams({ shop: undefined })}
-            className={clsx('w-full text-left px-3 py-2 rounded-xl text-sm transition-colors',
-              !filters.shop ? 'bg-blush/50 text-rose font-medium' : 'text-warm-gray hover:bg-cream')}>
-            Svi dućani
-          </button>
-          {SHOPS.map(shop => (
-            <button key={shop.slug} onClick={() => setParams({ shop: filters.shop === shop.slug ? undefined : shop.slug })}
-              className={clsx('w-full text-left px-3 py-2 rounded-xl text-sm transition-colors',
-                filters.shop === shop.slug ? 'bg-blush/50 text-rose font-medium' : 'text-charcoal hover:bg-cream')}>
-              {shop.name}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
+  const panelFilterCount = filters.brands.length + (filters.min || filters.max ? 1 : 0) + (filters.sale ? 1 : 0)
+  const shopTotal = facets ? facets.shops.reduce((sum, s) => sum + s.count, 0) : 0
+
+  const panel = (
+    <FilterPanel facets={facets} brands={filters.brands} min={filters.min} max={filters.max} sale={filters.sale}
+      onBrands={setBrands} onPrice={setPrice} onSale={setSale} />
   )
 
   return (
     <>
       <Navbar />
-      <main className="min-h-screen pt-20 pb-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="py-6">
-            <h1 className="font-serif text-3xl text-charcoal mb-5">Katalog proizvoda</h1>
-            <div className="flex gap-3 flex-wrap">
-              <div className="relative flex-1 min-w-[14rem]">
-                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-warm-gray" aria-hidden />
-                <input type="search" aria-label="Pretraži proizvode" placeholder="Pretraži proizvode..." value={queryInput}
-                  onChange={e => setQueryInput(e.target.value)}
-                  className="w-full pl-10 pr-10 py-3 bg-white border border-blush/40 rounded-full text-base sm:text-sm focus:outline-none focus:border-rose transition-colors" />
-                {queryInput && (
-                  <button aria-label="Očisti pretragu" onClick={() => setQueryInput('')} className="absolute right-4 top-1/2 -translate-y-1/2">
-                    <X size={14} className="text-warm-gray" />
-                  </button>
-                )}
-              </div>
-              <select aria-label="Sortiranje" value={filters.sort} onChange={e => setParams({ sort: e.target.value === 'price_asc' ? undefined : e.target.value })}
-                className="px-4 py-3 bg-white border border-blush/40 rounded-full text-sm text-charcoal focus:outline-none cursor-pointer">
-                <option value="price_asc">Cijena ↑</option>
-                <option value="price_desc">Cijena ↓</option>
-                <option value="newest">Najnovije</option>
-                <option value="name">Po nazivu</option>
-              </select>
-              <button className="lg:hidden flex items-center gap-2 px-4 py-3 bg-white border border-blush/40 rounded-full text-sm text-charcoal"
-                onClick={() => setFiltersOpen(true)}>
-                <SlidersHorizontal size={16} /> Filteri{hasFilters && <span className="w-2 h-2 rounded-full bg-rose" aria-label="aktivni filteri" />}
-              </button>
+      <main id="sadrzaj" className="page-in min-h-screen pb-24 pt-[92px] lg:pb-16">
+        <div className="mx-auto max-w-7xl px-5 sm:px-8">
+          <header className="flex flex-col gap-5 pb-6 pt-3 lg:flex-row lg:items-end lg:justify-between">
+            <h1 className="display text-[3.2rem] sm:text-7xl">Katalog</h1>
+            <div className="relative w-full lg:max-w-md">
+              <Search size={19} className="absolute left-5 top-1/2 -translate-y-1/2 text-muted" aria-hidden />
+              <input type="search" aria-label="Pretraži proizvode" placeholder="Kolica, Cybex, bočica..." value={queryInput} onChange={e => setQueryInput(e.target.value)}
+                className="min-h-[54px] w-full rounded-full border-2 border-transparent bg-surface pl-12 pr-11 text-base shadow-float transition-colors placeholder:text-muted/70 focus:border-[rgb(var(--focus))] focus:outline-none [&::-webkit-search-cancel-button]:hidden" />
+              {queryInput && (
+                <button aria-label="Očisti pretragu" onClick={() => setQueryInput('')} className="icon-btn absolute right-1.5 top-1/2 -translate-y-1/2"><X size={17} /></button>
+              )}
             </div>
+          </header>
+
+          {/* Shop first, then categories: it scopes everything below it. */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pb-4">
+            <span className="font-display text-base font-extrabold tracking-tight">Dućan</span>
+            {facets ? (
+              <Segmented label="Dućan" value={filters.shop} onChange={slug => setParams({ shop: slug || undefined })}
+                options={[{ value: '', label: 'Svi', count: shopTotal }, ...facets.shops.map(s => ({ value: s.slug, label: s.name, count: s.count }))]} />
+            ) : <div className="shimmer h-12 w-80 max-w-full rounded-full" />}
           </div>
 
-          <div className="flex gap-8">
-            <aside className="hidden lg:block w-60 flex-shrink-0 sticky top-24 self-start max-h-[calc(100vh-7rem)] overflow-y-auto pb-4">
-              {filterSidebar}
+          {facets ? (
+            <CategoryRail tree={facets.categories} active={filters.category} onPick={slug => setParams({ kategorija: slug })} />
+          ) : <div className="shimmer h-36 rounded-3xl" />}
+
+          <div className="mt-8 flex gap-10" ref={resultsRef}>
+            <aside className="no-scrollbar sticky top-[92px] hidden max-h-[calc(100dvh-108px)] w-64 flex-shrink-0 self-start overflow-y-auto pb-4 pl-0.5 pr-1 lg:block" aria-label="Filteri">
+              {panel}
             </aside>
 
-            <div className="flex-1 min-w-0">
-              {loading ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4" aria-busy>
+            <div className="min-w-0 flex-1">
+              <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-2">
+                <p className="font-display text-lg font-extrabold tabular-nums tracking-tight" aria-live="polite">
+                  {everLoaded ? <>{total.toLocaleString('hr-HR')} {proizvoda(total)}</> : <span className="shimmer inline-block h-6 w-32 rounded-lg align-middle" />}
+                </p>
+                <ul className="flex flex-wrap items-center gap-1.5">
+                  <AnimatePresence initial={false}>
+                    {applied.map(item => (
+                      <m.li key={item.key} layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.1 } }}>
+                        <button onClick={item.clear} aria-label={`Ukloni filter: ${item.label}`}
+                          className="chip min-h-[34px] bg-sun-soft pr-2 text-ink transition-colors hover:bg-sun hover:text-coal">
+                          <span className="max-w-[12rem] truncate">{item.label}</span><X size={14} strokeWidth={3} aria-hidden />
+                        </button>
+                      </m.li>
+                    ))}
+                  </AnimatePresence>
+                  {applied.length > 1 && (
+                    <li><button onClick={resetAll} className="min-h-[34px] px-2 text-[13px] font-semibold underline underline-offset-2">Očisti sve</button></li>
+                  )}
+                </ul>
+                <SortSelect value={filters.sort} onChange={value => setParams({ sort: value || undefined })} className="ml-auto hidden lg:block" />
+              </div>
+
+              {!everLoaded && loading ? (
+                <div className="grid grid-cols-2 gap-x-3 gap-y-7 md:grid-cols-3 xl:grid-cols-4 xl:gap-x-5" aria-busy="true">
                   {Array.from({ length: 12 }).map((_, i) => (
-                    <div key={i} className="bg-white rounded-3xl overflow-hidden border border-blush/30">
-                      <div className="aspect-square shimmer" />
-                      <div className="p-4 space-y-2"><div className="h-3 shimmer rounded-full w-3/4" /><div className="h-3 shimmer rounded-full w-1/2" /></div>
+                    <div key={i}>
+                      <div className="shimmer aspect-square rounded-3xl" />
+                      <div className="shimmer mt-3 h-3.5 w-1/2 rounded-full" />
+                      <div className="shimmer mt-2 h-3.5 w-5/6 rounded-full" />
                     </div>
                   ))}
                 </div>
               ) : loadError ? (
-                <div className="text-center py-20">
-                  <span className="text-5xl block mb-4">😕</span>
-                  <p className="text-warm-gray text-sm mb-4">{loadError}</p>
-                  <button onClick={() => setReloadKey(k => k + 1)} className="px-5 py-2 bg-blush/40 text-charcoal rounded-full text-sm hover:bg-blush transition-colors">Pokušaj ponovno</button>
+                <div className="py-16 text-center">
+                  <Art name="moon" className="tone-cobalt mx-auto h-20 w-20" />
+                  <h2 className="mt-3 text-2xl font-extrabold">Katalog se nije učitao.</h2>
+                  <p className="mx-auto mt-2 max-w-sm text-muted">{loadError}</p>
+                  <button onClick={() => setReloadKey(k => k + 1)} className="btn btn-ink mt-5">Pokušaj ponovno</button>
                 </div>
               ) : products.length === 0 ? (
-                <div className="text-center py-20">
-                  <span className="text-5xl block mb-4">🔍</span>
-                  <h2 className="font-serif text-xl text-charcoal mb-2">Nema rezultata</h2>
-                  <p className="text-warm-gray text-sm mb-4">Pokušaj s drugačijim filterima</p>
-                  {hasFilters && (
-                    <button onClick={resetAll} className="px-5 py-2 bg-blush/40 text-charcoal rounded-full text-sm hover:bg-blush transition-colors">Resetiraj filtere</button>
-                  )}
+                <div className="py-16 text-center">
+                  <span className="tone-bubble mx-auto block w-24"><Art name="bear" /></span>
+                  <h2 className="mt-3 text-2xl font-extrabold">Nema proizvoda s tim filterima.</h2>
+                  <p className="mx-auto mt-2 max-w-sm text-muted">Makni koji filter ili promijeni pretragu.</p>
+                  {applied.length > 0 && <button onClick={resetAll} className="btn btn-ink mt-5">Očisti sve filtere</button>}
                 </div>
               ) : (
                 <>
-                  <p className="text-sm text-warm-gray mb-4" aria-live="polite">
-                    {pagination.total.toLocaleString('hr-HR')} {plural(pagination.total, 'proizvod', 'proizvoda', 'proizvoda')}
-                    {filters.q && <> za „<strong>{filters.q}</strong>"</>}
-                    {(filters.min || filters.max) && <> · {filters.min || '0'} € – {filters.max || '∞'} €</>}
-                    {hasFilters && <button onClick={resetAll} className="ml-2 text-rose hover:underline">Očisti filtere</button>}
-                  </p>
-                  <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {products.map(product => (
-                      <ProductCard key={product.id} product={product} onAddToList={handleAddClick} isOnList={listProductIds.has(product.id)} />
+                  <div className={clsx('grid grid-cols-2 gap-x-3 gap-y-7 transition-opacity duration-200 md:grid-cols-3 xl:grid-cols-4 xl:gap-x-5', loading && 'opacity-50')} aria-busy={loading}>
+                    {products.map((product, i) => (
+                      <ProductCard key={product.id} product={product} index={i} onAddToList={handleAddClick} isOnList={listProductIds.has(product.id)} />
                     ))}
                   </div>
-                  {pagination.totalPages > 1 && (
-                    <nav className="flex justify-center items-center gap-2 mt-10" aria-label="Stranice">
-                      <button aria-label="Prethodna stranica" onClick={() => setParams({ str: filters.page - 1 }, false)} disabled={filters.page <= 1}
-                        className="p-2 rounded-full border border-blush/40 disabled:opacity-40 hover:bg-blush/20 transition-colors">
-                        <ChevronLeft size={18} />
-                      </button>
-                      <span className="text-sm text-warm-gray px-4">Str. {filters.page} od {pagination.totalPages}</span>
-                      <button aria-label="Sljedeća stranica" onClick={() => { setParams({ str: filters.page + 1 }, false); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
-                        disabled={filters.page >= pagination.totalPages}
-                        className="p-2 rounded-full border border-blush/40 disabled:opacity-40 hover:bg-blush/20 transition-colors">
-                        <ChevronRight size={18} />
-                      </button>
-                    </nav>
-                  )}
+
+                  <div className="mx-auto mt-12 max-w-xs text-center">
+                    <p className="text-sm font-medium text-muted">Pregledano {products.length.toLocaleString('hr-HR')} od {total.toLocaleString('hr-HR')}</p>
+                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-line/10" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={products.length} aria-label="Pregledano proizvoda">
+                      <m.div className="h-full rounded-full bg-tomato" animate={{ width: `${total ? (products.length / total) * 100 : 0}%` }} />
+                    </div>
+                    {products.length < total && (
+                      <button onClick={loadMore} disabled={loadingMore} className="btn btn-ink mt-5 w-full">{loadingMore ? 'Učitavam...' : 'Prikaži još'}</button>
+                    )}
+                  </div>
                 </>
               )}
             </div>
           </div>
         </div>
       </main>
+      <Footer />
 
-      {filtersOpen && (
-        <Modal title="Filteri" onClose={() => setFiltersOpen(false)} sheet>
-          <div className="px-5 sm:px-6 pb-6">
-            {filterSidebar}
-            <button onClick={() => setFiltersOpen(false)} className="mt-6 w-full py-3 bg-charcoal text-white rounded-full text-sm font-medium">
-              Prikaži {pagination.total.toLocaleString('hr-HR')} {plural(pagination.total, 'proizvod', 'proizvoda', 'proizvoda')}
-            </button>
-          </div>
-        </Modal>
-      )}
+      {/* Phones: filters stay one thumb away. */}
+      <div className="fixed inset-x-0 bottom-0 z-30 flex gap-2 bg-gradient-to-t from-canvas via-canvas/90 to-transparent px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-5 lg:hidden">
+        <button onClick={() => setFiltersOpen(true)} className="btn btn-ink flex-1 shadow-float">
+          <SlidersHorizontal size={17} aria-hidden /> Filteri
+          {panelFilterCount > 0 && <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-sun px-1.5 text-[13px] text-coal">{panelFilterCount}</span>}
+        </button>
+        <SortSelect value={filters.sort} onChange={value => setParams({ sort: value || undefined })} className="flex-1 rounded-full bg-surface shadow-float [&_select]:min-h-[48px]" />
+      </div>
 
-      {selectedProduct && (
-        <AddToListModal product={selectedProduct} lists={userLists} onClose={() => setSelectedProduct(null)}
-          onAdded={msg => {
-            setListProductIds(prev => new Set(prev).add(selectedProduct.id))
-            setSelectedProduct(null)
-            showToast(msg)
-            loadLists()
-          }} />
-      )}
+      <AnimatePresence>
+        {filtersOpen && (
+          <Modal key="filters" title="Filteri" onClose={() => setFiltersOpen(false)} sheet>
+            <div className="px-5 pb-4 sm:px-7">{panel}</div>
+            <div className="sticky bottom-0 border-t border-line/10 bg-surface px-5 py-3 sm:px-7">
+              <button onClick={() => setFiltersOpen(false)} className="btn btn-primary w-full">
+                Prikaži {total.toLocaleString('hr-HR')} {proizvoda(total)}
+              </button>
+            </div>
+          </Modal>
+        )}
+        {selectedProduct && (
+          <AddToListModal key="add" product={selectedProduct} lists={userLists} onClose={() => setSelectedProduct(null)}
+            onAdded={msg => {
+              setListProductIds(prev => new Set(prev).add(selectedProduct.id))
+              setSelectedProduct(null)
+              showToast(msg)
+              loadLists()
+            }} />
+        )}
+      </AnimatePresence>
 
       <Toast message={toast} />
     </>

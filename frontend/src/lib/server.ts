@@ -13,4 +13,5 @@ async function getJson<T>(path: string, fallback: T, revalidate = 300): Promise<
 
 export const getFeaturedProducts = () => getJson<Product[]>('/products/featured', [])
 export const getCategories = () => getJson<Category[]>('/products/categories', [])
+export const getOnSaleProducts = () => getJson<{ products: Product[] }>('/products?onSale=1&limit=10', { products: [] }).then(r => r.products)
 export const getPublicSettings = () => getJson<{ heroImage: string | null }>('/public/settings', { heroImage: null })

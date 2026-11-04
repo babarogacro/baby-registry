@@ -17,6 +17,20 @@ export function shopLabel(product: { shopName: string; productUrl?: string }) {
   }
 }
 
+/** Shops often start a product name with the brand; the card already shows it on its own line. */
+export function displayName(product: { name: string; brand?: string | null }) {
+  const name = product.name.replace(/\s+/g, ' ').trim()
+  const prefix = product.brand ? `${product.brand.toLocaleLowerCase('hr-HR')} ` : ''
+  if (!prefix || !name.toLocaleLowerCase('hr-HR').startsWith(prefix) || name.length === prefix.length) return name
+  const rest = name.slice(prefix.length)
+  return rest.charAt(0).toLocaleUpperCase('hr-HR') + rest.slice(1)
+}
+
+export function discountPercent(product: { price: number; originalPrice?: number | null }) {
+  if (!product.originalPrice || product.originalPrice <= product.price) return 0
+  return Math.round((1 - product.price / product.originalPrice) * 100)
+}
+
 const formatters = new Map<string, Intl.NumberFormat>()
 
 export function formatPrice(amount: number, currency = 'EUR') {
@@ -49,6 +63,14 @@ export function maskDMY(raw: string) {
   if (val.length >= 3) val = val.slice(0, 2) + '/' + val.slice(2)
   if (val.length >= 6) val = val.slice(0, 5) + '/' + val.slice(5)
   return val.slice(0, 10)
+}
+
+/** ISO date or timestamp → "dd/mm/yyyy" for the date fields. */
+export function toDMY(value?: string | null) {
+  if (!value) return ''
+  const d = new Date(value)
+  if (isNaN(d.getTime())) return ''
+  return `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${d.getUTCFullYear()}`
 }
 
 export function formatDateHR(date: Date | string) {

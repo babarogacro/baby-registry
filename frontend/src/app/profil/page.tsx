@@ -1,18 +1,18 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { AnimatePresence } from 'motion/react'
 import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
 import Modal from '@/components/Modal'
 import { authApi, apiError } from '@/lib/api'
+import { GENDERS } from '@/lib/occasions'
+import { parseDMY, toDMY } from '@/lib/format'
+import DateField, { DATE_FORMAT_ERROR } from '@/components/DateField'
 import { useAuthStore, leaveToHome } from '@/lib/store'
-import { User, Calendar, Baby, Save, Check } from 'lucide-react'
+import { useTheme } from '@/lib/theme'
+import { Check, Moon } from 'lucide-react'
 import clsx from 'clsx'
-
-const GENDERS = [
-  { value: 'boy', emoji: '💙', label: 'Dječak' },
-  { value: 'girl', emoji: '💗', label: 'Djevojčica' },
-  { value: 'surprise', emoji: '🎀', label: 'Iznenađenje' },
-]
 
 function DeleteAccountModal({ onClose, onDeleted }: { onClose: () => void; onDeleted: () => void }) {
   const [confirmText, setConfirmText] = useState('')
@@ -31,20 +31,18 @@ function DeleteAccountModal({ onClose, onDeleted }: { onClose: () => void; onDel
   }
 
   return (
-    <Modal title="Obrisati račun?" onClose={onClose}>
-      <div className="px-5 sm:px-6 pb-6">
-        <p className="text-sm text-warm-gray mb-4">
-          Trajno ćemo obrisati tvoj račun, sve tvoje liste i rezervacije na njima. Linkovi koje si podijelila prestat će raditi. Ovo se ne može poništiti.
+    <Modal title="Obrisati profil?" onClose={onClose}>
+      <div className="px-5 pb-6 sm:px-7 sm:pb-7">
+        <p className="mb-4 text-muted">
+          Trajno brišemo tvoj profil, sve tvoje liste i rezervacije na njima. Poslani linkovi prestat će raditi. Ovo se ne može poništiti.
         </p>
-        <label htmlFor="delete-confirm" className="block text-xs font-medium text-warm-gray mb-1.5">Za potvrdu upiši <strong>OBRIŠI</strong></label>
-        <input id="delete-confirm" type="text" value={confirmText} onChange={e => setConfirmText(e.target.value)} autoComplete="off"
-          className="w-full px-4 py-3 bg-cream border border-blush/40 rounded-xl text-base sm:text-sm focus:outline-none focus:border-rose mb-4" />
-        {error && <p role="alert" className="text-sm text-rose mb-3">{error}</p>}
-        <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 py-3 border border-blush/40 text-warm-gray text-sm font-medium rounded-full hover:bg-cream">Odustani</button>
-          <button onClick={remove} disabled={busy || confirmText.trim().toUpperCase() !== 'OBRIŠI'}
-            className="flex-1 py-3 bg-rose text-white text-sm font-medium rounded-full hover:bg-rose/90 disabled:opacity-40">
-            {busy ? 'Brišem...' : 'Obriši račun'}
+        <label htmlFor="delete-confirm" className="field-label">Za potvrdu upiši OBRIŠI</label>
+        <input id="delete-confirm" type="text" value={confirmText} onChange={e => setConfirmText(e.target.value)} autoComplete="off" className="field mb-4" />
+        {error && <p role="alert" className="field-error mb-3">{error}</p>}
+        <div className="flex gap-2">
+          <button onClick={onClose} className="btn btn-soft flex-1">Odustani</button>
+          <button onClick={remove} disabled={busy || confirmText.trim().toUpperCase() !== 'OBRIŠI'} className="btn btn-danger flex-1">
+            {busy ? 'Brišem...' : 'Obriši profil'}
           </button>
         </div>
       </div>
@@ -55,6 +53,7 @@ function DeleteAccountModal({ onClose, onDeleted }: { onClose: () => void; onDel
 export default function ProfilPage() {
   const router = useRouter()
   const { user, setAuth, logout, token, isLoading: authLoading, loadFromStorage } = useAuthStore()
+  const { theme, toggle } = useTheme()
   const [form, setForm] = useState({ name: '', dueDate: '', babyGender: '' })
   const [loading, setLoading] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -68,17 +67,19 @@ export default function ProfilPage() {
     if (!user) { router.replace('/prijava?next=/profil'); return }
     setForm({
       name: user.name || '',
-      dueDate: user.dueDate ? user.dueDate.substring(0, 10) : '',
+      dueDate: toDMY(user.dueDate),
       babyGender: user.babyGender || '',
     })
   }, [user, authLoading, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const parsedDate = form.dueDate ? parseDMY(form.dueDate) : null
+    if (form.dueDate && !parsedDate) { setError(DATE_FORMAT_ERROR); return }
     setLoading(true)
     setError(null)
     try {
-      const res = await authApi.updateProfile({ name: form.name.trim(), dueDate: form.dueDate || null, babyGender: form.babyGender || null })
+      const res = await authApi.updateProfile({ name: form.name.trim(), dueDate: parsedDate ? parsedDate.toISOString() : null, babyGender: form.babyGender || null })
       if (token) setAuth(res.data, token)
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)
@@ -94,75 +95,67 @@ export default function ProfilPage() {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen pt-20 pb-16 px-4">
-        <div className="max-w-lg mx-auto">
-          <div className="py-8">
-            <h1 className="font-serif text-3xl text-charcoal mb-1">Moj profil</h1>
-            <p className="text-warm-gray text-sm">{user.email}</p>
-          </div>
+      <main id="sadrzaj" className="page-in min-h-screen px-4 pb-16 pt-[92px]">
+        <div className="mx-auto max-w-lg">
+          <header className="pb-6 pt-4">
+            <h1 className="display text-[3.2rem] sm:text-7xl">Profil</h1>
+            <p className="mt-2 font-medium text-muted">{user.email}</p>
+          </header>
 
-          <div className="bg-white rounded-3xl border border-blush/30 p-6 shadow-sm">
-            {error && <div role="alert" className="mb-5 p-3 bg-rose/10 border border-rose/20 rounded-xl text-sm text-rose">{error}</div>}
+          <div className="card p-5 sm:p-7">
+            {error && <div role="alert" className="field-error mb-5 rounded-2xl bg-tomato-soft p-3">{error}</div>}
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label htmlFor="profile-name" className="flex items-center gap-1.5 text-xs font-medium text-warm-gray mb-1.5 uppercase tracking-wide">
-                  <User size={11} /> Ime i prezime
-                </label>
+                <label htmlFor="profile-name" className="field-label">Ime i prezime</label>
                 <input id="profile-name" type="text" required minLength={2} maxLength={100} autoComplete="name" value={form.name}
-                  onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                  className="w-full px-4 py-3 bg-cream border border-blush/40 rounded-xl text-base sm:text-sm focus:outline-none focus:border-blush-mid transition-colors" />
+                  onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="field" />
               </div>
 
-              <div>
-                <label htmlFor="profile-due" className="flex items-center gap-1.5 text-xs font-medium text-warm-gray mb-1.5 uppercase tracking-wide">
-                  <Calendar size={11} /> Termin poroda / datum rođendana
-                </label>
-                <input id="profile-due" type="date" value={form.dueDate}
-                  onChange={e => setForm(p => ({ ...p, dueDate: e.target.value }))}
-                  className="w-full px-4 py-3 bg-cream border border-blush/40 rounded-xl text-base sm:text-sm focus:outline-none focus:border-blush-mid transition-colors" />
-                <p className="text-xs text-warm-gray/70 mt-1">Prikazuje se gostima na tvojim listama.</p>
-              </div>
+              <DateField id="profile-due" label="Termin poroda ili datum rođendana" value={form.dueDate}
+                onChange={value => setForm(p => ({ ...p, dueDate: value }))} hint="Gosti ga vide na tvojim listama." />
 
               <fieldset>
-                <legend className="flex items-center gap-1.5 text-xs font-medium text-warm-gray mb-1.5 uppercase tracking-wide">
-                  <Baby size={11} /> Spol bebe
-                </legend>
+                <legend className="field-label">Spol bebe <span className="font-medium text-muted">(ako želiš)</span></legend>
                 <div className="grid grid-cols-3 gap-2">
                   {GENDERS.map(opt => (
                     <button key={opt.value} type="button" aria-pressed={form.babyGender === opt.value}
                       onClick={() => setForm(p => ({ ...p, babyGender: p.babyGender === opt.value ? '' : opt.value }))}
-                      className={clsx('py-3 rounded-xl text-sm font-medium border transition-all',
-                        form.babyGender === opt.value ? 'border-rose bg-blush/30 text-charcoal' : 'border-blush/40 text-warm-gray hover:border-blush-mid')}>
-                      <span className="block text-xl mb-0.5" aria-hidden>{opt.emoji}</span>
+                      className="choice min-h-[48px] px-1 text-[13px] font-semibold">
                       {opt.label}
                     </button>
                   ))}
                 </div>
               </fieldset>
 
-              <button type="submit" disabled={loading}
-                className={clsx('w-full py-3 rounded-full text-sm font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-50',
-                  saved ? 'bg-sage text-white' : 'bg-rose text-white hover:bg-rose/90 hover:shadow-lg hover:shadow-rose/20')}>
-                {saved ? <><Check size={16} /> Spremljeno!</> : loading ? 'Sprema se...' : <><Save size={16} /> Spremi promjene</>}
+              <button type="submit" disabled={loading} className={clsx('btn w-full', saved ? 'btn-ink' : 'btn-primary')}>
+                {saved ? <><Check size={18} strokeWidth={3} aria-hidden /> Spremljeno</> : loading ? 'Spremam...' : 'Spremi promjene'}
               </button>
             </form>
           </div>
 
-          <div className="mt-6 p-5 border border-rose/20 rounded-2xl bg-rose/5">
-            <h2 className="text-sm font-medium text-rose mb-1">Zona opasnosti</h2>
-            <p className="text-xs text-warm-gray mb-3">Brisanje računa je trajno i ne može se poništiti.</p>
-            <button onClick={() => setDeleting(true)} className="text-xs text-rose/80 hover:text-rose underline transition-colors">
-              Obriši moj račun
-            </button>
+          <div className="card mt-4 flex items-center justify-between gap-4 p-5 sm:px-7">
+            <label htmlFor="night-switch" className="cursor-pointer">
+              <span className="flex items-center gap-2 font-display text-lg font-extrabold tracking-tight"><Moon size={17} aria-hidden /> Tamni prikaz</span>
+              <span className="block text-[13px] text-muted">Tamna pozadina, ugodnija za oči noću.</span>
+            </label>
+            <button id="night-switch" role="switch" aria-checked={theme === 'night'} onClick={toggle} className="switch"><span /></button>
+          </div>
+
+          <div className="mt-8 border-t border-line/10 pt-5">
+            <h2 className="text-base font-extrabold">Brisanje profila</h2>
+            <p className="mb-3 mt-1 text-[13px] text-muted">Trajno je i ne može se poništiti.</p>
+            <button onClick={() => setDeleting(true)} className="btn btn-sm btn-soft !text-tomato-ink">Obriši moj profil</button>
           </div>
         </div>
       </main>
+      <Footer />
 
-      {deleting && (
-        <DeleteAccountModal onClose={() => setDeleting(false)}
-          onDeleted={() => { leaveToHome(); logout() }} />
-      )}
+      <AnimatePresence>
+        {deleting && (
+          <DeleteAccountModal key="delete" onClose={() => setDeleting(false)} onDeleted={() => { leaveToHome(); logout() }} />
+        )}
+      </AnimatePresence>
     </>
   )
 }

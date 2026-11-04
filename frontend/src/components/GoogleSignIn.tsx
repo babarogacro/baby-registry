@@ -48,10 +48,10 @@ export default function GoogleSignIn({ text, onCredential }: {
   return (
     <>
       <div id={id} className="w-full mb-4 min-h-[44px]" />
-      <div className="flex items-center gap-3 mb-5">
-        <div className="flex-1 h-px bg-blush/40" />
-        <span className="text-xs text-warm-gray">ili s emailom</span>
-        <div className="flex-1 h-px bg-blush/40" />
+      <div className="mb-5 flex items-center gap-3">
+        <div className="h-px flex-1 bg-line/15" />
+        <span className="text-[13px] font-medium text-muted">ili s emailom</span>
+        <div className="h-px flex-1 bg-line/15" />
       </div>
     </>
   )
