@@ -1,62 +1,46 @@
 'use client'
-import { useState, useCallback } from 'react'
+import { Suspense, useState, useCallback, useEffect } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import Navbar from '@/components/Navbar'
-import { searchApi } from '@/lib/api'
+import Footer from '@/components/Footer'
+import { Art } from '@/components/art'
+import { searchApi, apiError } from '@/lib/api'
+import { OCCASIONS, genderLabel } from '@/lib/occasions'
 import { BabyList } from '@/types'
-import { Search, X, ArrowRight, Calendar } from 'lucide-react'
+import { ArrowRight, Loader2, Search, X } from 'lucide-react'
 import { formatDateHR, plural } from '@/lib/format'
+import clsx from 'clsx'
 
-const OCC: Record<string, { emoji: string; label: string }> = {
-  birth:    { emoji: '🍼', label: 'Rođenje djeteta' },
-  birthday: { emoji: '🎂', label: 'Rođendan djeteta' },
-  other:    { emoji: '🎁', label: 'Ostalo' },
-}
-
-function ListCard({ list }: { list: BabyList }) {
-  const occ = list.occasion ? OCC[list.occasion] : null
+function ListCard({ list, index }: { list: BabyList; index: number }) {
+  const occ = OCCASIONS.find(o => o.value === list.occasion)
   const dueDate = list.user?.dueDate ? new Date(list.user.dueDate) : null
   const daysLeft = dueDate ? Math.ceil((dueDate.getTime() - Date.now()) / 86400000) : null
+  const gender = list.user?.babyGender !== 'surprise' ? genderLabel(list.user?.babyGender) : null
   return (
-    <Link href={`/lista/${list.shareSlug}`}
-      className="group block bg-white rounded-3xl border border-blush/30 p-5 hover:border-blush-mid hover:shadow-md transition-all">
-      <div className="flex items-start gap-4">
-        <div className="w-12 h-12 bg-blush/30 rounded-2xl flex items-center justify-center flex-shrink-0 text-2xl">
-          {occ ? occ.emoji : '💝'}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <h3 className="font-medium text-charcoal group-hover:text-rose transition-colors">{list.name}</h3>
-              <p className="text-sm text-warm-gray mt-0.5">{list.user?.name}</p>
-            </div>
-            <ArrowRight size={16} className="text-warm-gray/40 group-hover:text-rose transition-colors flex-shrink-0 mt-0.5" />
-          </div>
-          <div className="flex items-center gap-2 mt-3 flex-wrap">
-            {occ && <span className="text-xs px-2.5 py-1 bg-blush/40 text-rose rounded-full font-medium">{occ.emoji} {occ.label}</span>}
-            {list._count && <span className="text-xs px-2.5 py-1 bg-cream text-warm-gray rounded-full">{list._count.items} {plural(list._count.items, 'poklon', 'poklona', 'poklona')}</span>}
-            {list.user?.babyGender && list.user.babyGender !== 'surprise' && (
-              <span className="text-xs px-2.5 py-1 bg-cream text-warm-gray rounded-full">
-                {list.user.babyGender === 'boy' ? '💙 Dječak' : '💗 Djevojčica'}
-              </span>
-            )}
-          </div>
-          {dueDate && (
-            <div className="flex items-center gap-1.5 mt-2 text-xs text-warm-gray">
-              <Calendar size={11} />
-              {formatDateHR(dueDate)}
-              {daysLeft !== null && daysLeft > 0 && <span className="text-rose font-medium">(još {daysLeft} {plural(daysLeft, 'dan', 'dana', 'dana')})</span>}
-              {daysLeft !== null && daysLeft <= 0 && <span className="text-sage font-medium">(već je tu! 🎉)</span>}
-            </div>
-          )}
-        </div>
+    <Link href={`/lista/${list.shareSlug}`} style={{ '--i': index } as React.CSSProperties}
+      className="card card-in group flex items-center gap-4 p-3.5 transition-transform duration-200 hover:-translate-y-0.5 sm:p-4">
+      <span className={clsx(`tone-${occ?.tone ?? 'sun'}`, 'flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-tone p-2')}>
+        <Art name={occ?.art ?? 'gift'} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <h2 className="truncate text-xl font-extrabold">{list.name}</h2>
+        <p className="truncate font-medium text-muted">{list.user?.name}</p>
+        <p className="mt-0.5 text-[13px] text-muted">
+          {list._count && <>{list._count.items} {plural(list._count.items, 'poklon', 'poklona', 'poklona')}</>}
+          {gender && <>, {gender.toLowerCase()}</>}
+          {dueDate && <>, {formatDateHR(dueDate)}</>}
+          {daysLeft !== null && daysLeft > 0 && <> (još {daysLeft} {plural(daysLeft, 'dan', 'dana', 'dana')})</>}
+        </p>
       </div>
+      <ArrowRight size={20} aria-hidden className="flex-shrink-0 transition-transform duration-200 group-hover:translate-x-1" />
     </Link>
   )
 }
 
-export default function PronadiListuPage() {
-  const [query, setQuery] = useState('')
+function PronadiListu() {
+  const initialQuery = useSearchParams().get('q') || ''
+  const [query, setQuery] = useState(initialQuery)
   const [results, setResults] = useState<BabyList[]>([])
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
@@ -68,56 +52,67 @@ export default function PronadiListuPage() {
     try {
       const res = await searchApi.findLists(q.trim())
       setResults(res.data)
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Greška pri pretrazi')
+    } catch (err) {
+      setError(apiError(err, 'Greška pri pretrazi'))
     } finally { setLoading(false) }
   }, [])
+
+  useEffect(() => { if (initialQuery) handleSearch(initialQuery) }, [initialQuery, handleSearch])
 
   return (
     <>
       <Navbar />
-      <main className="min-h-screen pt-20 pb-16">
-        <div className="max-w-2xl mx-auto px-4">
-          <div className="py-12 text-center">
-            <span className="text-5xl block mb-4">🔍</span>
-            <h1 className="font-serif text-4xl text-charcoal mb-3">Pronađi listu</h1>
-            <p className="text-warm-gray">Pretraži baby liste po imenu i prezimenu mame ili nazivu liste.</p>
+      <main id="sadrzaj" className="min-h-screen pb-16">
+        <section className="tone-sky rounded-b-5xl bg-tone px-5 pb-12 pt-[110px] text-on-tone sm:pb-16 sm:pt-[130px]">
+          <div className="page-in mx-auto max-w-2xl text-center">
+            <h1 className="display text-[3.1rem] sm:text-7xl">Pronađi listu</h1>
+            <p className="mx-auto mt-3 max-w-md text-lg font-medium leading-snug">Upiši ime i prezime roditelja ili naziv liste, pa odaberi poklon koji želiš kupiti.</p>
+            <form className="mt-7 flex flex-col gap-2.5 sm:flex-row" onSubmit={e => { e.preventDefault(); handleSearch(query) }}>
+              <div className="relative flex-1">
+                <Search size={20} className="absolute left-5 top-1/2 -translate-y-1/2 text-coal/60" aria-hidden />
+                <input type="search" aria-label="Ime roditelja ili naziv liste" placeholder="npr. Ana Horvat" value={query} autoFocus onChange={e => setQuery(e.target.value)}
+                  className="min-h-[58px] w-full rounded-full bg-white pl-13 pr-12 text-lg text-coal placeholder:text-coal/50 [&::-webkit-search-cancel-button]:hidden" style={{ paddingLeft: '3.25rem' }} />
+                {query && (
+                  <button type="button" aria-label="Očisti" onClick={() => { setQuery(''); setResults([]); setSearched(false) }} className="absolute right-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-coal/70 hover:bg-coal/5">
+                    <X size={18} />
+                  </button>
+                )}
+              </div>
+              <button type="submit" disabled={query.trim().length < 2 || loading} className="btn btn-lg !bg-coal !text-white">
+                {loading ? <Loader2 size={20} className="animate-spin" aria-label="Tražim" /> : 'Traži'}
+              </button>
+            </form>
           </div>
-          <div className="relative mb-4">
-            <Search size={20} className="absolute left-5 top-1/2 -translate-y-1/2 text-warm-gray" />
-            <input type="text" placeholder='npr. "Ana Horvat"' value={query}
-              onChange={e => setQuery(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSearch(query)}
-              autoFocus
-              className="w-full pl-14 pr-14 py-4 bg-white border-2 border-blush/40 rounded-2xl text-base focus:outline-none focus:border-rose transition-colors shadow-sm" />
-            {query && <button onClick={() => { setQuery(''); setResults([]); setSearched(false) }} className="absolute right-5 top-1/2 -translate-y-1/2 text-warm-gray"><X size={18} /></button>}
-          </div>
-          <button onClick={() => handleSearch(query)} disabled={query.trim().length < 2 || loading}
-            className="w-full py-4 bg-rose text-white font-medium rounded-2xl text-base hover:bg-rose/90 transition-all hover:shadow-lg disabled:opacity-50 mb-10">
-            {loading ? 'Tražim...' : 'Pretraži liste'}
-          </button>
-          {error && <div className="p-4 bg-rose/10 border border-rose/20 rounded-2xl text-sm text-rose text-center mb-6">{error}</div>}
-          {searched && !loading && (
+        </section>
+
+        <div className="mx-auto max-w-2xl px-4 pt-8">
+          {error && <div role="alert" className="field-error rounded-2xl bg-tomato-soft p-3 text-center">{error}</div>}
+          {searched && !loading && !error && (
             results.length === 0 ? (
-              <div className="text-center py-12">
-                <span className="text-4xl block mb-3">😔</span>
-                <h3 className="font-serif text-xl text-charcoal mb-2">Nema rezultata</h3>
-                <p className="text-warm-gray text-sm">Nismo pronašli listu za "<strong>{query}</strong>". Provjeri pravopis ili pitaj mamu za direktni link.</p>
+              <div className="py-10 text-center">
+                <div className="tone-bubble mx-auto w-20"><Art name="moon" /></div>
+                <h2 className="mt-3 text-2xl font-extrabold">Nema takve liste.</h2>
+                <p className="mx-auto mt-2 max-w-sm text-muted">Za „{query}" nismo ništa našli. Provjeri kako se piše ili zamoli roditelje da ti pošalju link.</p>
               </div>
             ) : (
               <>
-                <p className="text-sm text-warm-gray mb-4">Pronađeno <strong>{results.length}</strong> {plural(results.length, 'lista', 'liste', 'lista')}</p>
-                <div className="space-y-3">{results.map(list => <ListCard key={list.id} list={list} />)}</div>
+                <p className="mb-3 font-display text-lg font-extrabold tracking-tight" aria-live="polite">{results.length} {plural(results.length, 'lista', 'liste', 'lista')}</p>
+                <div className="space-y-2.5">{results.map((list, i) => <ListCard key={list.id} list={list} index={i} />)}</div>
               </>
             )
           )}
           {!searched && (
-            <p className="text-center text-sm text-warm-gray">
-              Imaš svoju listu? <Link href="/moja-lista" className="text-rose hover:underline font-medium">Pogledaj svoju listu →</Link>
+            <p className="text-center text-muted">
+              Tražiš svoju? <Link href="/moja-lista" className="font-semibold text-ink underline underline-offset-2">Otvori svoje liste</Link>
             </p>
           )}
         </div>
       </main>
+      <Footer />
     </>
   )
+}
+
+export default function PronadiListuPage() {
+  return <Suspense><PronadiListu /></Suspense>
 }

@@ -1,21 +1,22 @@
 'use client'
 import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
 import Link from 'next/link'
 
 export default function PrivatnostPage() {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen pt-20 pb-16 bg-cream">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6">
+      <main id="sadrzaj" className="page-in min-h-screen pb-16 pt-[92px]">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6">
           <div className="py-10">
-            <h1 className="font-serif text-4xl text-charcoal mb-2">Politika privatnosti</h1>
-            <p className="text-warm-gray text-sm">Zadnje ažuriranje: 1. travnja 2026.</p>
+            <h1 className="display mb-3 text-[2.9rem] sm:text-6xl">Politika privatnosti</h1>
+            <p className="text-muted text-sm">Zadnje ažuriranje: 1. travnja 2026.</p>
           </div>
 
-          <div className="bg-white rounded-3xl border border-blush/30 p-8 sm:p-10 space-y-8 text-sm text-charcoal leading-relaxed">
+          <div className="card prose-legal space-y-8 p-6 text-[15px] leading-relaxed sm:p-10">
             <section>
-              <h2 className="font-serif text-xl text-charcoal mb-3">1. Voditelj obrade podataka</h2>
+              <h2>1. Voditelj obrade podataka</h2>
               <p>
                 Voditelj obrade osobnih podataka je <strong>Babaroga</strong>, vl. Tvrtko Kračun,
                 OIB: 72128351309, sa sjedištem na adresi Poljski put 16, 53291 Novalja, Hrvatska
@@ -28,7 +29,7 @@ export default function PrivatnostPage() {
             </section>
 
             <section>
-              <h2 className="font-serif text-xl text-charcoal mb-3">2. Koje podatke prikupljamo</h2>
+              <h2>2. Koje podatke prikupljamo</h2>
               <p>Prikupljamo sljedeće vrste osobnih podataka:</p>
               <ul className="list-disc pl-5 mt-2 space-y-1">
                 <li><strong>Podatci o računu:</strong> ime i prezime, e-mail adresa, lozinka (kriptirana).</li>
@@ -40,7 +41,7 @@ export default function PrivatnostPage() {
             </section>
 
             <section>
-              <h2 className="font-serif text-xl text-charcoal mb-3">3. Svrha obrade podataka</h2>
+              <h2>3. Svrha obrade podataka</h2>
               <p>Vaše podatke obrađujemo u sljedeće svrhe:</p>
               <ul className="list-disc pl-5 mt-2 space-y-1">
                 <li>Kreiranje i upravljanje korisničkim računom.</li>
@@ -52,7 +53,7 @@ export default function PrivatnostPage() {
             </section>
 
             <section>
-              <h2 className="font-serif text-xl text-charcoal mb-3">4. Pravna osnova obrade</h2>
+              <h2>4. Pravna osnova obrade</h2>
               <p>
                 Osobne podatke obrađujemo temeljem:
               </p>
@@ -64,7 +65,7 @@ export default function PrivatnostPage() {
             </section>
 
             <section>
-              <h2 className="font-serif text-xl text-charcoal mb-3">5. Dijeljenje podataka</h2>
+              <h2>5. Dijeljenje podataka</h2>
               <p>Vaše podatke ne prodajemo niti dijelimo s trećim stranama, osim:</p>
               <ul className="list-disc pl-5 mt-2 space-y-1">
                 <li><strong>Resend</strong> — za slanje transakcijskih e-mailova (obavijesti o rezervacijama).</li>
@@ -79,7 +80,7 @@ export default function PrivatnostPage() {
             </section>
 
             <section>
-              <h2 className="font-serif text-xl text-charcoal mb-3">6. Kolačići</h2>
+              <h2>6. Kolačići</h2>
               <p>
                 Koristimo minimalni set kolačića nužnih za funkcioniranje usluge:
               </p>
@@ -87,12 +88,13 @@ export default function PrivatnostPage() {
                 <li><strong>Autentifikacijski token</strong> — pohranjen u localStorage preglednika za održavanje sesije.</li>
                 <li><strong>Token rezervacije</strong> — kad rezervirate poklon, u localStorage vašeg preglednika spremamo
                   nasumični ključ i ime koje ste upisali, kako biste kasnije s istog uređaja mogli otkazati rezervaciju ili je označiti kao kupljenu.</li>
+                <li><strong>Odabir teme</strong> — pohranjen u localStorage preglednika kako bi aplikacija zapamtila dnevni ili noćni prikaz. Za trajanje posjeta u sessionStorage bilježimo i jeste li već vidjeli noćni prijedlog.</li>
               </ul>
               <p className="mt-2">Ne koristimo kolačiće za praćenje ili reklamiranje.</p>
             </section>
 
             <section>
-              <h2 className="font-serif text-xl text-charcoal mb-3">7. Vaša prava</h2>
+              <h2>7. Vaša prava</h2>
               <p>U skladu s GDPR-om, imate pravo na:</p>
               <ul className="list-disc pl-5 mt-2 space-y-1">
                 <li><strong>Pristup</strong> — zatražiti uvid u podatke koje obrađujemo.</li>
@@ -103,14 +105,14 @@ export default function PrivatnostPage() {
                 <li><strong>Prigovor</strong> — uložiti prigovor na obradu podataka.</li>
               </ul>
               <p className="mt-2">
-                Račun i sve povezane liste možete sami trajno obrisati u postavkama profila („Obriši moj račun").
+                Račun i sve povezane liste možete sami trajno obrisati u postavkama profila („Obriši moj profil").
                 Za ostvarivanje ostalih prava kontaktirajte nas na
                 <strong> info@bebinalista.hr</strong>.
               </p>
             </section>
 
             <section>
-              <h2 className="font-serif text-xl text-charcoal mb-3">8. Zadržavanje podataka</h2>
+              <h2>8. Zadržavanje podataka</h2>
               <p>
                 Vaše podatke čuvamo dok god koristite uslugu. Po brisanju računa, svi
                 osobni podatci bit će trajno uklonjeni u roku od 30 dana.
@@ -119,7 +121,7 @@ export default function PrivatnostPage() {
             </section>
 
             <section>
-              <h2 className="font-serif text-xl text-charcoal mb-3">9. Sigurnost podataka</h2>
+              <h2>9. Sigurnost podataka</h2>
               <p>
                 Poduzimamo odgovarajuće tehničke i organizacijske mjere za zaštitu vaših podataka,
                 uključujući enkripciju lozinki, HTTPS komunikaciju i kontrolu pristupa.
@@ -127,7 +129,7 @@ export default function PrivatnostPage() {
             </section>
 
             <section>
-              <h2 className="font-serif text-xl text-charcoal mb-3">10. Pravo na pritužbu</h2>
+              <h2>10. Pravo na pritužbu</h2>
               <p>
                 Ako smatrate da su vaša prava povrijeđena, imate pravo podnijeti pritužbu
                 nadležnom tijelu — Agenciji za zaštitu osobnih podataka (AZOP),
@@ -136,7 +138,7 @@ export default function PrivatnostPage() {
             </section>
 
             <section>
-              <h2 className="font-serif text-xl text-charcoal mb-3">11. Izmjene politike</h2>
+              <h2>11. Izmjene politike</h2>
               <p>
                 Zadržavamo pravo izmjene ove Politike privatnosti. O svim značajnim
                 promjenama bit ćete obaviješteni putem e-maila ili obavijesti na platformi.
@@ -145,10 +147,11 @@ export default function PrivatnostPage() {
           </div>
 
           <div className="mt-8 text-center">
-            <Link href="/" className="text-sm text-rose hover:underline">← Natrag na početnu</Link>
+            <Link href="/" className="text-sm text-tomato-ink hover:underline">← Natrag na početnu</Link>
           </div>
         </div>
       </main>
+      <Footer />
     </>
   )
 }

@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { Priority } from '@/types'
+import type { CatalogFacets, Priority } from '@/types'
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
 
@@ -90,12 +90,17 @@ export const listsApi = {
     api.post('/lists/smart-paste', { url }),
 }
 
+export interface ProductFilters {
+  q?: string; categoryId?: string; categorySlug?: string; shopSlug?: string
+  /** Brand names joined with "|". */
+  brand?: string
+  onSale?: '1'
+  minPrice?: number; maxPrice?: number
+}
+
 export const productsApi = {
-  getAll: (params?: {
-    q?: string; categoryId?: string; categorySlug?: string; shopSlug?: string
-    minPrice?: number; maxPrice?: number
-    page?: number; limit?: number; sortBy?: string
-  }) => api.get('/products', { params }),
+  getAll: (params?: ProductFilters & { page?: number; limit?: number; sortBy?: string }) => api.get('/products', { params }),
+  getFacets: (params?: ProductFilters) => api.get<CatalogFacets>('/products/facets', { params }),
   getOne: (id: string) => api.get(`/products/${id}`),
   getCategories: () => api.get('/products/categories'),
   getFeatured: () => api.get('/products/featured'),

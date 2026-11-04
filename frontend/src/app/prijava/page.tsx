@@ -5,8 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { authApi, apiError } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
 import { safeNext } from '@/lib/redirect'
+import AuthShell from '@/components/AuthShell'
 import GoogleSignIn from '@/components/GoogleSignIn'
-import { Eye, EyeOff, ArrowLeft } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
 
 function PrijavaForm() {
   const router = useRouter()
@@ -48,51 +49,35 @@ function PrijavaForm() {
   }
 
   return (
-    <div className="min-h-screen bg-cream flex items-center justify-center p-6">
-      <div className="w-full max-w-md">
-        <Link href="/" className="inline-flex items-center gap-2 text-sm text-warm-gray hover:text-charcoal transition-colors mb-8">
-          <ArrowLeft size={14} /> Natrag
-        </Link>
+    <AuthShell headline={<>Vidi što je<br />novo na listi.</>} sub="Prijavi se i provjeri tko je što rezervirao.">
+      <h1 className="display text-5xl">Prijava</h1>
+      <p className="mb-7 mt-3 text-muted">
+        Nemaš profil?{' '}
+        <Link href={`/registracija${next !== '/moja-lista' ? `?next=${encodeURIComponent(next)}` : ''}`} className="font-semibold text-ink underline underline-offset-2">Registriraj se</Link>
+      </p>
 
-        <div className="text-center mb-8">
-          <span className="text-5xl block mb-4" aria-hidden>🍼</span>
-          <h1 className="font-serif text-3xl text-charcoal mb-2">Prijava</h1>
-          <p className="text-warm-gray text-sm">
-            Nemaš račun?{' '}
-            <Link href={`/registracija${next !== '/moja-lista' ? `?next=${encodeURIComponent(next)}` : ''}`} className="text-rose hover:underline font-medium">Registriraj se</Link>
-          </p>
+      {error && <div role="alert" className="field-error mb-5 rounded-2xl bg-tomato-soft p-3">{error}</div>}
+
+      <GoogleSignIn text="signin_with" onCredential={handleGoogle} />
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="login-email" className="field-label">Email</label>
+          <input id="login-email" type="email" required autoComplete="email" placeholder="ana@email.com" value={email} onChange={e => setEmail(e.target.value)} className="field" />
         </div>
-
-        {error && <div role="alert" className="mb-5 p-3 bg-rose/10 border border-rose/20 rounded-xl text-sm text-rose">{error}</div>}
-
-        <GoogleSignIn text="signin_with" onCredential={handleGoogle} />
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="login-email" className="block text-xs font-medium text-warm-gray mb-1.5 uppercase tracking-wide">Email</label>
-            <input id="login-email" type="email" required autoComplete="email" placeholder="ana@email.com" value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-white border border-blush/40 rounded-xl text-base sm:text-sm focus:outline-none focus:border-rose transition-colors" />
+        <div>
+          <label htmlFor="login-password" className="field-label">Lozinka</label>
+          <div className="relative">
+            <input id="login-password" type={showPass ? 'text' : 'password'} required autoComplete="current-password" placeholder="Tvoja lozinka" value={password}
+              onChange={e => setPassword(e.target.value)} className="field pr-12" />
+            <button type="button" onClick={() => setShowPass(!showPass)} aria-label={showPass ? 'Sakrij lozinku' : 'Prikaži lozinku'} className="icon-btn absolute right-0.5 top-1/2 -translate-y-1/2 text-muted">
+              {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
           </div>
-          <div>
-            <label htmlFor="login-password" className="block text-xs font-medium text-warm-gray mb-1.5 uppercase tracking-wide">Lozinka</label>
-            <div className="relative">
-              <input id="login-password" type={showPass ? 'text' : 'password'} required autoComplete="current-password" placeholder="Tvoja lozinka" value={password}
-                onChange={e => setPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-white border border-blush/40 rounded-xl text-base sm:text-sm focus:outline-none focus:border-rose transition-colors pr-11" />
-              <button type="button" onClick={() => setShowPass(!showPass)} aria-label={showPass ? 'Sakrij lozinku' : 'Prikaži lozinku'}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-warm-gray">
-                {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
-          <button type="submit" disabled={loading}
-            className="w-full py-3.5 bg-rose text-white font-medium rounded-full hover:bg-rose/90 transition-all hover:shadow-lg hover:shadow-rose/20 disabled:opacity-60">
-            {loading ? 'Prijava...' : 'Prijavi se'}
-          </button>
-        </form>
-      </div>
-    </div>
+        </div>
+        <button type="submit" disabled={loading} className="btn btn-primary !mt-6 w-full">{loading ? 'Prijava...' : 'Prijavi se'}</button>
+      </form>
+    </AuthShell>
   )
 }
 

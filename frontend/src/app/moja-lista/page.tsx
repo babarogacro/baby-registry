@@ -2,33 +2,29 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { AnimatePresence, m } from 'motion/react'
 import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
 import Modal from '@/components/Modal'
+import Loader from '@/components/Loader'
+import ProgressBar from '@/components/ProgressBar'
+import PriorityPicker from '@/components/PriorityPicker'
+import { Art } from '@/components/art'
 import { Toast, useToast } from '@/components/Toast'
 import { listsApi, authApi, addRefToUrl, apiError } from '@/lib/api'
-import { formatPrice, parseAmount, parseDMY, maskDMY, formatDateHR, plural, shopLabel } from '@/lib/format'
+import { categoryMeta } from '@/lib/categories'
+import { displayName, formatPrice, parseAmount, parseDMY, plural, shopLabel, toDMY } from '@/lib/format'
+import DateField, { DATE_FORMAT_ERROR } from '@/components/DateField'
+import { GENDERS, OCCASIONS } from '@/lib/occasions'
+import { pregnancyStatus } from '@/lib/pregnancy'
+import { PRIORITIES, PRIORITY_ORDER } from '@/lib/priorities'
 import { useAuthStore } from '@/lib/store'
 import { BabyList, ListItem, Priority, SmartPasteResult, GroupContributor } from '@/types'
 import {
-  Plus, Trash2, ExternalLink, Check, X, ChevronDown, ChevronUp, ShoppingBag, Calendar, Edit3,
-  Share2, MessageSquare, QrCode, Download, LinkIcon, Loader2, Lock, Globe, Settings2, Undo2,
+  AlertTriangle, ArrowUpRight, Check, ChevronDown, Copy, Download, Edit3, Eye, Gift, Globe, LinkIcon, Loader2, Lock,
+  MessageSquare, Plus, QrCode, Settings2, Share2, ShoppingBag, StickyNote, Trash2, Undo2, Users, Wallet, X,
 } from 'lucide-react'
 import clsx from 'clsx'
-
-const PRIORITY_CONFIG: Record<Priority, { label: string; short: string; cls: string }> = {
-  HIGH: { label: '❤️ Jako želim', short: 'Jako želim', cls: 'priority-HIGH' },
-  MEDIUM: { label: '🌿 Bilo bi lijepo', short: 'Bilo bi lijepo', cls: 'priority-MEDIUM' },
-  LOW: { label: '✨ Luksuz', short: 'Luksuz', cls: 'priority-LOW' },
-}
-const PRIORITY_ORDER: Record<Priority, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 }
-
-const OCCASIONS = [
-  { value: 'birth', emoji: '🍼', label: 'Rođenje djeteta', dateLabel: 'Planirani termin poroda' },
-  { value: 'birthday', emoji: '🎂', label: 'Dječji rođendan', dateLabel: 'Datum rođendana' },
-]
-
-const inputCls = 'w-full px-4 py-3 bg-cream border border-blush/40 rounded-xl text-base sm:text-sm focus:outline-none focus:border-rose'
-const labelCls = 'block text-xs font-medium text-warm-gray mb-1.5 uppercase tracking-wide'
 
 function sortItems(items: ListItem[]) {
   return [...items].sort((a, b) =>
@@ -61,7 +57,7 @@ function SmartPasteModal({ listId, onClose, onAdded }: {
       setTitle(data.title || '')
       setPrice(data.price ? data.price.toFixed(2).replace('.', ',') : '')
     } catch (err) {
-      setError(apiError(err, 'Nije moguće dohvatiti podatke s tog linka'))
+      setError(apiError(err, 'S tog linka ne mogu ništa pročitati. Provjeri je li to stranica proizvoda.'))
     } finally {
       setLoading(false)
     }
@@ -90,67 +86,53 @@ function SmartPasteModal({ listId, onClose, onAdded }: {
   }
 
   return (
-    <Modal title="Dodaj s linka 🔗" onClose={onClose}>
-      <div className="px-5 sm:px-6 pb-6">
-        <label htmlFor="paste-url" className={labelCls}>Link proizvoda iz bilo kojeg shopa</label>
-        <form className="flex gap-2 mb-4" onSubmit={e => { e.preventDefault(); fetchInfo() }}>
+    <Modal title="Dodaj s linka" onClose={onClose}>
+      <div className="px-5 pb-6 sm:px-7 sm:pb-7">
+        <label htmlFor="paste-url" className="field-label">Link proizvoda iz bilo kojeg web shopa</label>
+        <form className="mb-4 flex gap-2" onSubmit={e => { e.preventDefault(); fetchInfo() }}>
           <input id="paste-url" type="url" inputMode="url" placeholder="Zalijepi link ovdje..." value={url}
             onChange={e => setUrl(e.target.value)}
             onPaste={e => {
               const pasted = e.clipboardData.getData('text').trim()
               if (/^https?:\/\//i.test(pasted)) { e.preventDefault(); setUrl(pasted); fetchInfo(pasted) }
             }}
-            className={clsx(inputCls, 'flex-1 min-w-0')} />
-          <button type="submit" disabled={!url.trim() || loading}
-            className="px-4 py-3 bg-rose text-white rounded-xl text-sm font-medium hover:bg-rose/90 disabled:opacity-50 transition-colors flex-shrink-0">
-            {loading ? <Loader2 size={16} className="animate-spin" aria-label="Dohvaćam" /> : 'Dohvati'}
+            className="field min-w-0 flex-1" />
+          <button type="submit" disabled={!url.trim() || loading} className="btn btn-ink flex-shrink-0 !rounded-2xl !px-4">
+            {loading ? <Loader2 size={18} className="animate-spin" aria-label="Dohvaćam" /> : 'Dohvati'}
           </button>
         </form>
 
-        {error && <p role="alert" className="text-sm text-rose mb-4">{error}</p>}
+        {error && <p role="alert" className="field-error mb-4">{error}</p>}
 
         {result && (
-          <div className="space-y-4">
-            <div className="flex gap-3 p-3 bg-cream rounded-2xl border border-blush/30">
-              <div className="w-20 h-20 bg-white rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0">
-                {result.imageUrl ? <img src={result.imageUrl} alt="" className="w-full h-full object-contain" /> : <span className="text-3xl opacity-30">🛍️</span>}
+          <m.div className="space-y-4" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+            <div className="flex gap-3 rounded-3xl bg-sunken p-3">
+              <div className="photo-tile flex h-20 w-20 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {result.imageUrl ? <img src={result.imageUrl} alt="" className="h-full w-full object-contain p-1" /> : <Art name="gift" className="h-12 w-12" />}
               </div>
-              <div className="min-w-0 text-xs text-warm-gray">
-                {result.shopName && <p className="font-medium text-charcoal">{result.shopName}</p>}
+              <div className="min-w-0 text-[13px] text-muted">
+                {result.shopName && <p className="font-bold text-ink">{result.shopName}</p>}
                 {result.description && <p className="mt-1 line-clamp-3">{result.description}</p>}
               </div>
             </div>
             <div>
-              <label htmlFor="paste-title" className={labelCls}>Naziv</label>
-              <input id="paste-title" type="text" maxLength={300} value={title} onChange={e => setTitle(e.target.value)} className={inputCls} />
+              <label htmlFor="paste-title" className="field-label">Naziv</label>
+              <input id="paste-title" type="text" maxLength={300} value={title} onChange={e => setTitle(e.target.value)} className="field" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="paste-price" className={labelCls}>Cijena (€)</label>
-                <input id="paste-price" inputMode="decimal" placeholder="npr. 49,99" value={price} onChange={e => setPrice(e.target.value)} className={inputCls} />
+                <label htmlFor="paste-price" className="field-label">Cijena (€)</label>
+                <input id="paste-price" inputMode="decimal" placeholder="npr. 49,99" value={price} onChange={e => setPrice(e.target.value)} className="field" />
               </div>
               <div>
-                <label htmlFor="paste-note" className={labelCls}>Napomena</label>
-                <input id="paste-note" type="text" maxLength={200} placeholder="vel., boja..." value={note} onChange={e => setNote(e.target.value)} className={inputCls} />
+                <label htmlFor="paste-note" className="field-label">Napomena</label>
+                <input id="paste-note" type="text" maxLength={200} placeholder="veličina, boja..." value={note} onChange={e => setNote(e.target.value)} className="field" />
               </div>
             </div>
-            <fieldset>
-              <legend className={labelCls}>Prioritet</legend>
-              <div className="flex gap-2">
-                {(Object.keys(PRIORITY_CONFIG) as Priority[]).map(p => (
-                  <button key={p} type="button" aria-pressed={priority === p} onClick={() => setPriority(p)}
-                    className={clsx('flex-1 py-2 rounded-xl text-xs font-medium border transition-all',
-                      priority === p ? 'border-rose bg-blush/20' : 'border-blush/40 text-warm-gray hover:border-blush-mid')}>
-                    {PRIORITY_CONFIG[p].label}
-                  </button>
-                ))}
-              </div>
-            </fieldset>
-            <button onClick={save} disabled={saving}
-              className="w-full py-3 bg-rose text-white font-medium rounded-full hover:bg-rose/90 transition-colors disabled:opacity-50">
-              {saving ? 'Dodajem...' : 'Dodaj na listu'}
-            </button>
-          </div>
+            <PriorityPicker value={priority} onChange={setPriority} />
+            <button onClick={save} disabled={saving} className="btn btn-primary w-full">{saving ? 'Dodajem...' : 'Dodaj na listu'}</button>
+          </m.div>
         )}
       </div>
     </Modal>
@@ -170,6 +152,7 @@ function ListItemRow({ item, onDelete, onPriorityChange, onNoteChange, onClearRe
   const [confirmClear, setConfirmClear] = useState(false)
   const { product, reservation } = item
   const shopUrl = product.productUrl ? addRefToUrl(product.productUrl) : undefined
+  const meta = categoryMeta(product.category?.slug)
 
   const isGroupBuy = !!reservation?.isGroupBuy
   const purchased = reservation?.status === 'PURCHASED'
@@ -190,89 +173,99 @@ function ListItemRow({ item, onDelete, onPriorityChange, onNoteChange, onClearRe
   }
 
   return (
-    <li className={clsx('flex gap-3 p-3 bg-white rounded-2xl border transition-all',
-      reservation && !isGroupBuy ? 'border-gold/40 bg-gold/5' : isGroupBuy ? 'border-sage/30 bg-sage-light/5' : 'border-blush/30',
-      busy && 'opacity-60')}>
+    <m.li layout="position" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -24, transition: { duration: 0.16 } }}
+      className={clsx(`tone-${meta.tone}`, 'flex gap-3 rounded-3xl bg-sunken/60 p-2.5 sm:gap-4 sm:p-3', busy && 'opacity-60')}>
       <a href={shopUrl} target="_blank" rel="noopener noreferrer" tabIndex={-1} aria-hidden
-        className="w-12 h-12 sm:w-14 sm:h-14 flex-shrink-0 bg-cream rounded-xl overflow-hidden flex items-center justify-center">
-        {product.imageUrl ? <img src={product.imageUrl} alt="" loading="lazy" className="w-full h-full object-contain p-1" /> : <span className="text-lg opacity-20">🍼</span>}
+        className="photo-tile flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl sm:h-20 sm:w-20">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        {product.imageUrl ? <img src={product.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain p-1.5" /> : <Art name={meta.art} className="h-10 w-10" />}
       </a>
 
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0 flex-1 py-0.5">
+        {product.brand && <p className="text-[13px] font-bold text-tone-ink">{product.brand}</p>}
         {shopUrl ? (
-          <a href={shopUrl} target="_blank" rel="noopener noreferrer" className="flex items-start gap-1 group">
-            <span className="text-sm font-medium text-charcoal line-clamp-2 group-hover:text-rose transition-colors">{product.name}</span>
-            <ExternalLink size={11} className="text-warm-gray/50 group-hover:text-rose flex-shrink-0 mt-1" />
+          <a href={shopUrl} target="_blank" rel="noopener noreferrer" className="group inline-flex items-start gap-1">
+            <span className="line-clamp-2 text-[15px] font-semibold leading-snug group-hover:underline">{displayName(product)}</span>
+            <ArrowUpRight size={14} aria-hidden className="mt-0.5 flex-shrink-0 text-muted" />
           </a>
-        ) : <p className="text-sm font-medium text-charcoal line-clamp-2">{product.name}</p>}
-        <p className="text-xs text-warm-gray mt-0.5">{shopLabel(product)}</p>
-        {!product.inStock && <p className="text-xs text-rose mt-0.5">⚠️ Shop ovo možda više nema u ponudi — razmisli o zamjeni.</p>}
+        ) : <p className="line-clamp-2 text-[15px] font-semibold leading-snug">{displayName(product)}</p>}
 
-        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-          {product.price > 0 && <span className="text-sm font-medium text-rose">{formatPrice(product.price, product.currency)}</span>}
-          <label className="sr-only" htmlFor={`prio-${item.id}`}>Prioritet</label>
-          <select id={`prio-${item.id}`} value={item.priority} onChange={e => onPriorityChange(e.target.value as Priority)}
-            className={clsx('text-xs px-2 py-0.5 rounded-full border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-rose/30 font-medium', PRIORITY_CONFIG[item.priority].cls)}>
-            {(Object.keys(PRIORITY_CONFIG) as Priority[]).map(p => <option key={p} value={p}>{PRIORITY_CONFIG[p].short}</option>)}
-          </select>
+        <p className="mt-0.5 text-[13px] text-muted">
+          {product.price > 0 && <span className="font-display font-extrabold tracking-tight text-ink">{formatPrice(product.price, product.currency)}</span>}
+          {product.price > 0 && ' · '}{shopLabel(product)}
+        </p>
+
+        {!product.inStock && (
+          <p className="mt-1 flex items-center gap-1.5 text-[13px] font-medium text-tomato-ink">
+            <AlertTriangle size={14} aria-hidden /> Dućan ovo možda više nema. Razmisli o zamjeni.
+          </p>
+        )}
+
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          <div className={clsx(`priority-${item.priority}`, 'relative rounded-full')}>
+            <label className="sr-only" htmlFor={`prio-${item.id}`}>Prioritet</label>
+            <select id={`prio-${item.id}`} value={item.priority} onChange={e => onPriorityChange(e.target.value as Priority)}
+              className="min-h-[30px] appearance-none rounded-full bg-transparent pl-3 pr-7 text-[13px] font-semibold">
+              {PRIORITIES.map(p => <option key={p.value} value={p.value} className="text-coal">{p.label}</option>)}
+            </select>
+            <ChevronDown size={13} aria-hidden className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2" />
+          </div>
           {reservation && !isGroupBuy && (
-            <span className="text-xs px-2 py-0.5 bg-gold/20 text-[#9A7B3F] rounded-full font-medium">
-              {purchased ? '✅ Kupljeno' : '🎁 Rezervirano'} · {reservation.reservedBy}
+            <span className="chip bg-sun-soft text-sun-ink">
+              {purchased ? <Check size={13} strokeWidth={3} aria-hidden /> : <Gift size={13} aria-hidden />}
+              {purchased ? 'Kupljeno' : 'Rezervirano'} · {reservation.reservedBy}
             </span>
           )}
           {isGroupBuy && (
-            <span className="text-xs px-2 py-0.5 bg-sage-light/60 text-sage rounded-full font-medium">
-              👥 Grupna ({contributors.length}){purchased ? ' · kupljeno' : ''}
+            <span className="chip bg-mint-soft text-mint-ink">
+              <Users size={13} aria-hidden /> Skupljaju zajedno ({contributors.length}){purchased ? ' · kupljeno' : ''}
             </span>
           )}
-          {!reservation && <span className="text-xs px-2 py-0.5 status-available rounded-full">✓ Slobodno</span>}
+          {!reservation && <span className="chip chip-neutral text-muted">Slobodno</span>}
         </div>
 
         {editingNote ? (
-          <div className="mt-2 flex items-center gap-1.5">
+          <div className="mt-2 flex items-center gap-1">
             <input type="text" autoFocus maxLength={200} value={noteValue} aria-label="Napomena"
               onChange={e => setNoteValue(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') saveNote(); if (e.key === 'Escape') { setEditingNote(false); setNoteValue(item.note || '') } }}
-              placeholder="npr. vel. 62, plava boja..."
-              className="flex-1 px-2.5 py-1.5 bg-cream border border-blush/40 rounded-lg focus:outline-none focus:border-rose text-charcoal min-w-0 text-base sm:text-xs" />
-            <button onClick={saveNote} aria-label="Spremi napomenu" className="text-sage hover:text-sage/80 p-1"><Check size={14} /></button>
-            <button onClick={() => { setEditingNote(false); setNoteValue(item.note || '') }} aria-label="Odustani" className="text-warm-gray hover:text-rose p-1"><X size={14} /></button>
+              placeholder="npr. veličina 62, plava boja"
+              className="field !min-h-[40px] min-w-0 flex-1 !rounded-xl !py-1.5" />
+            <button onClick={saveNote} aria-label="Spremi napomenu" className="icon-btn text-mint-ink"><Check size={18} /></button>
+            <button onClick={() => { setEditingNote(false); setNoteValue(item.note || '') }} aria-label="Odustani" className="icon-btn text-muted"><X size={18} /></button>
           </div>
         ) : item.note ? (
-          <div className="mt-1.5 flex items-center gap-1">
-            <span className="text-xs px-2 py-0.5 bg-blush/30 text-charcoal/80 rounded-full font-medium">📝 {item.note}</span>
-            <button onClick={() => { setEditingNote(true); setNoteValue(item.note || '') }} aria-label="Uredi napomenu" className="text-warm-gray/50 hover:text-rose p-1"><Edit3 size={11} /></button>
-          </div>
+          <button onClick={() => { setEditingNote(true); setNoteValue(item.note || '') }} className="group mt-1.5 flex min-h-[30px] items-center gap-1.5 text-left text-[13px] font-medium">
+            <StickyNote size={13} aria-hidden className="flex-shrink-0 text-muted" /> {item.note}
+            <Edit3 size={12} aria-label="Uredi napomenu" className="flex-shrink-0 text-muted opacity-60 group-hover:opacity-100" />
+          </button>
         ) : (
-          <button onClick={() => setEditingNote(true)} className="mt-1.5 text-xs text-warm-gray/60 hover:text-rose transition-colors flex items-center gap-1">
-            <Plus size={10} /> Dodaj napomenu (veličina, boja...)
+          <button onClick={() => setEditingNote(true)} className="mt-1 flex min-h-[30px] items-center gap-1 text-[13px] font-medium text-muted transition-colors hover:text-ink">
+            <Plus size={13} aria-hidden /> Dodaj napomenu
           </button>
         )}
 
         {reservation?.note && !isGroupBuy && (
-          <div className="mt-2 flex items-start gap-1.5 p-2 bg-sage-light/20 rounded-lg border border-sage/10">
-            <MessageSquare size={11} className="text-sage flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-charcoal/70 italic leading-relaxed">„{reservation.note}"</p>
+          <div className="mt-2 flex items-start gap-2 rounded-2xl bg-mint-soft p-2.5 text-[13px]">
+            <MessageSquare size={14} aria-hidden className="mt-0.5 flex-shrink-0 text-mint-ink" />
+            <p className="leading-relaxed">„{reservation.note}"</p>
           </div>
         )}
 
         {isGroupBuy && (
-          <div className="mt-2 p-3 bg-sage-light/20 rounded-xl border border-sage/10">
-            <div className="flex items-center justify-between text-xs text-warm-gray mb-1.5">
-              <span>{formatPrice(collected)} / {formatPrice(target)}</span>
-              <span className="font-medium text-sage">{progress}%</span>
+          <div className="mt-2 rounded-2xl bg-mint-soft p-3">
+            <div className="mb-1.5 flex items-center justify-between text-[13px] font-semibold">
+              <span>Skupljeno {formatPrice(collected)} od {formatPrice(target)}</span>
+              <span>{progress} %</span>
             </div>
-            <div className="h-2 bg-white/80 rounded-full border border-sage/20 overflow-hidden mb-2">
-              <div className={clsx('h-full rounded-full transition-all duration-700', progress >= 100 ? 'bg-gradient-to-r from-sage to-[#6B9B68]' : 'bg-gradient-to-r from-gold to-[#D4B87A]')}
-                style={{ width: `${progress}%` }} />
-            </div>
+            <ProgressBar value={progress} label="Skupljeno" className="mb-2" barClass={progress >= 100 ? 'bg-mint' : 'bg-sun'} />
             <ul className="space-y-1">
               {contributors.map(c => (
-                <li key={c.id} className="flex items-center gap-2 text-xs flex-wrap">
-                  <span aria-hidden>{c.role === 'ORDERER' ? '🛒' : '💰'}</span>
-                  <span className="font-medium text-charcoal">{c.name}</span>
-                  <span className="text-warm-gray">{formatPrice(c.amount)}</span>
-                  {c.note && <span className="text-warm-gray/70 italic">„{c.note}"</span>}
+                <li key={c.id} className="flex flex-wrap items-center gap-1.5 text-[13px]">
+                  {c.role === 'ORDERER' ? <ShoppingBag size={13} aria-label="Naručuje" /> : <Wallet size={13} aria-label="Daje novac" />}
+                  <span className="font-semibold">{c.name}</span>
+                  <span className="text-muted">{formatPrice(c.amount)}</span>
+                  {c.note && <span className="text-muted">„{c.note}"</span>}
                 </li>
               ))}
             </ul>
@@ -281,24 +274,23 @@ function ListItemRow({ item, onDelete, onPriorityChange, onNoteChange, onClearRe
 
         {reservation && (
           confirmClear ? (
-            <div className="mt-2 flex items-center gap-2 text-xs">
-              <span className="text-warm-gray">Osloboditi poklon za druge?</span>
-              <button onClick={() => run(onClearReservation)} className="px-2.5 py-1 bg-rose text-white rounded-full">Da</button>
-              <button onClick={() => setConfirmClear(false)} className="px-2.5 py-1 text-warm-gray">Ne</button>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-[13px]">
+              <span className="font-medium text-muted">Osloboditi poklon za druge?</span>
+              <button onClick={() => run(onClearReservation)} className="rounded-full bg-ink px-3 py-1.5 font-semibold text-canvas">Da</button>
+              <button onClick={() => setConfirmClear(false)} className="rounded-full px-3 py-1.5 font-semibold text-muted">Ne</button>
             </div>
           ) : (
-            <button onClick={() => setConfirmClear(true)} className="mt-2 text-xs text-warm-gray/70 hover:text-rose flex items-center gap-1">
-              <Undo2 size={11} /> Oslobodi rezervaciju
+            <button onClick={() => setConfirmClear(true)} className="mt-1.5 flex min-h-[30px] items-center gap-1 text-[13px] font-medium text-muted transition-colors hover:text-ink">
+              <Undo2 size={13} aria-hidden /> Oslobodi rezervaciju
             </button>
           )
         )}
       </div>
 
-      <button onClick={() => run(onDelete)} aria-label={`Ukloni ${product.name} s liste`}
-        className="p-2 text-warm-gray hover:text-rose transition-colors flex-shrink-0 self-start -mr-1">
-        <Trash2 size={14} />
+      <button onClick={() => run(onDelete)} aria-label={`Ukloni ${product.name} s liste`} className="icon-btn -mr-1 -mt-1 flex-shrink-0 self-start text-muted hover:text-tomato-ink">
+        <Trash2 size={17} />
       </button>
-    </li>
+    </m.li>
   )
 }
 
@@ -318,15 +310,14 @@ function EditableListName({ name, onSave }: { name: string; onSave: (newName: st
       <input type="text" autoFocus maxLength={120} value={value} aria-label="Naziv liste"
         onChange={e => setValue(e.target.value)} onBlur={save}
         onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') { setEditing(false); setValue(name) } }}
-        className="w-full text-base sm:text-sm font-medium text-charcoal bg-cream border border-rose/40 rounded-lg px-2 py-1 focus:outline-none" />
+        className="field !min-h-[42px] !py-1.5 font-display !text-xl font-extrabold" />
     )
   }
 
   return (
-    <button onClick={() => setEditing(true)} title="Klikni za uređivanje naziva"
-      className="flex items-center gap-1.5 font-medium text-charcoal hover:text-rose transition-colors group min-w-0 text-left max-w-full">
-      <span className="truncate text-sm">{name}</span>
-      <Edit3 size={12} className="text-warm-gray/50 group-hover:text-rose transition-colors flex-shrink-0" />
+    <button onClick={() => setEditing(true)} title="Klikni za uređivanje naziva" className="group flex max-w-full items-center gap-2 text-left">
+      <h2 className="truncate text-2xl font-extrabold sm:text-[1.7rem]">{name}</h2>
+      <Edit3 size={15} aria-hidden className="flex-shrink-0 text-muted opacity-50 transition-opacity group-hover:opacity-100" />
     </button>
   )
 }
@@ -337,30 +328,27 @@ function ListSettings({ list, onSave }: { list: BabyList; onSave: (data: { descr
   const dirty = description.trim() !== (list.description || '')
 
   return (
-    <div className="p-4 bg-cream/60 rounded-2xl border border-blush/30 space-y-4">
+    <div className="space-y-4 rounded-3xl bg-sunken/60 p-4">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-charcoal flex items-center gap-1.5">
-            {list.isPublic ? <Globe size={14} className="text-sage" /> : <Lock size={14} className="text-warm-gray" />}
-            {list.isPublic ? 'Lista je javna' : 'Lista je privatna'}
+          <p className="flex items-center gap-1.5 text-[15px] font-bold">
+            {list.isPublic ? <Globe size={15} className="text-mint-ink" aria-hidden /> : <Lock size={15} className="text-muted" aria-hidden />}
+            {list.isPublic ? 'Lista je otključana' : 'Lista je zaključana'}
           </p>
-          <p className="text-xs text-warm-gray mt-0.5">
-            {list.isPublic ? 'Svatko s linkom može je vidjeti i rezervirati poklone.' : 'Link ne radi dok je ponovno ne uključiš.'}
+          <p className="mt-0.5 text-[13px] text-muted">
+            {list.isPublic ? 'Svatko s linkom može je vidjeti i rezervirati poklone, a gosti je mogu naći i po tvom imenu.' : 'Dok je zaključana, ne otvara je ni link ni pretraga po imenu.'}
           </p>
         </div>
-        <button role="switch" aria-checked={list.isPublic} aria-label="Javna lista" onClick={() => onSave({ isPublic: !list.isPublic })}
-          className={clsx('relative inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full transition-colors', list.isPublic ? 'bg-sage' : 'bg-warm-gray/30')}>
-          <span className={clsx('inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform', list.isPublic ? 'translate-x-6' : 'translate-x-1')} />
-        </button>
+        <button role="switch" aria-checked={list.isPublic} aria-label="Otključana lista" onClick={() => onSave({ isPublic: !list.isPublic })} className="switch"><span /></button>
       </div>
       <div>
-        <label htmlFor={`desc-${list.id}`} className={labelCls}>Poruka za goste (prikazuje se na listi)</label>
+        <label htmlFor={`desc-${list.id}`} className="field-label">Poruka za goste <span className="font-medium text-muted">(vidi se na listi)</span></label>
         <textarea id={`desc-${list.id}`} rows={3} maxLength={1000} value={description} onChange={e => setDescription(e.target.value)}
-          placeholder="npr. Hvala vam što ste dio našeg putovanja! Baby shower je 12.5. kod nas doma."
-          className={clsx(inputCls, 'resize-none bg-white')} />
+          placeholder="npr. Baby shower je 12.5. kod nas doma. Hvala što ste uz nas."
+          className="field resize-none !bg-surface" />
         {dirty && (
           <button disabled={saving} onClick={async () => { setSaving(true); await onSave({ description: description.trim() || null }).finally(() => setSaving(false)) }}
-            className="mt-2 px-4 py-2 bg-charcoal text-white text-xs font-medium rounded-full disabled:opacity-50">
+            className="btn btn-sm btn-ink mt-2">
             {saving ? 'Spremam...' : 'Spremi poruku'}
           </button>
         )}
@@ -374,11 +362,11 @@ function ShareModal({ slug, listName, isPublic, onClose }: { slug: string; listN
   const [qrDataUrl, setQrDataUrl] = useState('')
   const [canShare, setCanShare] = useState(false)
   const shareUrl = `${window.location.origin}/lista/${slug}`
-  const shareText = `Pogledaj moju baby listu „${listName}" 🎀`
+  const shareText = `Pogledaj našu listu za bebu: „${listName}"`
 
   useEffect(() => {
     setCanShare(typeof navigator.share === 'function')
-    import('qrcode').then(QRCode => QRCode.toDataURL(shareUrl, { width: 280, margin: 2, color: { dark: '#2C2320', light: '#FAF7F2' } }))
+    import('qrcode').then(QRCode => QRCode.toDataURL(shareUrl, { width: 320, margin: 2, color: { dark: '#1E1537', light: '#FFFFFF' } }))
       .then(setQrDataUrl)
       .catch(() => {})
   }, [shareUrl])
@@ -395,56 +383,40 @@ function ShareModal({ slug, listName, isPublic, onClose }: { slug: string; listN
 
   return (
     <Modal title="Podijeli listu" onClose={onClose}>
-      <div className="px-5 sm:px-6 pb-6">
+      <div className="px-5 pb-6 sm:px-7 sm:pb-7">
         {!isPublic && (
-          <p className="mb-4 p-3 bg-rose/10 border border-rose/20 rounded-xl text-xs text-rose">
-            🔒 Lista je trenutno privatna — gosti neće moći otvoriti link dok je ne uključiš u postavkama liste.
+          <p className="mb-4 flex items-start gap-2 rounded-2xl bg-tomato-soft p-3 text-[13px] font-medium text-tomato-ink">
+            <Lock size={15} aria-hidden className="mt-0.5 flex-shrink-0" />
+            Lista je zaključana. Gosti neće moći otvoriti link dok je ne otključaš u postavkama liste.
           </p>
         )}
-        <div className="flex gap-2 mb-5">
-          <input type="text" value={shareUrl} readOnly aria-label="Link liste" onFocus={e => e.target.select()}
-            className="flex-1 px-3 py-2.5 bg-cream border border-blush/40 rounded-xl text-xs text-charcoal font-mono truncate min-w-0" />
-          <button onClick={copyLink}
-            className="px-4 py-2.5 bg-charcoal text-white text-xs font-medium rounded-xl hover:bg-charcoal/90 transition-colors whitespace-nowrap flex-shrink-0">
-            {copied ? '✓ Kopirano!' : 'Kopiraj'}
+        <div className="mb-4 flex gap-2">
+          <input type="text" value={shareUrl} readOnly aria-label="Link liste" onFocus={e => e.target.select()} className="field min-w-0 flex-1 truncate !text-[13px]" />
+          <button onClick={copyLink} className="btn btn-ink flex-shrink-0 !rounded-2xl !px-4 !text-sm">
+            {copied ? <><Check size={16} strokeWidth={3} aria-hidden /> Kopirano</> : <><Copy size={15} aria-hidden /> Kopiraj</>}
           </button>
         </div>
 
         {canShare && (
-          <button onClick={nativeShare}
-            className="w-full mb-3 flex items-center justify-center gap-2 py-3 bg-rose text-white rounded-xl text-sm font-medium hover:bg-rose/90 transition-colors">
-            <Share2 size={15} /> Podijeli...
-          </button>
+          <button onClick={nativeShare} className="btn btn-primary mb-4 w-full"><Share2 size={17} aria-hidden /> Podijeli</button>
         )}
 
-        <div className="grid grid-cols-3 gap-2 mb-5">
-          <a href={`https://wa.me/?text=${encodeURIComponent(`${shareText}\n${shareUrl}`)}`} target="_blank" rel="noopener noreferrer"
-            className="flex items-center justify-center px-3 py-3 bg-[#25D366]/10 text-[#128C4A] border border-[#25D366]/20 rounded-xl text-sm font-medium hover:bg-[#25D366]/20 transition-colors">
-            WhatsApp
-          </a>
-          <a href={`viber://forward?text=${encodeURIComponent(`${shareText}\n${shareUrl}`)}`}
-            className="flex items-center justify-center px-3 py-3 bg-[#7360F2]/10 text-[#5A48D6] border border-[#7360F2]/20 rounded-xl text-sm font-medium hover:bg-[#7360F2]/20 transition-colors">
-            Viber
-          </a>
-          <a href={`fb-messenger://share/?link=${encodeURIComponent(shareUrl)}`}
-            className="flex items-center justify-center px-3 py-3 bg-[#0084FF]/10 text-[#006ACC] border border-[#0084FF]/20 rounded-xl text-sm font-medium hover:bg-[#0084FF]/20 transition-colors">
-            Messenger
-          </a>
+        <div className="mb-5 grid grid-cols-3 gap-2">
+          <a href={`https://wa.me/?text=${encodeURIComponent(`${shareText}\n${shareUrl}`)}`} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-soft !rounded-2xl">WhatsApp</a>
+          <a href={`viber://forward?text=${encodeURIComponent(`${shareText}\n${shareUrl}`)}`} className="btn btn-sm btn-soft !rounded-2xl">Viber</a>
+          <a href={`fb-messenger://share/?link=${encodeURIComponent(shareUrl)}`} className="btn btn-sm btn-soft !rounded-2xl !px-2">Messenger</a>
         </div>
 
         {qrDataUrl && (
-          <div className="text-center border-t border-blush/20 pt-5">
-            <p className="text-xs font-medium text-warm-gray uppercase tracking-wide mb-3 flex items-center justify-center gap-1.5">
-              <QrCode size={12} /> QR kod za pozivnicu
-            </p>
-            <div className="inline-block bg-cream p-3 rounded-2xl border border-blush/30">
-              <img src={qrDataUrl} alt="QR kod za listu" className="w-40 h-40 sm:w-48 sm:h-48" />
+          <div className="border-t border-line/10 pt-5 text-center">
+            <p className="mb-3 flex items-center justify-center gap-1.5 text-sm font-bold"><QrCode size={15} aria-hidden /> QR kod za pozivnicu</p>
+            <div className="inline-block rounded-3xl bg-white p-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={qrDataUrl} alt="QR kod za listu" className="h-40 w-40 sm:h-48 sm:w-48" />
             </div>
-            <p className="text-xs text-warm-gray/70 mt-2 mb-3">Skeniraj ili stavi na baby shower pozivnicu</p>
-            <a href={qrDataUrl} download={`bebina-lista-${slug.slice(0, 8)}-qr.png`}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-cream border border-blush/40 rounded-full text-xs font-medium text-charcoal hover:bg-blush/30 transition-colors">
-              <Download size={12} /> Preuzmi QR kod
-            </a>
+            <div className="mt-3">
+              <a href={qrDataUrl} download={`bebina-lista-${slug.slice(0, 8)}-qr.png`} className="btn btn-sm btn-soft"><Download size={15} aria-hidden /> Preuzmi QR kod</a>
+            </div>
           </div>
         )}
       </div>
@@ -452,24 +424,42 @@ function ShareModal({ slug, listName, isPublic, onClose }: { slug: string; listN
   )
 }
 
-function NewListModal({ onClose, onCreate }: {
+const DEFAULT_LIST_NAME: Record<string, string> = { birth: 'Lista za bebu', birthday: 'Rođendanska lista' }
+
+export interface NewListDefaults {
+  occasion: string
+  dateInput: string
+  babyGender: string
+}
+
+/** Pre-filled from the profile (and the occasion chosen at registration), everything stays editable for another child. */
+function NewListModal({ defaults, onClose, onCreate }: {
+  defaults: NewListDefaults
   onClose: () => void
   onCreate: (data: { name: string; occasion: string; date: Date | null; babyGender: string }) => Promise<void>
 }) {
-  const [name, setName] = useState('')
-  const [occasion, setOccasion] = useState('')
-  const [dateInput, setDateInput] = useState('')
-  const [babyGender, setBabyGender] = useState('')
+  const [name, setName] = useState(DEFAULT_LIST_NAME[defaults.occasion] ?? '')
+  const [nameTouched, setNameTouched] = useState(false)
+  const [occasion, setOccasion] = useState(defaults.occasion)
+  const [dateInput, setDateInput] = useState(defaults.dateInput)
+  const [babyGender, setBabyGender] = useState(defaults.occasion === 'birth' ? defaults.babyGender : '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   const selectedOcc = OCCASIONS.find(o => o.value === occasion)
   const parsedDate = dateInput.length === 10 ? parseDMY(dateInput) : null
 
+  const pickOccasion = (value: string) => {
+    const next = occasion === value ? '' : value
+    setOccasion(next)
+    if (!nameTouched) setName(DEFAULT_LIST_NAME[next] ?? '')
+    setBabyGender(next === 'birth' ? defaults.babyGender : '')
+  }
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (name.trim().length < 2) { setError('Naziv mora imati najmanje 2 znaka'); return }
-    if (dateInput && !parsedDate) { setError('Datum nije ispravan. Format: dd/mm/gggg'); return }
+    if (dateInput && !parsedDate) { setError(DATE_FORMAT_ERROR); return }
     setLoading(true); setError('')
     try {
       await onCreate({ name: name.trim(), occasion, date: parsedDate, babyGender })
@@ -482,61 +472,48 @@ function NewListModal({ onClose, onCreate }: {
 
   return (
     <Modal title="Nova lista" onClose={onClose}>
-      <form onSubmit={submit} className="px-5 sm:px-6 pb-6 space-y-4">
+      <form onSubmit={submit} className="space-y-4 px-5 pb-6 sm:px-7 sm:pb-7">
         <div>
-          <label htmlFor="new-list-name" className={labelCls}>Naziv liste *</label>
-          <input id="new-list-name" type="text" maxLength={120} placeholder='npr. „Lista za Mateja"' value={name} onChange={e => setName(e.target.value)} className={inputCls} />
+          <label htmlFor="new-list-name" className="field-label">Naziv liste</label>
+          <input id="new-list-name" type="text" maxLength={120} placeholder="npr. Lista za Mateja" value={name}
+            onChange={e => { setName(e.target.value); setNameTouched(true) }} className="field" />
         </div>
 
         <fieldset>
-          <legend className={labelCls}>Za što je lista?</legend>
+          <legend className="field-label">Za što je lista?</legend>
           <div className="grid grid-cols-2 gap-2">
             {OCCASIONS.map(o => (
-              <button key={o.value} type="button" aria-pressed={occasion === o.value}
-                onClick={() => { setOccasion(oc => oc === o.value ? '' : o.value); setDateInput(''); setBabyGender('') }}
-                className={clsx('flex items-center gap-2 px-3 py-3 rounded-xl text-sm font-medium border transition-all',
-                  occasion === o.value ? 'border-rose bg-blush/30 text-charcoal' : 'border-blush/40 text-warm-gray hover:border-blush-mid')}>
-                <span className="text-xl">{o.emoji}</span> {o.label}
+              <button key={o.value} type="button" aria-pressed={occasion === o.value} onClick={() => pickOccasion(o.value)}
+                className={clsx(`tone-${o.tone}`, 'choice flex items-center gap-2.5 p-2.5 text-left text-sm font-semibold')}>
+                <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-tone p-1"><Art name={o.art} /></span>
+                {o.label}
               </button>
             ))}
           </div>
         </fieldset>
 
         {selectedOcc && (
-          <div>
-            <label htmlFor="new-list-date" className={labelCls}><Calendar size={11} className="inline mr-1" />{selectedOcc.dateLabel}</label>
-            <div className="relative">
-              <input id="new-list-date" type="text" inputMode="numeric" placeholder="15/06/2026" value={dateInput} maxLength={10}
-                onChange={e => setDateInput(maskDMY(e.target.value))} className={clsx(inputCls, 'font-mono tracking-wider')} />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-warm-gray/60 pointer-events-none">dd/mm/gggg</span>
-            </div>
-            {parsedDate && <p className="text-xs text-sage mt-1">✓ {formatDateHR(parsedDate)}</p>}
-            {dateInput.length === 10 && !parsedDate && <p className="text-xs text-rose mt-1">Datum nije ispravan</p>}
-          </div>
+          <DateField id="new-list-date" label={selectedOcc.dateLabel} value={dateInput} onChange={setDateInput}
+            hint={defaults.dateInput ? 'Upisano pri registraciji. Promijeni ako je lista za drugo dijete.' : undefined} />
         )}
 
         {occasion === 'birth' && (
           <fieldset>
-            <legend className={labelCls}>Spol bebe</legend>
+            <legend className="field-label">Spol bebe <span className="font-medium text-muted">(ako želiš)</span></legend>
             <div className="grid grid-cols-3 gap-2">
-              {[{ value: 'boy', emoji: '💙', label: 'Dječak' }, { value: 'girl', emoji: '💗', label: 'Djevojčica' }, { value: 'surprise', emoji: '🎀', label: 'Iznenađenje' }].map(opt => (
-                <button key={opt.value} type="button" aria-pressed={babyGender === opt.value}
-                  onClick={() => setBabyGender(g => g === opt.value ? '' : opt.value)}
-                  className={clsx('flex flex-col items-center gap-1 py-2.5 rounded-xl text-xs font-medium border transition-all',
-                    babyGender === opt.value ? 'border-rose bg-blush/30' : 'border-blush/40 text-warm-gray hover:border-blush-mid')}>
-                  <span className="text-lg">{opt.emoji}</span> {opt.label}
+              {GENDERS.map(opt => (
+                <button key={opt.value} type="button" aria-pressed={babyGender === opt.value} onClick={() => setBabyGender(g => g === opt.value ? '' : opt.value)}
+                  className="choice min-h-[48px] px-1 text-[13px] font-semibold">
+                  {opt.label}
                 </button>
               ))}
             </div>
           </fieldset>
         )}
 
-        {error && <p role="alert" className="text-sm text-rose">{error}</p>}
+        {error && <p role="alert" className="field-error">{error}</p>}
 
-        <button type="submit" disabled={loading}
-          className="w-full py-3 bg-rose text-white font-medium rounded-full hover:bg-rose/90 transition-colors disabled:opacity-50">
-          {loading ? 'Kreiram...' : 'Kreiraj listu'}
-        </button>
+        <button type="submit" disabled={loading} className="btn btn-primary w-full">{loading ? 'Radim...' : 'Napravi listu'}</button>
       </form>
     </Modal>
   )
@@ -549,13 +526,12 @@ function ConfirmModal({ title, message, confirmLabel, onConfirm, onClose }: {
   const [busy, setBusy] = useState(false)
   return (
     <Modal title={title} onClose={onClose}>
-      <div className="px-5 sm:px-6 pb-6">
-        <p className="text-sm text-warm-gray mb-5">{message}</p>
-        <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 py-3 border border-blush/40 text-warm-gray text-sm font-medium rounded-full hover:bg-cream">Odustani</button>
-          <button disabled={busy} onClick={async () => { setBusy(true); await onConfirm().finally(() => setBusy(false)) }}
-            className="flex-1 py-3 bg-rose text-white text-sm font-medium rounded-full hover:bg-rose/90 disabled:opacity-50">
-            {busy ? '...' : confirmLabel}
+      <div className="px-5 pb-6 sm:px-7 sm:pb-7">
+        <p className="mb-5 text-muted">{message}</p>
+        <div className="flex gap-2">
+          <button onClick={onClose} className="btn btn-soft flex-1">Odustani</button>
+          <button disabled={busy} onClick={async () => { setBusy(true); await onConfirm().finally(() => setBusy(false)) }} className="btn btn-danger flex-1">
+            {busy ? 'Brišem...' : confirmLabel}
           </button>
         </div>
       </div>
@@ -579,9 +555,18 @@ export default function MojaListaPage() {
 
   useEffect(() => { loadFromStorage() }, [loadFromStorage])
 
+  // Registration sends people here with ?nova=<prigoda>, so the first list opens pre-filled.
+  const [requestedOccasion, setRequestedOccasion] = useState<string | null>(null)
+
   useEffect(() => {
     if (authLoading) return
     if (!user) { router.replace('/prijava?next=/moja-lista'); return }
+    const nova = new URLSearchParams(window.location.search).get('nova')
+    if (nova !== null) {
+      setRequestedOccasion(nova)
+      setShowNewModal(true)
+      router.replace('/moja-lista', { scroll: false })
+    }
     listsApi.getAll()
       .then(res => {
         setLists(res.data)
@@ -590,6 +575,12 @@ export default function MojaListaPage() {
       .catch(err => setLoadError(apiError(err, 'Liste se trenutno ne mogu učitati.')))
       .finally(() => setLoading(false))
   }, [user, authLoading, router])
+
+  const newListDefaults: NewListDefaults = {
+    occasion: requestedOccasion || lists[0]?.occasion || (user?.dueDate ? 'birth' : ''),
+    dateInput: toDMY(user?.dueDate),
+    babyGender: user?.babyGender || '',
+  }
   const patchList = (listId: string, fn: (l: BabyList) => BabyList) => setLists(prev => prev.map(l => l.id === listId ? fn(l) : l))
 
   const withToast = async (fn: () => Promise<unknown>, success?: string) => {
@@ -611,14 +602,14 @@ export default function MojaListaPage() {
     const newList: BabyList = { ...res.data, items: [], _count: { items: 0 } }
     setLists(prev => [newList, ...prev])
     setExpandedList(newList.id)
-    showToast('Lista kreirana! Dodaj prve proizvode 🎉')
+    showToast('Lista je napravljena. Dodaj prve proizvode.')
   }
 
   const updateListFields = (list: BabyList, data: { name?: string; description?: string | null; isPublic?: boolean }) =>
     withToast(async () => {
       await listsApi.update(list.id, data)
       patchList(list.id, l => ({ ...l, ...data, description: data.description === undefined ? l.description : data.description ?? undefined }))
-    }, data.isPublic === undefined ? 'Spremljeno' : data.isPublic ? 'Lista je sada javna' : 'Lista je sada privatna')
+    }, data.isPublic === undefined ? 'Spremljeno' : data.isPublic ? 'Lista je otključana' : 'Lista je zaključana')
 
   const confirmDeleteList = async () => {
     if (!deleteList) return
@@ -637,39 +628,50 @@ export default function MojaListaPage() {
     return (
       <>
         <Navbar />
-        <main className="min-h-screen pt-20 flex items-center justify-center">
-          <div className="text-center"><span className="text-4xl animate-bounce block mb-4">🍼</span><p className="text-warm-gray">Učitavanje...</p></div>
-        </main>
+        <main className="flex min-h-screen items-center justify-center pt-20"><Loader label="Tražim tvoje liste." /></main>
       </>
     )
   }
 
+  // The due date is shared with birthday lists, so only count weeks when a list is about a birth.
+  const pregnancy = lists.some(l => l.occasion === 'birth') && !lists.some(l => l.occasion === 'birthday') ? pregnancyStatus(user?.dueDate) : null
+
   return (
     <>
       <Navbar />
-      <main className="min-h-screen pt-20 pb-16">
-        <div className="max-w-4xl mx-auto px-3 sm:px-6">
-          <div className="py-6 sm:py-8 flex items-end justify-between gap-3 sm:gap-4">
+      <main id="sadrzaj" className="page-in min-h-screen pb-16 pt-[92px]">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6">
+          <header className="flex items-end justify-between gap-3 pb-6 pt-4 sm:pt-6">
             <div className="min-w-0">
-              <h1 className="font-serif text-2xl sm:text-3xl text-charcoal truncate">Hej, {user?.name?.split(' ')[0]}! 👋</h1>
-              <p className="text-warm-gray text-sm mt-1">
-                {lists.length === 0 ? 'Kreiraj svoju prvu listu' : `Imaš ${lists.length} ${plural(lists.length, 'listu', 'liste', 'lista')}`}
+              <h1 className="display truncate pb-1 text-[2.9rem] sm:text-7xl">Hej, {user?.name?.split(' ')[0]}.</h1>
+              <p className="mt-1.5 font-medium text-muted">
+                {lists.length === 0 ? 'Još nemaš nijednu listu.' : `Imaš ${lists.length} ${plural(lists.length, 'listu', 'liste', 'lista')}.`}
               </p>
             </div>
-            <button onClick={() => setShowNewModal(true)}
-              className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2.5 bg-rose text-white text-sm font-medium rounded-full hover:bg-rose/90 transition-colors flex-shrink-0">
-              <Plus size={16} /> <span className="hidden sm:inline">Nova</span> lista
+            <button onClick={() => setShowNewModal(true)} className="btn btn-primary flex-shrink-0 !px-4 sm:!px-6">
+              <Plus size={18} strokeWidth={3} aria-hidden /> <span className="hidden sm:inline">Nova lista</span><span className="sr-only sm:hidden">Nova lista</span>
             </button>
-          </div>
+          </header>
 
-          {loadError && <p role="alert" className="mb-4 p-4 bg-rose/10 border border-rose/20 rounded-2xl text-sm text-rose">{loadError}</p>}
+          {pregnancy && (
+            <m.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="tone-sun mb-5 flex items-center gap-4 rounded-3xl bg-tone p-4 text-on-tone sm:p-5">
+              <span className="display flex-shrink-0 text-5xl tabular-nums sm:text-6xl">{pregnancy.week}.</span>
+              <p className="font-medium leading-snug">
+                <strong className="font-display font-extrabold">tjedan.</strong>{' '}
+                {pregnancy.size && <>Beba je otprilike veličine {pregnancy.size}. </>}
+                Do termina {plural(pregnancy.weeksLeft, 'ostaje', 'ostaju', 'ostaje')} {pregnancy.weeksLeft} {plural(pregnancy.weeksLeft, 'tjedan', 'tjedna', 'tjedana')}.
+              </p>
+            </m.div>
+          )}
+
+          {loadError && <p role="alert" className="mb-4 rounded-3xl bg-tomato-soft p-4 font-medium text-tomato-ink">{loadError}</p>}
 
           {lists.length === 0 && !loadError && (
-            <div className="text-center py-16 sm:py-20 bg-white rounded-3xl border border-blush/30 px-6">
-              <span className="text-5xl sm:text-6xl block mb-4">💝</span>
-              <h2 className="font-serif text-xl sm:text-2xl text-charcoal mb-3">Tvoja prva lista te čeka</h2>
-              <p className="text-warm-gray mb-8 max-w-sm mx-auto text-sm">Kreiraj listu, dodaj proizvode i podijeli je s obitelji i prijateljima</p>
-              <button onClick={() => setShowNewModal(true)} className="px-6 py-3 bg-rose text-white font-medium rounded-full hover:bg-rose/90 transition-colors">Kreiraj listu</button>
+            <div className="tone-bubble rounded-5xl bg-tone p-8 text-center text-on-tone sm:p-14">
+              <div className="mx-auto w-28"><Art name="gift" /></div>
+              <h2 className="display mt-3 text-4xl sm:text-5xl">Napravi prvu listu.</h2>
+              <p className="mx-auto mt-3 max-w-sm text-lg font-medium leading-snug">Upiši što ti treba, pošalji link obitelji i prijateljima, i nitko više ne kupuje isto.</p>
+              <button onClick={() => setShowNewModal(true)} className="btn btn-lg btn-ink mt-6 !bg-coal !text-white">Napravi listu</button>
             </div>
           )}
 
@@ -680,117 +682,113 @@ export default function MojaListaPage() {
               const reserved = list.items.filter(i => i.reservation).length
               const purchased = list.items.filter(i => i.reservation?.status === 'PURCHASED').length
               const occ = OCCASIONS.find(o => o.value === list.occasion)
+              const progress = total > 0 ? Math.round((reserved / total) * 100) : 0
 
               return (
-                <section key={list.id} className="bg-white rounded-3xl border border-blush/30 overflow-hidden" aria-label={list.name}>
-                  <div className="p-4 sm:p-5 flex items-center gap-2 sm:gap-3">
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blush/40 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0">
-                      <span className="text-base sm:text-lg" aria-hidden>{occ ? occ.emoji : '💝'}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <EditableListName name={list.name} onSave={name => updateListFields(list, { name })} />
-                      <p className="text-xs text-warm-gray mt-0.5 flex items-center gap-1.5 flex-wrap">
-                        <span>{total} {plural(total, 'stavka', 'stavke', 'stavki')} · {reserved} rez.{purchased > 0 && ` · ${purchased} kupljeno`}</span>
-                        {!list.isPublic && <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-warm-gray/10 rounded-full"><Lock size={9} /> privatna</span>}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-                      <button onClick={() => setShareList(list)}
-                        className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-medium text-sage bg-sage-light/50 rounded-full hover:bg-sage-light transition-colors">
-                        <Share2 size={12} /> <span className="hidden sm:inline">Dijeli</span>
+                <section key={list.id} className="card overflow-hidden" aria-label={list.name}>
+                  <div className="p-4 sm:p-6">
+                    <div className="flex items-start gap-3 sm:gap-4">
+                      <span className={clsx(`tone-${occ?.tone ?? 'sun'}`, 'flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-tone p-1.5 sm:h-14 sm:w-14')}>
+                        <Art name={occ?.art ?? 'gift'} />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <EditableListName name={list.name} onSave={name => updateListFields(list, { name })} />
+                        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm font-medium text-muted">
+                          <span>{total} {plural(total, 'stavka', 'stavke', 'stavki')}, {reserved} rezervirano{purchased > 0 && `, ${purchased} kupljeno`}</span>
+                          {!list.isPublic && <span className="chip chip-neutral !py-0.5 !text-xs"><Lock size={11} aria-hidden /> zaključana</span>}
+                        </p>
+                      </div>
+                      <button onClick={() => setExpandedList(isExpanded ? null : list.id)} aria-label={isExpanded ? 'Sakrij stavke' : 'Prikaži stavke'} aria-expanded={isExpanded} className="icon-btn -mr-1 -mt-1">
+                        <ChevronDown size={20} aria-hidden className={clsx('transition-transform duration-300', isExpanded && 'rotate-180')} />
                       </button>
+                    </div>
+
+                    {total > 0 && <ProgressBar value={progress} label="Rezervirano" className="mt-4" />}
+
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                      <button onClick={() => setShareList(list)} className="btn btn-sm btn-ink"><Share2 size={15} aria-hidden /> Podijeli listu</button>
+                      <a href={`/lista/${list.shareSlug}`} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-soft"><Eye size={15} aria-hidden /> Pogledaj kao gost</a>
+                      <span className="flex-1" />
                       <button onClick={() => { setExpandedList(list.id); setSettingsOpen(s => s === list.id ? null : list.id) }}
-                        aria-label="Postavke liste" aria-expanded={settingsOpen === list.id}
-                        className={clsx('p-1.5 transition-colors', settingsOpen === list.id ? 'text-rose' : 'text-warm-gray hover:text-charcoal')}>
-                        <Settings2 size={15} />
+                        aria-label="Postavke liste" aria-expanded={settingsOpen === list.id} className={clsx('icon-btn', settingsOpen === list.id && 'bg-line/10')}>
+                        <Settings2 size={18} aria-hidden />
                       </button>
-                      <button onClick={() => setDeleteList(list)} aria-label="Obriši listu" className="p-1.5 text-warm-gray hover:text-rose transition-colors">
-                        <Trash2 size={15} />
-                      </button>
-                      <button onClick={() => setExpandedList(isExpanded ? null : list.id)} aria-label={isExpanded ? 'Sakrij stavke' : 'Prikaži stavke'} aria-expanded={isExpanded}
-                        className="p-1.5 text-warm-gray">
-                        {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                      </button>
+                      <button onClick={() => setDeleteList(list)} aria-label="Obriši listu" className="icon-btn text-muted hover:text-tomato-ink"><Trash2 size={18} aria-hidden /></button>
                     </div>
                   </div>
 
-                  {isExpanded && (
-                    <div className="border-t border-blush/20 p-3 sm:p-4 space-y-2">
-                      {settingsOpen === list.id && <ListSettings list={list} onSave={data => updateListFields(list, data)} />}
+                  <AnimatePresence initial={false}>
+                    {isExpanded && (
+                      <m.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0, transition: { duration: 0.16 } }} className="overflow-hidden">
+                        <div className="space-y-2 border-t border-line/10 p-3 sm:p-4">
+                          <AnimatePresence initial={false}>
+                            {settingsOpen === list.id && (
+                              <m.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0, transition: { duration: 0.14 } }} className="overflow-hidden">
+                                <ListSettings list={list} onSave={data => updateListFields(list, data)} />
+                              </m.div>
+                            )}
+                          </AnimatePresence>
 
-                      {total === 0 ? (
-                        <div className="text-center py-8">
-                          <p className="text-warm-gray text-sm mb-3">Lista je prazna</p>
-                          <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
-                            <Link href="/katalog" className="inline-flex items-center gap-2 px-4 py-2.5 bg-blush/40 text-charcoal text-sm rounded-full hover:bg-blush transition-colors w-full sm:w-auto justify-center">
-                              <ShoppingBag size={14} /> Dodaj iz kataloga
-                            </Link>
-                            <button onClick={() => setSmartPasteListId(list.id)}
-                              className="inline-flex items-center gap-2 px-4 py-2.5 bg-sage-light/60 text-sage text-sm rounded-full hover:bg-sage-light transition-colors w-full sm:w-auto justify-center">
-                              <LinkIcon size={14} /> Dodaj s linka (bilo koji shop)
-                            </button>
+                          {total === 0 ? (
+                            <div className="px-3 py-8 text-center">
+                              <p className="font-display text-xl font-extrabold tracking-tight">Lista je još prazna.</p>
+                              <p className="mt-1 text-muted">Dodaj prvi proizvod iz kataloga ili zalijepi link iz web shopa.</p>
+                            </div>
+                          ) : (
+                            <ul className="space-y-2">
+                              <AnimatePresence initial={false}>
+                                {list.items.map(item => (
+                                  <ListItemRow key={item.id} item={item}
+                                    onDelete={() => withToast(async () => {
+                                      await listsApi.removeItem(list.id, item.id)
+                                      patchList(list.id, l => ({ ...l, items: l.items.filter(i => i.id !== item.id), _count: { items: Math.max(0, (l._count?.items ?? 1) - 1) } }))
+                                    }, 'Uklonjeno s liste')}
+                                    onPriorityChange={priority => withToast(async () => {
+                                      await listsApi.updateItem(list.id, item.id, { priority })
+                                      patchList(list.id, l => ({ ...l, items: sortItems(l.items.map(i => i.id === item.id ? { ...i, priority } : i)) }))
+                                    })}
+                                    onNoteChange={note => withToast(async () => {
+                                      await listsApi.updateItem(list.id, item.id, { note: note || null })
+                                      patchList(list.id, l => ({ ...l, items: l.items.map(i => i.id === item.id ? { ...i, note: note || undefined } : i) }))
+                                    })}
+                                    onClearReservation={() => withToast(async () => {
+                                      await listsApi.clearReservation(list.id, item.id)
+                                      patchList(list.id, l => ({ ...l, items: l.items.map(i => i.id === item.id ? { ...i, reservation: undefined } : i) }))
+                                    }, 'Poklon je ponovno slobodan')} />
+                                ))}
+                              </AnimatePresence>
+                            </ul>
+                          )}
+
+                          <div className="grid gap-2 pt-1 sm:grid-cols-2">
+                            <Link href="/katalog" className="btn btn-soft !rounded-2xl"><ShoppingBag size={16} aria-hidden /> Dodaj iz kataloga</Link>
+                            <button onClick={() => setSmartPasteListId(list.id)} className="btn btn-soft !rounded-2xl"><LinkIcon size={16} aria-hidden /> Dodaj s linka</button>
                           </div>
                         </div>
-                      ) : (
-                        <>
-                          <ul className="space-y-2">
-                            {list.items.map(item => (
-                              <ListItemRow key={item.id} item={item}
-                                onDelete={() => withToast(async () => {
-                                  await listsApi.removeItem(list.id, item.id)
-                                  patchList(list.id, l => ({ ...l, items: l.items.filter(i => i.id !== item.id), _count: { items: Math.max(0, (l._count?.items ?? 1) - 1) } }))
-                                }, 'Uklonjeno s liste')}
-                                onPriorityChange={priority => withToast(async () => {
-                                  await listsApi.updateItem(list.id, item.id, { priority })
-                                  patchList(list.id, l => ({ ...l, items: sortItems(l.items.map(i => i.id === item.id ? { ...i, priority } : i)) }))
-                                })}
-                                onNoteChange={note => withToast(async () => {
-                                  await listsApi.updateItem(list.id, item.id, { note: note || null })
-                                  patchList(list.id, l => ({ ...l, items: l.items.map(i => i.id === item.id ? { ...i, note: note || undefined } : i) }))
-                                })}
-                                onClearReservation={() => withToast(async () => {
-                                  await listsApi.clearReservation(list.id, item.id)
-                                  patchList(list.id, l => ({ ...l, items: l.items.map(i => i.id === item.id ? { ...i, reservation: undefined } : i) }))
-                                }, 'Poklon je ponovno slobodan')} />
-                            ))}
-                          </ul>
-                          <div className="flex flex-col sm:flex-row gap-2 mt-1">
-                            <Link href="/katalog" className="flex items-center justify-center gap-2 flex-1 py-3 border-2 border-dashed border-blush/40 rounded-2xl text-sm text-warm-gray hover:border-blush-mid hover:text-charcoal transition-colors">
-                              <Plus size={14} /> Iz kataloga
-                            </Link>
-                            <button onClick={() => setSmartPasteListId(list.id)}
-                              className="flex items-center justify-center gap-2 flex-1 py-3 border-2 border-dashed border-sage/30 rounded-2xl text-sm text-sage hover:border-sage transition-colors">
-                              <LinkIcon size={14} /> S linka
-                            </button>
-                          </div>
-                        </>
-                      )}
-                      <div className="pt-2 border-t border-blush/20 flex items-center justify-between gap-2">
-                        <p className="text-xs text-warm-gray font-mono truncate">/lista/{list.shareSlug.slice(0, 10)}…</p>
-                        <a href={`/lista/${list.shareSlug}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-sage hover:underline flex-shrink-0">
-                          Pogledaj kao gost <ExternalLink size={10} />
-                        </a>
-                      </div>
-                    </div>
-                  )}
+                      </m.div>
+                    )}
+                  </AnimatePresence>
                 </section>
               )
             })}
           </div>
         </div>
       </main>
+      <Footer />
 
-      {showNewModal && <NewListModal onClose={() => setShowNewModal(false)} onCreate={handleCreate} />}
-      {shareList && <ShareModal slug={shareList.shareSlug} listName={shareList.name} isPublic={shareList.isPublic} onClose={() => setShareList(null)} />}
-      {smartPasteListId && (
-        <SmartPasteModal listId={smartPasteListId} onClose={() => setSmartPasteListId(null)}
-          onAdded={item => { addItemToState(smartPasteListId, item); setSmartPasteListId(null); showToast('Proizvod dodan s linka!') }} />
-      )}
-      {deleteList && (
-        <ConfirmModal title="Obrisati listu?" confirmLabel="Obriši"
-          message={`Lista „${deleteList.name}" i sve rezervacije na njoj bit će trajno obrisane. Link više neće raditi.`}
-          onConfirm={confirmDeleteList} onClose={() => setDeleteList(null)} />
-      )}
+      <AnimatePresence>
+        {showNewModal && !loading && <NewListModal key="new" defaults={newListDefaults} onClose={() => setShowNewModal(false)} onCreate={handleCreate} />}
+        {shareList && <ShareModal key="share" slug={shareList.shareSlug} listName={shareList.name} isPublic={shareList.isPublic} onClose={() => setShareList(null)} />}
+        {smartPasteListId && (
+          <SmartPasteModal key="paste" listId={smartPasteListId} onClose={() => setSmartPasteListId(null)}
+            onAdded={item => { addItemToState(smartPasteListId, item); setSmartPasteListId(null); showToast('Dodano s linka.') }} />
+        )}
+        {deleteList && (
+          <ConfirmModal key="delete" title="Obrisati listu?" confirmLabel="Obriši"
+            message={`Lista „${deleteList.name}" i sve rezervacije na njoj bit će trajno obrisane. Link više neće raditi.`}
+            onConfirm={confirmDeleteList} onClose={() => setDeleteList(null)} />
+        )}
+      </AnimatePresence>
 
       <Toast message={toast} />
     </>

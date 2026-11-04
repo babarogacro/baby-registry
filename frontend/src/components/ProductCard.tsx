@@ -1,55 +1,80 @@
 'use client'
 import Image from 'next/image'
-import { useState } from 'react'
-import { Heart, ExternalLink } from 'lucide-react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { ArrowUpRight, Check, Plus } from 'lucide-react'
+import { Art } from '@/components/art'
 import { Product } from '@/types'
 import { addRefToUrl } from '@/lib/api'
-import { formatPrice } from '@/lib/format'
+import { categoryMeta } from '@/lib/categories'
+import { discountPercent, displayName, formatPrice } from '@/lib/format'
 import clsx from 'clsx'
 
 interface ProductCardProps {
   product: Product
   onAddToList?: (product: Product) => void
   isOnList?: boolean
+  /** Position in the grid, for the staggered entrance. */
+  index?: number
 }
 
-export default function ProductCard({ product, onAddToList, isOnList }: ProductCardProps) {
+export default function ProductCard({ product, onAddToList, isOnList, index }: ProductCardProps) {
   const [imgError, setImgError] = useState(false)
+  const [popped, setPopped] = useState(false)
+  const wasOnList = useRef(isOnList)
+
+  useEffect(() => {
+    if (isOnList && !wasOnList.current) setPopped(true)
+    wasOnList.current = isOnList
+  }, [isOnList])
+
   const shopUrl = addRefToUrl(product.productUrl)
+  const meta = categoryMeta(product.category?.slug)
+  const discount = discountPercent(product)
 
   return (
-    <article className="product-card bg-white rounded-3xl overflow-hidden border border-blush/30 flex flex-col">
-      <a href={shopUrl} target="_blank" rel="noopener noreferrer" tabIndex={-1} aria-hidden className="relative block bg-cream overflow-hidden aspect-square">
-        {product.imageUrl && !imgError ? (
-          <Image src={product.imageUrl} alt="" fill className="object-contain p-3" onError={() => setImgError(true)}
-            sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw" />
-        ) : (
-          <span className="absolute inset-0 flex items-center justify-center text-5xl opacity-20">🍼</span>
-        )}
-        {!product.inStock && (
-          <span className="absolute top-2 left-2 px-2 py-0.5 bg-warm-gray/80 text-white text-xs rounded-full">Nedostupno</span>
-        )}
-      </a>
-
-      <div className="flex flex-col p-4 flex-1">
-        {product.category && <span className="text-xs text-warm-gray/70 mb-1">{product.category.name}</span>}
-        <h3 className="text-sm font-medium text-charcoal line-clamp-2 leading-snug mb-2 flex-1">{product.name}</h3>
-        <div className="flex items-center justify-between gap-2 mt-auto">
-          <span className="text-base font-medium text-charcoal">{formatPrice(product.price, product.currency)}</span>
-          <span className="text-xs text-warm-gray/70 truncate">{product.shopName}</span>
-        </div>
-        <div className="flex gap-2 mt-3">
-          {onAddToList && (
-            <button onClick={() => onAddToList(product)} aria-pressed={isOnList}
-              className={clsx('flex-1 flex items-center justify-center gap-1.5 py-2 rounded-full text-xs font-medium transition-colors',
-                isOnList ? 'bg-rose/10 text-rose border border-rose/20' : 'bg-blush/40 text-charcoal hover:bg-blush border border-transparent')}>
-              <Heart size={12} className={isOnList ? 'fill-rose' : ''} />
-              {isOnList ? 'Na listi' : 'Dodaj'}
-            </button>
+    <article className={clsx(`tone-${meta.tone} group relative flex flex-col`, index !== undefined && 'card-in')}
+      style={index !== undefined ? ({ '--i': index % 24 } as CSSProperties) : undefined}>
+      <div className="photo-tile relative aspect-square overflow-hidden rounded-3xl">
+        <a href={shopUrl} target="_blank" rel="noopener noreferrer" tabIndex={-1} aria-hidden className="absolute inset-0 block">
+          {product.imageUrl && !imgError ? (
+            <Image src={product.imageUrl} alt="" fill onError={() => setImgError(true)}
+              className="object-contain p-4 transition-transform duration-500 ease-out group-hover:scale-[1.06] sm:p-5"
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" />
+          ) : (
+            <Art name={meta.art} className="absolute inset-[22%] opacity-90" />
           )}
+        </a>
+        {discount > 0 && <span className="sticker absolute left-2.5 top-2.5">−{discount} %</span>}
+        {!product.inStock && <span className="chip absolute bottom-2.5 left-2.5 bg-coal text-white">Nedostupno</span>}
+        {onAddToList && (
+          <button onClick={() => onAddToList(product)} aria-pressed={isOnList}
+            aria-label={isOnList ? `${displayName(product)} je na listi` : `Dodaj na listu: ${displayName(product)}`}
+            title={isOnList ? 'Na listi' : 'Dodaj na listu'}
+            className={clsx('absolute bottom-2 right-2 flex h-11 w-11 items-center justify-center rounded-full shadow-float transition-transform duration-200 hover:scale-110 active:scale-90',
+              isOnList ? 'bg-coal text-white' : 'bg-mint text-coal')}>
+            {isOnList
+              ? <Check size={20} strokeWidth={3} aria-hidden className={clsx(popped && 'pop')} onAnimationEnd={() => setPopped(false)} />
+              : <Plus size={22} strokeWidth={3} aria-hidden />}
+          </button>
+        )}
+      </div>
+
+      <div className="flex flex-1 flex-col px-1 pt-3">
+        {product.brand && <p className="text-[13px] font-bold text-tone-ink">{product.brand}</p>}
+        <h3 className="line-clamp-2 font-sans text-[15px] font-medium leading-snug tracking-normal text-ink">
+          <a href={shopUrl} target="_blank" rel="noopener noreferrer" className="hover:underline hover:decoration-2 hover:underline-offset-2">{displayName(product)}</a>
+        </h3>
+        <div className="mt-auto flex items-end justify-between gap-2 pt-2">
+          <p className="font-display text-lg font-extrabold leading-none tabular-nums tracking-tight">
+            {formatPrice(product.price, product.currency)}
+            {discount > 0 && product.originalPrice && (
+              <span className="mt-1 block font-sans text-xs font-medium tracking-normal text-muted line-through">{formatPrice(product.originalPrice, product.currency)}</span>
+            )}
+          </p>
           <a href={shopUrl} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-1 px-3 py-2 rounded-full text-xs font-medium bg-sage-light/60 text-sage hover:bg-sage-light transition-colors">
-            <ExternalLink size={11} /> Pogledaj
+            className="flex flex-shrink-0 items-center gap-0.5 rounded-full py-1 text-xs font-semibold text-muted transition-colors hover:text-ink">
+            {product.shopName}<ArrowUpRight size={13} aria-hidden className="transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+            <span className="sr-only"> (otvara se u novoj kartici)</span>
           </a>
         </div>
       </div>

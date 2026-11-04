@@ -129,7 +129,10 @@ model Product {
   name             String
   description      String?           @db.Text
   price            Float
+  originalPrice    Float?
   currency         String            @default("EUR")
+  brand            String?
+  sortKey          Float?
   imageUrl         String?
   productUrl       String
   sku              String?
@@ -147,6 +150,8 @@ model Product {
   @@index([productUrl])
   @@index([shopSlug])
   @@index([categoryId])
+  @@index([brand])
+  @@index([sortKey])
 }
 
 model FeaturedProduct {

@@ -1,19 +1,26 @@
 import Link from 'next/link'
+import { Art } from '@/components/art'
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-cream flex items-center justify-center p-4">
-      <div className="text-center max-w-md">
-        <span className="text-7xl block mb-6">🍼</span>
-        <h1 className="font-serif text-4xl text-charcoal mb-3">404</h1>
-        <p className="text-warm-gray mb-8">Ova stranica ne postoji ili je premještena.</p>
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-rose text-white rounded-full font-medium hover:bg-rose/90 transition-colors"
-        >
-          Idi na početnu
-        </Link>
+    <main id="sadrzaj" className="flex min-h-[100dvh] items-center justify-center bg-coal p-5 text-white">
+      <div className="max-w-lg text-center">
+        <div className="relative mx-auto h-44 w-44" aria-hidden>
+          <span className="absolute left-1/2 top-0 h-14 w-0.5 -translate-x-1/2 bg-white/60" />
+          <div className="swing absolute left-1/2 top-0 -ml-16 h-44 w-32 [animation-duration:5s]" style={{ transformOrigin: '50% 0' }}>
+            <span className="absolute inset-x-0 bottom-0 block [--on-tone:var(--sun)]"><Art name="moon" /></span>
+          </div>
+          <span className="twinkle absolute left-0 top-10 h-2 w-2 rounded-full bg-white" />
+          <span className="twinkle absolute right-2 top-24 h-1.5 w-1.5 rounded-full bg-white [animation-delay:1s]" />
+          <span className="twinkle absolute right-8 top-4 h-1 w-1 rounded-full bg-white [animation-delay:2s]" />
+        </div>
+        <h1 className="display mt-6 text-[clamp(3.2rem,12vw,5.5rem)]">Ove stranice nema.</h1>
+        <p className="mx-auto mt-4 max-w-sm text-lg text-white/75">Link je možda pogrešan ili je lista obrisana. Ako tražiš nečiju listu, potraži je po imenu roditelja.</p>
+        <div className="mt-7 flex flex-wrap justify-center gap-3">
+          <Link href="/pronadi-listu" className="btn btn-primary">Pronađi listu</Link>
+          <Link href="/" className="btn bg-white/10 text-white">Na početnu</Link>
+        </div>
       </div>
-    </div>
+    </main>
   )
 }

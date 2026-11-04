@@ -1,5 +1,6 @@
 'use client'
 import { ReactNode, useEffect, useId, useRef } from 'react'
+import { m, useDragControls } from 'motion/react'
 import { X } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -7,21 +8,24 @@ interface ModalProps {
   title?: ReactNode
   onClose: () => void
   children: ReactNode
-  /** Pin to the bottom on phones (sheet style). */
+  /** Pin to the bottom on phones (sheet style, can be dragged away). */
   sheet?: boolean
   wide?: boolean
 }
+
+const isPhone = () => typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches
 
 export default function Modal({ title, onClose, children, sheet, wide }: ModalProps) {
   const titleId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
+  const dragControls = useDragControls()
 
   useEffect(() => {
     const previouslyFocused = document.activeElement as HTMLElement | null
     const panel = panelRef.current
-    const firstField = panel?.querySelector<HTMLElement>('input, textarea, select')
+    const firstField = isPhone() ? null : panel?.querySelector<HTMLElement>('input, textarea, select')
     ;(firstField ?? panel)?.focus()
 
     const onKey = (e: KeyboardEvent) => {
@@ -45,36 +49,46 @@ export default function Modal({ title, onClose, children, sheet, wide }: ModalPr
     }
   }, [])
 
+  const phoneSheet = sheet && isPhone()
+
   return (
-    <div
-      className={clsx(
-        'fixed inset-0 z-50 flex justify-center bg-charcoal/40 backdrop-blur-sm fade-in',
-        sheet ? 'items-end sm:items-center sm:p-4' : 'items-start sm:items-center p-3 pt-4 sm:p-4'
-      )}
-      onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
-    >
-      <div
+    <div className={clsx('fixed inset-0 z-modal flex justify-center', sheet ? 'items-end sm:items-center sm:p-4' : 'items-start p-3 pt-4 sm:items-center sm:p-4')}>
+      <m.div className="absolute inset-0 bg-coal/55 backdrop-blur-[3px]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }} onMouseDown={onClose} aria-hidden />
+      <m.div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
         tabIndex={-1}
+        initial={phoneSheet ? { y: '100%' } : { opacity: 0, y: 26, scale: 0.96 }}
+        animate={phoneSheet ? { y: 0 } : { opacity: 1, y: 0, scale: 1 }}
+        exit={phoneSheet ? { y: '100%', transition: { duration: 0.2 } } : { opacity: 0, y: 14, scale: 0.98, transition: { duration: 0.14 } }}
+        drag={phoneSheet ? 'y' : false}
+        dragListener={false}
+        dragControls={dragControls}
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={{ top: 0, bottom: 0.7 }}
+        onDragEnd={(_, info) => { if (info.offset.y > 110 || info.velocity.y > 600) onClose() }}
         className={clsx(
-          'bg-white w-full shadow-2xl fade-up overflow-y-auto focus:outline-none',
+          'relative w-full overflow-y-auto bg-surface shadow-lift focus:outline-none',
           wide ? 'sm:max-w-2xl' : 'sm:max-w-md',
-          sheet ? 'rounded-t-3xl sm:rounded-3xl max-h-[90dvh] pb-safe' : 'rounded-3xl max-h-[calc(100dvh-2rem)] sm:max-h-[90vh]'
+          sheet ? 'max-h-[92dvh] rounded-t-4xl pb-safe sm:rounded-4xl' : 'max-h-[calc(100dvh-2rem)] rounded-4xl sm:max-h-[90vh]',
         )}
       >
+        {sheet && (
+          <div className="flex cursor-grab touch-none justify-center pb-1 pt-3 sm:hidden" onPointerDown={e => dragControls.start(e)} aria-hidden>
+            <span className="h-1.5 w-12 rounded-full bg-line/20" />
+          </div>
+        )}
         {title && (
-          <div className="flex justify-between items-start gap-3 px-5 sm:px-6 pt-5 sm:pt-6 mb-4">
-            <h3 id={titleId} className="font-serif text-xl text-charcoal">{title}</h3>
-            <button onClick={onClose} aria-label="Zatvori" className="p-2 -mr-2 -mt-1 hover:bg-cream rounded-full transition-colors">
-              <X size={20} className="text-warm-gray" />
-            </button>
+          <div className="mb-4 flex items-start justify-between gap-3 px-5 pt-3 sm:px-7 sm:pt-7">
+            <h2 id={titleId} className="pt-1.5 text-2xl font-extrabold">{title}</h2>
+            <button onClick={onClose} aria-label="Zatvori" className="icon-btn -mr-2 -mt-1"><X size={20} /></button>
           </div>
         )}
         {children}
-      </div>
+      </m.div>
     </div>
   )
 }
