@@ -8,6 +8,7 @@
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "scrape": "tsx src/scraper/run.ts",
+    "scrape:remote": "tsx src/scraper/remote.ts",
     "typecheck": "tsc -p ."
   },
   "dependencies": {

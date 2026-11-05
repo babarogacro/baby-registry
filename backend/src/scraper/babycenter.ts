@@ -1,5 +1,5 @@
 import * as cheerio from 'cheerio'
-import { absoluteUrl, fetchText, politePause, runShopScrape, ScrapedProduct } from './shared'
+import { absoluteUrl, fetchText, politePause, runShopScrape, RunStore, ScrapedProduct, SHOPS } from './shared'
 
 const BASE_URL = 'https://www.babycenter.hr'
 const MAX_PAGES_PER_TARGET = 30
@@ -82,9 +82,9 @@ export function parseListing(html: string) {
   return { products, lastPage: Math.max(1, ...pageNumbers) }
 }
 
-export function runBabyCenterScraper() {
+export function runBabyCenterScraper(store?: RunStore) {
   return runShopScrape(
-    { slug: 'babycenter', name: 'Baby Center', baseUrl: BASE_URL },
+    SHOPS.babycenter,
     TARGETS,
     async (target, save) => {
       const first = parseListing(await fetchText(BASE_URL + target.path))
@@ -99,5 +99,6 @@ export function runBabyCenterScraper() {
       }
       console.log(`   ${lastPage} str., ${saved} novih u ovom prolazu`)
     },
+    store,
   )
 }

@@ -52,6 +52,11 @@ async function send(to: string, subject: string, html: string) {
   }
   try {
     const result = await resend.emails.send({ from: `Bebina Lista <${FROM_EMAIL}>`, to, subject: subjectText(subject), html })
+    // The SDK reports a refused send in `error` instead of throwing (unverified domain, bad key).
+    if (result.error) {
+      console.error(`❌ Email odbijen (${FROM_EMAIL} → ${to}): ${result.error.name}: ${result.error.message}`)
+      return
+    }
     console.log('✉️  Email poslan:', result.data?.id)
     return result
   } catch (err) {
