@@ -347,7 +347,7 @@ function ListSettings({ list, onSave }: { list: BabyList; onSave: (data: { descr
         <button role="switch" aria-checked={list.isPublic} aria-label="Otključana Listica" onClick={() => onSave({ isPublic: !list.isPublic })} className="switch"><span /></button>
       </div>
       <div>
-        <label htmlFor={`child-${list.id}`} className="field-label">Ime i prezime djeteta <span className="font-medium text-muted">(ako ga već znate)</span></label>
+        <label htmlFor={`child-${list.id}`} className="field-label">Ime i prezime djeteta{list.occasion !== 'birthday' && <span className="font-medium text-muted"> (ako ga već znate)</span>}</label>
         <input id={`child-${list.id}`} type="text" maxLength={120} value={childName} onChange={e => setChildName(e.target.value)}
           placeholder="npr. Marin Horvat" className="field !bg-surface" />
         <p className="field-hint">Gosti mogu pronaći Listicu i po imenu i prezimenu djeteta. Prikazuje se i na slici kad podijeliš link.</p>
@@ -444,7 +444,8 @@ function NewListModal({ defaults, onClose, onCreate }: {
         </fieldset>
 
         <div>
-          <label htmlFor="new-list-child" className="field-label">Ime i prezime djeteta <span className="font-medium text-muted">(ako ga već znate)</span></label>
+          {/* A child having a birthday already has a name; the hint is only for a baby on the way. */}
+          <label htmlFor="new-list-child" className="field-label">Ime i prezime djeteta{occasion !== 'birthday' && <span className="font-medium text-muted"> (ako ga već znate)</span>}</label>
           <input id="new-list-child" type="text" maxLength={120} autoComplete="off" placeholder="npr. Marin Horvat" value={childName}
             onChange={e => setChildName(e.target.value)} className="field" />
           <p className="field-hint">Gosti mogu pronaći Listicu i po imenu i prezimenu djeteta.</p>
