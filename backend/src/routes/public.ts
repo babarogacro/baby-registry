@@ -13,6 +13,10 @@ const personName = z.string().trim().min(2, 'Ime mora imati najmanje 2 znaka').m
 const message = z.string().trim().max(500)
 const amount = z.number().positive('Iznos mora biti pozitivan').max(100_000)
 
+// Money is compared in cents so 0.1 + 0.2 style float noise can't let a share slip past the target.
+const cents = (value: number) => Math.round(value * 100)
+const money = (value: number) => `${value.toFixed(2).replace('.', ',')} €`
+
 // Resolves a public list item, or sends the error response and returns null.
 async function findPublicListItem(req: Request, res: Response) {
   const list = await prisma.babyList.findUnique({ where: { shareSlug: String(req.params.slug) }, select: { id: true, isPublic: true } })
@@ -20,7 +24,7 @@ async function findPublicListItem(req: Request, res: Response) {
   if (!list.isPublic) { res.status(403).json({ error: 'Lista je privatna' }); return null }
   const item = await prisma.listItem.findFirst({
     where: { id: String(req.params.itemId), listId: list.id },
-    include: { reservation: { include: { contributors: true } } },
+    include: { reservation: { include: { contributors: true } }, product: { select: { price: true } } },
   })
   if (!item) { res.status(404).json({ error: 'Stavka nije pronađena' }); return null }
   return { list, item }
@@ -121,6 +125,13 @@ publicRouter.post('/lista/:slug/rezerviraj/:itemId', publicWriteLimiter, async (
 
     if (data.isGroupBuy) {
       if (!data.targetAmount || !data.amount) return res.status(400).json({ error: 'Unesi ciljni iznos i svoj doprinos' })
+      // The pool never exceeds the gift: the target is capped by the price, every share by the target.
+      if (item.product.price > 0 && cents(data.targetAmount) > cents(item.product.price)) {
+        return res.status(400).json({ error: `Iznos koji se skuplja ne može biti veći od cijene proizvoda (${money(item.product.price)})` })
+      }
+      if (cents(data.amount) > cents(data.targetAmount)) {
+        return res.status(400).json({ error: 'Tvoj dio ne može biti veći od iznosa koji se skuplja' })
+      }
       const reservation = await prisma.reservation.create({
         data: {
           listItemId: item.id,
@@ -143,7 +154,7 @@ publicRouter.post('/lista/:slug/rezerviraj/:itemId', publicWriteLimiter, async (
 
     res.status(201).json({
       success: true,
-      message: `Hvala, ${data.reservedBy}! Rezervacija je spremljena.`,
+      message: `Hvala, ${data.reservedBy}. Poklon je rezerviran.`,
       ownerToken,
       contributorId,
     })
@@ -170,13 +181,23 @@ publicRouter.post('/lista/:slug/group/:itemId/join', publicWriteLimiter, async (
     const { list, item } = found
     if (!item.reservation?.isGroupBuy) return res.status(400).json({ error: 'Ova stavka nije grupna kupovina' })
 
+    const reservationId = item.reservation.id
+    const target = item.reservation.targetAmount || 0
     const ownerToken = newOwnerToken()
-    const contributor = await prisma.groupContributor.create({
-      data: { reservationId: item.reservation.id, name: data.name, role: data.role, amount: data.amount, note: data.note || null, ownerToken },
+    // Re-read the shares inside the transaction so two people joining at once can't overshoot the target.
+    const outcome = await prisma.$transaction(async tx => {
+      const existing = await tx.groupContributor.findMany({ where: { reservationId }, select: { amount: true } })
+      const collected = existing.reduce((sum, c) => sum + cents(c.amount), 0)
+      const remaining = (cents(target) - collected) / 100
+      if (remaining <= 0) return { error: 'Iznos je već skupljen' }
+      if (cents(data.amount) > cents(remaining)) return { error: `Preostalo je još ${money(remaining)}. Upiši najviše toliko.` }
+      const contributor = await tx.groupContributor.create({
+        data: { reservationId, name: data.name, role: data.role, amount: data.amount, note: data.note || null, ownerToken },
+      })
+      return { contributor, totalCollected: (collected + cents(data.amount)) / 100, count: existing.length + 1 }
     })
-
-    const contributors = [...item.reservation.contributors, contributor]
-    const totalCollected = contributors.reduce((sum, c) => sum + c.amount, 0)
+    if ('error' in outcome) return res.status(400).json({ error: outcome.error })
+    const { contributor, totalCollected } = outcome
 
     notifyOwner(list.id, item.id, ctx => sendGroupBuyJoinEmail({
       ...ctx,
@@ -184,14 +205,14 @@ publicRouter.post('/lista/:slug/group/:itemId/join', publicWriteLimiter, async (
       contributorAmount: data.amount,
       contributorCurrency: ctx.productCurrency,
       totalCollected,
-      targetAmount: item.reservation!.targetAmount || 0,
-      contributorsCount: contributors.length,
+      targetAmount: target,
+      contributorsCount: outcome.count,
     })).catch(console.error)
 
     const { ownerToken: _hidden, ...publicContributor } = contributor
     res.status(201).json({
       success: true,
-      message: `Hvala, ${data.name}! Pridružio/la si se grupnoj kupovini.`,
+      message: `Hvala, ${data.name}. Tvoj dio je upisan.`,
       contributor: publicContributor,
       ownerToken,
     })

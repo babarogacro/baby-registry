@@ -178,6 +178,12 @@ function GroupStep({ item, slug, isJoin, onDone, onConflict, onClose }: {
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
 
+  // Shares never add up past the gift: when joining, only what is still missing can be given.
+  const price = item.product.price
+  const poolTarget = item.reservation?.targetAmount || 0
+  const collected = (item.reservation?.contributors || []).reduce((sum, c) => sum + c.amount, 0)
+  const remaining = Math.max(0, Math.round((poolTarget - collected) * 100) / 100)
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (name.trim().length < 2) { setError('Upiši svoje ime (najmanje 2 znaka)'); return }
@@ -185,6 +191,9 @@ function GroupStep({ item, slug, isJoin, onDone, onConflict, onClose }: {
     if (!(amountNum > 0)) { setError('Unesi ispravan iznos doprinosa'); return }
     const targetNum = parseAmount(target)
     if (!isJoin && !(targetNum > 0)) { setError('Unesi ispravan ciljni iznos'); return }
+    if (!isJoin && price > 0 && targetNum > price) { setError(`Iznos koji se skuplja ne može biti veći od cijene proizvoda (${formatPrice(price, item.product.currency)})`); return }
+    if (!isJoin && amountNum > targetNum) { setError('Tvoj dio ne može biti veći od iznosa koji se skuplja'); return }
+    if (isJoin && amountNum > remaining) { setError(`Preostalo je još ${formatPrice(remaining)}. Upiši najviše toliko.`); return }
 
     setLoading(true); setError('')
     try {
@@ -243,12 +252,13 @@ function GroupStep({ item, slug, isJoin, onDone, onConflict, onClose }: {
           <div>
             <label htmlFor="group-target" className="field-label">Koliko treba skupiti (€)</label>
             <input id="group-target" inputMode="decimal" value={target} onChange={e => setTarget(e.target.value)} className="field" />
-            {item.product.price > 0 && <p className="field-hint">Cijena proizvoda: {formatPrice(item.product.price, item.product.currency)}</p>}
+            {price > 0 && <p className="field-hint">Cijena proizvoda: {formatPrice(price, item.product.currency)}. Skuplja se najviše toliko.</p>}
           </div>
         )}
         <div>
           <label htmlFor="group-amount" className="field-label">Koliko daješ (€)</label>
           <input id="group-amount" inputMode="decimal" placeholder="npr. 50" value={amount} onChange={e => setAmount(e.target.value)} className="field" />
+          {isJoin && <p className="field-hint">Preostalo još {formatPrice(remaining)} od {formatPrice(poolTarget)}.</p>}
         </div>
         <div>
           <label htmlFor="group-note" className="field-label">Poruka <span className="font-medium text-muted">(ako želiš)</span></label>
@@ -345,6 +355,9 @@ function PublicListItem({ item, index, mine, busy, onStart, onPurchased, onCance
   const link = shopLink(product)
   const meta = categoryMeta(product.category?.slug)
   const taken = isSolo && !isMineSolo
+  const poolTarget = reservation?.targetAmount || 0
+  const poolFull = isGroupBuy && poolTarget > 0
+    && (reservation?.contributors || []).reduce((sum, c) => sum + c.amount, 0) >= poolTarget - 0.005
 
   return (
     <m.li layout="position" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.12 } }}
@@ -391,7 +404,7 @@ function PublicListItem({ item, index, mine, busy, onStart, onPurchased, onCance
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {!reservation && <button onClick={() => onStart('choose')} className="btn btn-sm btn-primary"><Gift size={15} aria-hidden /> Rezerviraj</button>}
-          {isGroupBuy && !purchased && !mine && <button onClick={() => onStart('join')} className="btn btn-sm btn-ink"><Users size={15} aria-hidden /> Dodaj svoj dio</button>}
+          {isGroupBuy && !purchased && !mine && !poolFull && <button onClick={() => onStart('join')} className="btn btn-sm btn-ink"><Users size={15} aria-hidden /> Dodaj svoj dio</button>}
           {isGroupBuy && mine && (
             <button disabled={busy} onClick={() => onPurchased(!purchased)} className="btn btn-sm btn-outline">
               {purchased ? <><Check size={15} strokeWidth={3} aria-hidden /> Kupljeno</> : <><ShoppingBag size={15} aria-hidden /> Označi kao kupljeno</>}
