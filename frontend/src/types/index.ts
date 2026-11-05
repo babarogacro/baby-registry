@@ -113,6 +113,25 @@ export interface BabyList {
   _count?: { items: number }
 }
 
+export interface BlogPostSummary {
+  id: string
+  slug: string
+  title: string
+  excerpt?: string | null
+  coverImage?: string | null
+  publishedAt?: string | null
+  updatedAt: string
+}
+
+export interface BlogPost extends BlogPostSummary {
+  content: string
+  published: boolean
+  seoTitle?: string | null
+  seoDescription?: string | null
+  createdAt: string
+  products?: Product[]
+}
+
 export interface PaginatedProducts {
   products: Product[]
   pagination: { page: number; limit: number; total: number; totalPages: number }

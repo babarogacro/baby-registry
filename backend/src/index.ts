@@ -9,6 +9,7 @@ import { publicRouter } from './routes/public'
 import { adminRouter } from './routes/admin'
 import { scraperRouter } from './routes/scraper'
 import { analyticsRouter } from './routes/analytics'
+import { blogRouter, adminBlogRouter } from './routes/blog'
 import { scheduleScraper } from './scraper/scheduler'
 import { prisma } from './utils/prisma'
 
@@ -33,6 +34,8 @@ app.use(cors({ origin: true, credentials: true }))
 app.use('/api/scraper', scraperRouter)
 // Before the JSON parser too: sendBeacon posts text/plain, parsed by the router itself.
 app.use('/api', analyticsRouter)
+// Blog admin uploads images as base64 JSON, larger than the general 100kb limit.
+app.use('/api/admin/blog', adminBlogRouter)
 app.use(express.json({ limit: '100kb' }))
 // Express 5 leaves req.body undefined when there is no JSON body; validators expect an object.
 app.use((req, _res, next) => {
@@ -44,6 +47,7 @@ app.use('/api/auth', authRouter)
 app.use('/api/lists', listsRouter)
 app.use('/api/products', productsRouter)
 app.use('/api/public', publicRouter)
+app.use('/api/blog', blogRouter)
 app.use('/api/admin', adminRouter)
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }))

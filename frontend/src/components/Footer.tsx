@@ -16,6 +16,7 @@ export default function Footer() {
             <ul className="space-y-2.5 font-semibold">
               <li><Link href="/katalog" className="transition-colors hover:text-sun">Katalog</Link></li>
               <li><Link href="/pronadi-listu" className="transition-colors hover:text-sun">Pronađi listu</Link></li>
+              <li><Link href="/blog" className="transition-colors hover:text-sun">Blog</Link></li>
               <li><Link href="/registracija" className="transition-colors hover:text-sun">Napravi listu</Link></li>
               <li><Link href="/prijava" className="transition-colors hover:text-sun">Prijava</Link></li>
             </ul>
