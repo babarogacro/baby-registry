@@ -83,14 +83,10 @@ export default function PoklonLutrija() {
             <RotateCcw size={15} aria-hidden /> Prikaži ponovno
           </button>
         </div>
-        {/* Shown from the start, not after the last gift opens, so no empty gap sits under the buttons. */}
+        {/* Not part of the animation: always on screen and swapped the instant the toggle changes, so no gap waits for the gifts. */}
         <div className="mt-7 min-h-[7.5rem]" aria-live="polite">
-          <AnimatePresence mode="wait" initial={false}>
-            <m.div key={mode} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, transition: { duration: 0.1 } }}>
-              <p className="font-display text-2xl font-extrabold tracking-tight">{RESULT[mode].title}</p>
-              <p className="mt-1.5 max-w-md text-muted">{RESULT[mode].text}</p>
-            </m.div>
-          </AnimatePresence>
+          <p className="font-display text-2xl font-extrabold tracking-tight">{RESULT[mode].title}</p>
+          <p className="mt-1.5 max-w-md text-muted">{RESULT[mode].text}</p>
         </div>
       </div>
 
