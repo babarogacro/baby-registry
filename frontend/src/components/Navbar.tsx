@@ -86,6 +86,7 @@ export default function Navbar() {
   const links = [
     { href: '/katalog', label: 'Katalog' },
     { href: '/pronadi-listu', label: 'Pronađi listu' },
+    { href: '/blog', label: 'Blog' },
     ...(user?.role === 'ADMIN' ? [{ href: '/admin', label: 'Admin' }] : []),
   ]
 

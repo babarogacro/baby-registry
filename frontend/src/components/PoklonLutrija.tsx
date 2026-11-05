@@ -35,13 +35,18 @@ const RESULT: Record<Mode, { title: string; text: string }> = {
 }
 
 const STEP_MS = 620
+// After the "without a list" pile is fully open, give it a moment to sink in, then show the fix.
+const SWITCH_AFTER_MS = 5000
 
 export default function PoklonLutrija() {
   const rootRef = useRef<HTMLDivElement>(null)
   const inView = useInView(rootRef, { once: true, margin: '-120px' })
+  const visible = useInView(rootRef, { margin: '-120px' })
   const [mode, setMode] = useState<Mode>('bez')
   const [opened, setOpened] = useState(0)
   const [round, setRound] = useState(0)
+  // Once the visitor picks a side or replays, the switch is theirs to make.
+  const [manual, setManual] = useState(false)
   const gifts = mode === 'bez' ? WITHOUT_LIST : WITH_LIST
   const done = opened >= gifts.length
 
@@ -58,17 +63,23 @@ export default function PoklonLutrija() {
     return () => clearInterval(timer)
   }, [inView, mode, round, gifts.length])
 
+  useEffect(() => {
+    if (manual || mode !== 'bez' || !done || !visible) return
+    const timer = setTimeout(() => setMode('s'), SWITCH_AFTER_MS)
+    return () => clearTimeout(timer)
+  }, [manual, mode, done, visible])
+
   return (
     <div ref={rootRef} className="grid items-center gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:gap-14">
       <div>
         <p className="note text-tomato-ink">što ti fali?</p>
-        <h2 className="display mt-2 text-[2.9rem] sm:text-6xl">Bez liste, svatko pogađa.</h2>
+        <h2 className="display mt-2 text-[2.9rem] sm:text-6xl">Bez liste = <span className="block">dupliciranje poklona.</span></h2>
         <p className="mt-5 max-w-md text-lg text-muted">Svi pitaju isto, svatko kupi po svom, nitko ne zna što su drugi već uzeli. Pogledaj što stigne bez liste, a što s listom.</p>
         <div className="mt-7 flex flex-wrap items-center gap-3">
-          <Segmented label="Način izvlačenja" value={mode} onChange={value => setMode(value)}
+          <Segmented label="Način izvlačenja" value={mode} onChange={value => { setManual(true); setMode(value) }}
             options={[{ value: 'bez', label: 'Bez liste' }, { value: 's', label: 'S listom' }]}
             thumbClass={mode === 'bez' ? 'bg-tomato' : 'bg-mint'} activeClass="text-coal" />
-          <button onClick={() => setRound(r => r + 1)} className="btn btn-sm btn-soft" disabled={!done}>
+          <button onClick={() => { setManual(true); setRound(r => r + 1) }} className="btn btn-sm btn-soft" disabled={!done}>
             <RotateCcw size={15} aria-hidden /> Prikaži ponovno
           </button>
         </div>

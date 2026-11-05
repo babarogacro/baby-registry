@@ -192,13 +192,17 @@
   .btn-ink { background: rgb(var(--ink)); color: rgb(var(--canvas)); }
   .btn-soft { background: rgb(var(--line) / 0.07); color: rgb(var(--ink)); }
   .btn-outline { box-shadow: inset 0 0 0 2px rgb(var(--ink)); color: rgb(var(--ink)); }
+  /* Outline on the coloured hero: fills with the hero ink on hover, so the label has to flip to light. */
+  .btn-outline-hero { box-shadow: inset 0 0 0 2px rgb(var(--hero-ink)); color: rgb(var(--hero-ink)); }
   .btn-danger { background: rgb(var(--tomato-ink)); color: rgb(var(--canvas)); }
   @media (hover: hover) {
     .btn-ink:hover:not(:disabled), .btn-danger:hover:not(:disabled) { transform: translateY(-1px); }
     .btn-soft:hover:not(:disabled) { background: rgb(var(--line) / 0.13); }
     .btn-outline:hover:not(:disabled) { background: rgb(var(--ink)); color: rgb(var(--canvas)); }
+    .btn-outline-hero:hover:not(:disabled) { background: rgb(var(--hero-ink)); color: #fff; }
+    :root[data-theme='night'] .btn-outline-hero:hover:not(:disabled) { color: rgb(var(--hero)); }
   }
-  .btn-ink:active:not(:disabled), .btn-soft:active:not(:disabled), .btn-outline:active:not(:disabled), .btn-danger:active:not(:disabled) { transform: scale(0.97); }
+  .btn-ink:active:not(:disabled), .btn-soft:active:not(:disabled), .btn-outline:active:not(:disabled), .btn-outline-hero:active:not(:disabled), .btn-danger:active:not(:disabled) { transform: scale(0.97); }
 
   .icon-btn {
     @apply inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-ink;
@@ -318,6 +322,24 @@
 
   .prose-legal h2 { @apply mb-3 mt-1 text-xl font-bold text-ink; }
   .prose-legal a { @apply font-semibold underline underline-offset-2; }
+
+  /* Blog articles: Markdown output, so the elements are styled here rather than with classes. */
+  .blog-prose { @apply text-[17px] leading-[1.7] text-ink; }
+  .blog-prose > * + * { margin-top: 1.1em; }
+  .blog-prose p + p { margin-top: 1em; }
+  .blog-prose h2 { @apply mt-10 font-display text-[1.7rem] font-extrabold leading-tight tracking-tight; }
+  .blog-prose h3 { @apply mt-8 font-display text-xl font-extrabold leading-snug tracking-tight; }
+  .blog-prose ul { @apply list-disc space-y-1.5 pl-6; }
+  .blog-prose ol { @apply list-decimal space-y-1.5 pl-6; }
+  .blog-prose li::marker { color: rgb(var(--muted)); }
+  .blog-prose a:not(:where(.not-prose, .not-prose *)) { @apply font-semibold underline decoration-2 underline-offset-4; text-decoration-color: rgb(var(--mint)); }
+  .blog-prose strong { @apply font-bold; }
+  .blog-prose blockquote { @apply rounded-3xl bg-sun-soft px-5 py-4 font-medium; }
+  .blog-prose img { @apply my-6 w-full rounded-3xl; }
+  .blog-prose hr { @apply my-10 border-line/10; }
+  .blog-prose table { @apply block w-full overflow-x-auto text-[15px]; border-collapse: collapse; }
+  .blog-prose th, .blog-prose td { @apply border-b border-line/10 px-3 py-2 text-left; }
+  .blog-prose code { @apply rounded bg-sunken px-1.5 py-0.5 text-[0.9em]; }
 }
 
 @keyframes pageIn {

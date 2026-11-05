@@ -40,6 +40,7 @@ listsRouter.get('/', async (req: AuthRequest, res) => {
 const listFields = {
   name: z.string().trim().min(2, 'Naziv mora imati najmanje 2 znaka').max(120),
   occasion: z.enum(['birth', 'birthday', 'other']),
+  childName: z.string().trim().max(120).transform(v => v || null),
   description: z.string().trim().max(1000),
   isPublic: z.boolean(),
 }
@@ -49,6 +50,7 @@ listsRouter.post('/', async (req: AuthRequest, res) => {
     const data = z.object({
       name: listFields.name,
       occasion: listFields.occasion.optional(),
+      childName: listFields.childName.optional(),
       description: listFields.description.optional(),
       isPublic: listFields.isPublic.default(true),
     }).parse(req.body)
@@ -76,6 +78,7 @@ listsRouter.patch('/:id', async (req: AuthRequest, res) => {
     const data = z.object({
       name: listFields.name.optional(),
       occasion: listFields.occasion.nullable().optional(),
+      childName: listFields.childName.nullable().optional(),
       description: listFields.description.nullable().optional(),
       isPublic: listFields.isPublic.optional(),
     }).parse(req.body)

@@ -7,6 +7,13 @@ import clsx from 'clsx'
 
 const BRANDS_COLLAPSED = 8
 
+// The budgets guests actually think in; each is one tap instead of dragging the slider.
+const PRICE_PRESETS = [
+  { label: 'do 20 €', min: '', max: '20' },
+  { label: '20 do 50 €', min: '20', max: '50' },
+  { label: '50 do 100 €', min: '50', max: '100' },
+]
+
 function Group({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
     <section className="border-t border-line/10 pt-5 first:border-t-0 first:pt-0">
@@ -110,6 +117,18 @@ function PriceFacet({ buckets, min, max, onChange }: {
     <Group title="Cijena" action={filtered && (
       <button onClick={() => onChange('', '')} className="text-[13px] font-semibold text-muted underline underline-offset-2 hover:text-ink">Poništi</button>
     )}>
+      <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Brzi odabir cijene">
+        {PRICE_PRESETS.map(preset => {
+          const active = min === preset.min && max === preset.max
+          return (
+            <button key={preset.label} type="button" aria-pressed={active}
+              onClick={() => (active ? onChange('', '') : onChange(preset.min, preset.max))}
+              className="choice min-h-[40px] px-3 text-[13px] font-semibold">
+              {preset.label}
+            </button>
+          )
+        })}
+      </div>
       <div className="flex h-16 items-end gap-[3px]" role="group" aria-label="Raspodjela cijena">
         {buckets.map((bucket, i) => {
           const inRange = i >= lo && i < hi

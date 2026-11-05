@@ -36,7 +36,7 @@ export default function PrivatnostPage() {
                 <li><strong>Podatci o listi:</strong> naziv liste, odabrani proizvodi, prioriteti, bilješke, prigoda (npr. rođenje, rođendan).</li>
                 <li><strong>Podatci o bebi:</strong> planirani termin poroda, spol bebe (opcionalno).</li>
                 <li><strong>Podatci o rezervacijama:</strong> ime osobe koja rezervira poklon, opcionalna poruka.</li>
-                <li><strong>Tehnički podatci:</strong> IP adresa, vrsta preglednika, vrijeme pristupa (u svrhu sigurnosti i analitike).</li>
+                <li><strong>Tehnički podatci:</strong> IP adresa i vrsta preglednika, za sigurnost (ograničenje broja zahtjeva) i za statistiku posjeta opisanu u točki 6.</li>
               </ul>
             </section>
 
@@ -91,6 +91,18 @@ export default function PrivatnostPage() {
                 <li><strong>Odabir teme</strong> — pohranjen u localStorage preglednika kako bi aplikacija zapamtila dnevni ili noćni prikaz. Za trajanje posjeta u sessionStorage bilježimo i jeste li već vidjeli noćni prijedlog.</li>
               </ul>
               <p className="mt-2">Ne koristimo kolačiće za praćenje ili reklamiranje.</p>
+              <p className="mt-2">
+                <strong>Statistika posjeta.</strong> Brojimo posjete, prikaze stranica, vrijeme provedeno na stranici, izvor posjeta
+                (stranica s koje ste došli) i klikove na proizvode u dućanima, bez kolačića i bez ičega spremljenog u vašem pregledniku.
+                Umjesto IP adrese spremamo samo jednosmjerni sažetak IP adrese i vrste preglednika, izračunat s ključem koji se mijenja
+                svaki dan, pa vas ne možemo prepoznati sljedeći dan ni otkriti vašu IP adresu. Ne bilježimo što upisujete u pretragu.
+                Ti se podaci čuvaju najviše 25 mjeseci i koristimo ih samo zbirno, za statistiku usluge.
+              </p>
+              <p className="mt-2">
+                <strong>Odlazak u dućan.</strong> Kad kliknete na proizvod, link prolazi kroz naš poslužitelj koji zabilježi klik i
+                dućanu proslijedi oznake utm_source=bebinalista, utm_medium=referral i nasumičnu oznaku klika (bl_click). Dućan tako
+                u svojoj analitici vidi da ste došli s Bebine Liste i može nam javiti je li kupnja obavljena, bez ikakvih vaših osobnih podataka.
+              </p>
             </section>
 
             <section>

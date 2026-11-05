@@ -6,12 +6,14 @@ import { AnimatePresence, m } from 'motion/react'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import Modal from '@/components/Modal'
+import ShareListModal from '@/components/ShareListModal'
 import Loader from '@/components/Loader'
 import ProgressBar from '@/components/ProgressBar'
 import PriorityPicker from '@/components/PriorityPicker'
 import { Art } from '@/components/art'
 import { Toast, useToast } from '@/components/Toast'
-import { listsApi, authApi, addRefToUrl, apiError } from '@/lib/api'
+import { listsApi, authApi, apiError } from '@/lib/api'
+import { outboundUrl } from '@/lib/analytics'
 import { categoryMeta } from '@/lib/categories'
 import { displayName, formatPrice, parseAmount, parseDMY, plural, shopLabel, toDMY } from '@/lib/format'
 import DateField, { DATE_FORMAT_ERROR } from '@/components/DateField'
@@ -151,7 +153,7 @@ function ListItemRow({ item, onDelete, onPriorityChange, onNoteChange, onClearRe
   const [noteValue, setNoteValue] = useState(item.note || '')
   const [confirmClear, setConfirmClear] = useState(false)
   const { product, reservation } = item
-  const shopUrl = product.productUrl ? addRefToUrl(product.productUrl) : undefined
+  const shopUrl = product.productUrl ? outboundUrl(product.id, 'moja-lista') : undefined
   const meta = categoryMeta(product.category?.slug)
 
   const isGroupBuy = !!reservation?.isGroupBuy
@@ -322,10 +324,13 @@ function EditableListName({ name, onSave }: { name: string; onSave: (newName: st
   )
 }
 
-function ListSettings({ list, onSave }: { list: BabyList; onSave: (data: { description?: string | null; isPublic?: boolean }) => Promise<boolean> }) {
+function ListSettings({ list, onSave }: { list: BabyList; onSave: (data: { description?: string | null; childName?: string | null; isPublic?: boolean }) => Promise<boolean> }) {
   const [description, setDescription] = useState(list.description || '')
+  const [childName, setChildName] = useState(list.childName || '')
   const [saving, setSaving] = useState(false)
+  const [savingChild, setSavingChild] = useState(false)
   const dirty = description.trim() !== (list.description || '')
+  const childDirty = childName.trim() !== (list.childName || '')
 
   return (
     <div className="space-y-4 rounded-3xl bg-sunken/60 p-4">
@@ -336,10 +341,22 @@ function ListSettings({ list, onSave }: { list: BabyList; onSave: (data: { descr
             {list.isPublic ? 'Lista je otključana' : 'Lista je zaključana'}
           </p>
           <p className="mt-0.5 text-[13px] text-muted">
-            {list.isPublic ? 'Svatko s linkom može je vidjeti i rezervirati poklone, a gosti je mogu naći i po tvom imenu.' : 'Dok je zaključana, ne otvara je ni link ni pretraga po imenu.'}
+            {list.isPublic ? 'Svatko s linkom može je vidjeti i rezervirati poklone, a gosti je mogu naći i po punom imenu i prezimenu, tvom ili djetetovom.' : 'Dok je zaključana, ne otvara je ni link ni pretraga po imenu.'}
           </p>
         </div>
         <button role="switch" aria-checked={list.isPublic} aria-label="Otključana lista" onClick={() => onSave({ isPublic: !list.isPublic })} className="switch"><span /></button>
+      </div>
+      <div>
+        <label htmlFor={`child-${list.id}`} className="field-label">Ime i prezime djeteta <span className="font-medium text-muted">(ako ga već znate)</span></label>
+        <input id={`child-${list.id}`} type="text" maxLength={120} value={childName} onChange={e => setChildName(e.target.value)}
+          placeholder="npr. Marin Horvat" className="field !bg-surface" />
+        <p className="field-hint">Gosti mogu pronaći listu i po imenu i prezimenu djeteta. Prikazuje se i na slici kad podijeliš link.</p>
+        {childDirty && (
+          <button disabled={savingChild} onClick={async () => { setSavingChild(true); await onSave({ childName: childName.trim() || null }).finally(() => setSavingChild(false)) }}
+            className="btn btn-sm btn-ink mt-2">
+            {savingChild ? 'Spremam...' : 'Spremi ime'}
+          </button>
+        )}
       </div>
       <div>
         <label htmlFor={`desc-${list.id}`} className="field-label">Poruka za goste <span className="font-medium text-muted">(vidi se na listi)</span></label>
@@ -357,73 +374,6 @@ function ListSettings({ list, onSave }: { list: BabyList; onSave: (data: { descr
   )
 }
 
-function ShareModal({ slug, listName, isPublic, onClose }: { slug: string; listName: string; isPublic: boolean; onClose: () => void }) {
-  const [copied, setCopied] = useState(false)
-  const [qrDataUrl, setQrDataUrl] = useState('')
-  const [canShare, setCanShare] = useState(false)
-  const shareUrl = `${window.location.origin}/lista/${slug}`
-  const shareText = `Pogledaj našu listu za bebu: „${listName}"`
-
-  useEffect(() => {
-    setCanShare(typeof navigator.share === 'function')
-    import('qrcode').then(QRCode => QRCode.toDataURL(shareUrl, { width: 320, margin: 2, color: { dark: '#1E1537', light: '#FFFFFF' } }))
-      .then(setQrDataUrl)
-      .catch(() => {})
-  }, [shareUrl])
-
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(shareUrl)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {}
-  }
-
-  const nativeShare = () => navigator.share({ title: listName, text: shareText, url: shareUrl }).catch(() => {})
-
-  return (
-    <Modal title="Podijeli listu" onClose={onClose}>
-      <div className="px-5 pb-6 sm:px-7 sm:pb-7">
-        {!isPublic && (
-          <p className="mb-4 flex items-start gap-2 rounded-2xl bg-tomato-soft p-3 text-[13px] font-medium text-tomato-ink">
-            <Lock size={15} aria-hidden className="mt-0.5 flex-shrink-0" />
-            Lista je zaključana. Gosti neće moći otvoriti link dok je ne otključaš u postavkama liste.
-          </p>
-        )}
-        <div className="mb-4 flex gap-2">
-          <input type="text" value={shareUrl} readOnly aria-label="Link liste" onFocus={e => e.target.select()} className="field min-w-0 flex-1 truncate !text-[13px]" />
-          <button onClick={copyLink} className="btn btn-ink flex-shrink-0 !rounded-2xl !px-4 !text-sm">
-            {copied ? <><Check size={16} strokeWidth={3} aria-hidden /> Kopirano</> : <><Copy size={15} aria-hidden /> Kopiraj</>}
-          </button>
-        </div>
-
-        {canShare && (
-          <button onClick={nativeShare} className="btn btn-primary mb-4 w-full"><Share2 size={17} aria-hidden /> Podijeli</button>
-        )}
-
-        <div className="mb-5 grid grid-cols-3 gap-2">
-          <a href={`https://wa.me/?text=${encodeURIComponent(`${shareText}\n${shareUrl}`)}`} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-soft !rounded-2xl">WhatsApp</a>
-          <a href={`viber://forward?text=${encodeURIComponent(`${shareText}\n${shareUrl}`)}`} className="btn btn-sm btn-soft !rounded-2xl">Viber</a>
-          <a href={`fb-messenger://share/?link=${encodeURIComponent(shareUrl)}`} className="btn btn-sm btn-soft !rounded-2xl !px-2">Messenger</a>
-        </div>
-
-        {qrDataUrl && (
-          <div className="border-t border-line/10 pt-5 text-center">
-            <p className="mb-3 flex items-center justify-center gap-1.5 text-sm font-bold"><QrCode size={15} aria-hidden /> QR kod za pozivnicu</p>
-            <div className="inline-block rounded-3xl bg-white p-2">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={qrDataUrl} alt="QR kod za listu" className="h-40 w-40 sm:h-48 sm:w-48" />
-            </div>
-            <div className="mt-3">
-              <a href={qrDataUrl} download={`bebina-lista-${slug.slice(0, 8)}-qr.png`} className="btn btn-sm btn-soft"><Download size={15} aria-hidden /> Preuzmi QR kod</a>
-            </div>
-          </div>
-        )}
-      </div>
-    </Modal>
-  )
-}
-
 const DEFAULT_LIST_NAME: Record<string, string> = { birth: 'Lista za bebu', birthday: 'Rođendanska lista' }
 
 export interface NewListDefaults {
@@ -436,10 +386,11 @@ export interface NewListDefaults {
 function NewListModal({ defaults, onClose, onCreate }: {
   defaults: NewListDefaults
   onClose: () => void
-  onCreate: (data: { name: string; occasion: string; date: Date | null; babyGender: string }) => Promise<void>
+  onCreate: (data: { name: string; occasion: string; childName: string; date: Date | null; babyGender: string }) => Promise<void>
 }) {
   const [name, setName] = useState(DEFAULT_LIST_NAME[defaults.occasion] ?? '')
   const [nameTouched, setNameTouched] = useState(false)
+  const [childName, setChildName] = useState('')
   const [occasion, setOccasion] = useState(defaults.occasion)
   const [dateInput, setDateInput] = useState(defaults.dateInput)
   const [babyGender, setBabyGender] = useState(defaults.occasion === 'birth' ? defaults.babyGender : '')
@@ -462,7 +413,7 @@ function NewListModal({ defaults, onClose, onCreate }: {
     if (dateInput && !parsedDate) { setError(DATE_FORMAT_ERROR); return }
     setLoading(true); setError('')
     try {
-      await onCreate({ name: name.trim(), occasion, date: parsedDate, babyGender })
+      await onCreate({ name: name.trim(), occasion, childName: childName.trim(), date: parsedDate, babyGender })
       onClose()
     } catch (err) {
       setError(apiError(err))
@@ -491,6 +442,13 @@ function NewListModal({ defaults, onClose, onCreate }: {
             ))}
           </div>
         </fieldset>
+
+        <div>
+          <label htmlFor="new-list-child" className="field-label">Ime i prezime djeteta <span className="font-medium text-muted">(ako ga već znate)</span></label>
+          <input id="new-list-child" type="text" maxLength={120} autoComplete="off" placeholder="npr. Marin Horvat" value={childName}
+            onChange={e => setChildName(e.target.value)} className="field" />
+          <p className="field-hint">Gosti mogu pronaći listu i po imenu i prezimenu djeteta.</p>
+        </div>
 
         {selectedOcc && (
           <DateField id="new-list-date" label={selectedOcc.dateLabel} value={dateInput} onChange={setDateInput}
@@ -594,18 +552,18 @@ export default function MojaListaPage() {
     }
   }
 
-  const handleCreate = async ({ name, occasion, date, babyGender }: { name: string; occasion: string; date: Date | null; babyGender: string }) => {
+  const handleCreate = async ({ name, occasion, childName, date, babyGender }: { name: string; occasion: string; childName: string; date: Date | null; babyGender: string }) => {
     if (date || babyGender) {
       await authApi.updateProfile({ dueDate: date ? date.toISOString() : undefined, babyGender: babyGender || undefined }).catch(() => {})
     }
-    const res = await listsApi.create({ name, occasion: occasion || undefined })
+    const res = await listsApi.create({ name, occasion: occasion || undefined, childName: childName || undefined })
     const newList: BabyList = { ...res.data, items: [], _count: { items: 0 } }
     setLists(prev => [newList, ...prev])
     setExpandedList(newList.id)
     showToast('Lista je napravljena. Dodaj prve proizvode.')
   }
 
-  const updateListFields = (list: BabyList, data: { name?: string; description?: string | null; isPublic?: boolean }) =>
+  const updateListFields = (list: BabyList, data: { name?: string; description?: string | null; childName?: string | null; isPublic?: boolean }) =>
     withToast(async () => {
       await listsApi.update(list.id, data)
       patchList(list.id, l => ({ ...l, ...data, description: data.description === undefined ? l.description : data.description ?? undefined }))
@@ -706,7 +664,7 @@ export default function MojaListaPage() {
                     {total > 0 && <ProgressBar value={progress} label="Rezervirano" className="mt-4" />}
 
                     <div className="mt-4 flex flex-wrap items-center gap-2">
-                      <button onClick={() => setShareList(list)} className="btn btn-sm btn-ink"><Share2 size={15} aria-hidden /> Podijeli listu</button>
+                      <button onClick={() => setShareList(list)} className="btn btn-sm btn-primary"><Share2 size={15} aria-hidden /> Podijeli listu</button>
                       <a href={`/lista/${list.shareSlug}`} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-soft"><Eye size={15} aria-hidden /> Pogledaj kao gost</a>
                       <span className="flex-1" />
                       <button onClick={() => { setExpandedList(list.id); setSettingsOpen(s => s === list.id ? null : list.id) }}
@@ -778,7 +736,7 @@ export default function MojaListaPage() {
 
       <AnimatePresence>
         {showNewModal && !loading && <NewListModal key="new" defaults={newListDefaults} onClose={() => setShowNewModal(false)} onCreate={handleCreate} />}
-        {shareList && <ShareModal key="share" slug={shareList.shareSlug} listName={shareList.name} isPublic={shareList.isPublic} onClose={() => setShareList(null)} />}
+        {shareList && <ShareListModal key="share" slug={shareList.shareSlug} listName={shareList.name} isPublic={shareList.isPublic} onClose={() => setShareList(null)} />}
         {smartPasteListId && (
           <SmartPasteModal key="paste" listId={smartPasteListId} onClose={() => setSmartPasteListId(null)}
             onAdded={item => { addItemToState(smartPasteListId, item); setSmartPasteListId(null); showToast('Dodano s linka.') }} />

@@ -36,6 +36,15 @@ export const facetsLimiter = rateLimit({
   message: message('Previše zahtjeva. Pričekaj trenutak.'),
 })
 
+// Page views and engagement pings: generous, it's only there to stop a flood.
+export const eventsLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 240,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: message('Previše zahtjeva.'),
+})
+
 export const smartPasteLimiter = rateLimit({
   windowMs: 60 * 1000,
   limit: 10,

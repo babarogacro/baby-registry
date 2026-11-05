@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { LogoMark } from '@/components/Logo'
+import { TOPIC_PAGES } from '@/lib/site'
 
 export default function Footer() {
   return (
@@ -16,13 +17,17 @@ export default function Footer() {
             <ul className="space-y-2.5 font-semibold">
               <li><Link href="/katalog" className="transition-colors hover:text-sun">Katalog</Link></li>
               <li><Link href="/pronadi-listu" className="transition-colors hover:text-sun">Pronađi listu</Link></li>
+              <li><Link href="/blog" className="transition-colors hover:text-sun">Blog</Link></li>
               <li><Link href="/registracija" className="transition-colors hover:text-sun">Napravi listu</Link></li>
               <li><Link href="/prijava" className="transition-colors hover:text-sun">Prijava</Link></li>
             </ul>
           </nav>
-          <nav aria-label="Pravne informacije">
+          <nav aria-label="Teme i pravne informacije">
             <ul className="space-y-2.5 font-semibold">
-              <li><Link href="/privatnost" className="transition-colors hover:text-sun">Politika privatnosti</Link></li>
+              {TOPIC_PAGES.map(t => (
+                <li key={t.href}><Link href={t.href} className="transition-colors hover:text-sun">{t.label}</Link></li>
+              ))}
+              <li className="pt-3"><Link href="/privatnost" className="transition-colors hover:text-sun">Politika privatnosti</Link></li>
               <li><Link href="/uvjeti" className="transition-colors hover:text-sun">Uvjeti korištenja</Link></li>
             </ul>
           </nav>

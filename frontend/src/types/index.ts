@@ -103,6 +103,7 @@ export interface BabyList {
   user?: Pick<User, 'name' | 'dueDate' | 'babyGender'>
   name: string
   occasion?: Occasion
+  childName?: string | null
   description?: string
   shareSlug: string
   isPublic: boolean
@@ -110,6 +111,25 @@ export interface BabyList {
   updatedAt: string
   items: ListItem[]
   _count?: { items: number }
+}
+
+export interface BlogPostSummary {
+  id: string
+  slug: string
+  title: string
+  excerpt?: string | null
+  coverImage?: string | null
+  publishedAt?: string | null
+  updatedAt: string
+}
+
+export interface BlogPost extends BlogPostSummary {
+  content: string
+  published: boolean
+  seoTitle?: string | null
+  seoDescription?: string | null
+  createdAt: string
+  products?: Product[]
 }
 
 export interface PaginatedProducts {

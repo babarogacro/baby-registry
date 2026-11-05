@@ -1,15 +1,16 @@
 import type { ReactNode } from 'react'
 
 // The whole visual language: flat wooden-toy shapes built from circles, arcs and pills.
-const MAIN = 'rgb(var(--on-tone))'
-const PAPER = 'rgb(var(--art-paper, 255 255 255))'
-const ACCENT = 'rgb(var(--accent))'
+export interface ArtColors { MAIN: string; PAPER: string; ACCENT: string }
+
+// On the page the colours follow the surrounding tone; share images pass plain hex instead.
+const CSS_COLORS: ArtColors = { MAIN: 'rgb(var(--on-tone))', PAPER: 'rgb(var(--art-paper, 255 255 255))', ACCENT: 'rgb(var(--accent))' }
 
 function Svg({ children, className }: { children: ReactNode; className?: string }) {
   return <svg viewBox="0 0 120 120" aria-hidden="true" className={className}>{children}</svg>
 }
 
-const ART = {
+const shapes = ({ MAIN, PAPER, ACCENT }: ArtColors) => ({
   pram: (
     <>
       <path d="M26 58a36 36 0 0 1 36-36v36z" fill={MAIN} />
@@ -148,10 +149,17 @@ const ART = {
       <path d="M66 110a44 44 0 0 1 44-44v44z" fill={MAIN} />
     </>
   ),
-} satisfies Record<string, ReactNode>
+}) satisfies Record<string, ReactNode>
+
+const ART = shapes(CSS_COLORS)
 
 export type ArtName = keyof typeof ART
 
 export function Art({ name, className }: { name: ArtName; className?: string }) {
   return <Svg className={className}>{ART[name]}</Svg>
+}
+
+/** The same shape with explicit colours, for next/og share images where CSS variables don't exist. */
+export function ArtPlain({ name, size, colors }: { name: ArtName; size: number; colors: ArtColors }) {
+  return <svg viewBox="0 0 120 120" width={size} height={size}>{shapes(colors)[name]}</svg>
 }

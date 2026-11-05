@@ -2,7 +2,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { AnimatePresence, m } from 'motion/react'
-import { publicApi, addRefToUrl, apiError } from '@/lib/api'
+import { publicApi, listsApi, apiError } from '@/lib/api'
+import { outboundUrl, track } from '@/lib/analytics'
+import { listTone } from '@/lib/listTone'
+import { useAuthStore } from '@/lib/store'
+import ShareListModal from '@/components/ShareListModal'
 import { getMyReservations, rememberReservation, forgetReservation, lastUsedName, MyReservation } from '@/lib/myReservations'
 import { categoryMeta, type Tone } from '@/lib/categories'
 import { displayName, formatPrice, parseAmount, formatDateHR, plural, shopLabel } from '@/lib/format'
@@ -19,14 +23,14 @@ import Vrtuljak, { type Hanger, type VrtuljakHandle } from '@/components/Vrtulja
 import { Art, type ArtName } from '@/components/art'
 import { Toast, useToast } from '@/components/Toast'
 import { BabyList, ListItem, GroupContributor, Product } from '@/types'
-import { AlertTriangle, ArrowUpRight, Check, Gift, ShoppingBag, StickyNote, Undo2, Users, Wallet } from 'lucide-react'
+import { AlertTriangle, ArrowUpRight, Check, Gift, Share2, ShoppingBag, StickyNote, Undo2, Users, Wallet } from 'lucide-react'
 import clsx from 'clsx'
 
 type Flow = { step: 'choose' | 'solo' | 'group' | 'join'; item: ListItem } | null
 type MyMap = Record<string, MyReservation>
 
-function shopLink(product: Product) {
-  return product.productUrl ? addRefToUrl(product.productUrl) : undefined
+function shopLink(product: Product, slug: string) {
+  return product.productUrl ? outboundUrl(product.id, 'lista', slug) : undefined
 }
 
 function Thumb({ product, className, children }: { product: Product; className: string; children?: React.ReactNode }) {
@@ -108,7 +112,7 @@ function ReserveStep({ item, slug, onDone, onConflict, onClose }: {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
-  const link = shopLink(item.product)
+  const link = shopLink(item.product, slug)
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -337,8 +341,9 @@ function MyReservationActions({ item, onPurchased, onCancel, busy }: {
   )
 }
 
-function PublicListItem({ item, index, mine, busy, onStart, onPurchased, onCancel, onLeave }: {
+function PublicListItem({ item, slug, index, mine, busy, onStart, onPurchased, onCancel, onLeave }: {
   item: ListItem
+  slug: string
   index: number
   mine?: MyReservation
   busy: boolean
@@ -352,7 +357,7 @@ function PublicListItem({ item, index, mine, busy, onStart, onPurchased, onCance
   const isSolo = !!reservation && !isGroupBuy
   const isMineSolo = isSolo && !!mine && !mine.contributorId
   const purchased = reservation?.status === 'PURCHASED'
-  const link = shopLink(product)
+  const link = shopLink(product, slug)
   const meta = categoryMeta(product.category?.slug)
   const taken = isSolo && !isMineSolo
   const poolTarget = reservation?.targetAmount || 0
@@ -421,8 +426,6 @@ function PublicListItem({ item, index, mine, busy, onStart, onPurchased, onCance
   )
 }
 
-const LIST_TONES: Tone[] = ['sun', 'sky', 'mint', 'bubble']
-
 const MOBILE_PIECES: { art: ArtName; tone: Tone; shape: string; x: number; drop: number; size: number; phone?: boolean }[] = [
   { art: 'pram', tone: 'tomato', shape: 'rounded-full', x: 0.5, drop: 70, size: 112, phone: true },
   { art: 'bottle', tone: 'cobalt', shape: 'rounded-[26%]', x: 0.3, drop: 120, size: 84, phone: true },
@@ -466,6 +469,20 @@ export default function PublicListClient({ slug, initialList, initialError }: {
   const [filter, setFilter] = useState<'all' | 'available' | 'reserved'>('all')
   const hasList = useRef(!!initialList)
   const mobileRef = useRef<VrtuljakHandle>(null)
+  const { user, loadFromStorage } = useAuthStore()
+  // The owner previewing their own list ("Pogledaj kao gost") gets a nudge to share it.
+  const [isOwner, setIsOwner] = useState(false)
+  const [sharing, setSharing] = useState(false)
+
+  useEffect(() => { loadFromStorage() }, [loadFromStorage])
+  useEffect(() => {
+    if (!user || !list?.id) { setIsOwner(false); return }
+    let alive = true
+    listsApi.getAll()
+      .then(res => { if (alive) setIsOwner(res.data.some((l: BabyList) => l.id === list.id)) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [user, list?.id])
   const refresh = useCallback(async () => {
     try {
       const res = await publicApi.getList(slug)
@@ -559,7 +576,7 @@ export default function PublicListClient({ slug, initialList, initialError }: {
     }
   }
 
-  const tone = useMemo(() => LIST_TONES[[...slug].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % LIST_TONES.length], [slug])
+  const tone = useMemo(() => listTone(slug), [slug])
 
   if (loading) {
     return (
@@ -629,6 +646,16 @@ export default function PublicListClient({ slug, initialList, initialError }: {
       </header>
 
       <main id="sadrzaj" className="mx-auto max-w-3xl px-4 pb-16 pt-6 sm:px-6">
+        {isOwner && (
+          <div className="mb-5 flex flex-col gap-3 rounded-3xl bg-mint-soft p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-display text-lg font-extrabold tracking-tight">Lista ti se sviđa? Vrijeme je da je podijeliš s obitelji i prijateljima.</p>
+              <p className="mt-0.5 text-[14px] text-muted">Ovako je vide gosti. Pošalji im link ili QR kod za pozivnicu.</p>
+            </div>
+            <button onClick={() => setSharing(true)} className="btn btn-primary flex-shrink-0"><Share2 size={17} aria-hidden /> Podijeli listu</button>
+          </div>
+        )}
+
         {myCount > 0 && (
           <p className="mb-4 rounded-3xl bg-sun-soft p-3.5 text-center text-[15px] font-medium">
             Ovdje imaš {myCount} {plural(myCount, 'rezervaciju', 'rezervacije', 'rezervacija')}. Možeš {myCount === 1 ? 'je' : 'ih'} označiti kao {myCount === 1 ? 'kupljenu' : 'kupljene'} ili otkazati.
@@ -659,8 +686,8 @@ export default function PublicListClient({ slug, initialList, initialError }: {
           <ul className="space-y-3">
             <AnimatePresence initial={false} mode="popLayout">
               {visible.map((item, i) => (
-                <PublicListItem key={item.id} item={item} index={i} mine={mine[item.id]} busy={busyItem === item.id}
-                  onStart={step => setFlow({ step, item })}
+                <PublicListItem key={item.id} item={item} slug={slug} index={i} mine={mine[item.id]} busy={busyItem === item.id}
+                  onStart={step => { if (step === 'choose') track('reserve_start'); setFlow({ step, item }) }}
                   onPurchased={purchased => setPurchased(item, purchased)}
                   onCancel={() => cancelReservation(item)}
                   onLeave={c => leaveGroup(item, c)} />
@@ -686,6 +713,7 @@ export default function PublicListClient({ slug, initialList, initialError }: {
             )}
           </Modal>
         )}
+        {sharing && <ShareListModal key="share" slug={slug} listName={list.name} isPublic={list.isPublic} onClose={() => setSharing(false)} />}
       </AnimatePresence>
 
       <Toast message={toast} />

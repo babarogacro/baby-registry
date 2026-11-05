@@ -11,14 +11,18 @@ import { adminApi, productsApi, apiError } from '@/lib/api'
 import { formatPrice, plural } from '@/lib/format'
 import { useAuthStore } from '@/lib/store'
 import { Product, AdminUser, CategoryMapping, Category } from '@/types'
-import { ArrowRight, BarChart3, FolderTree, Gift, ListChecks, Package, RefreshCw, Search, Settings, Shield, Star, Trash2, Users } from 'lucide-react'
+import { ArrowRight, BarChart3, FolderTree, Gift, LineChart, ListChecks, Newspaper, Package, RefreshCw, Search, Settings, Shield, Star, Trash2, Users } from 'lucide-react'
+import StatsPanel from './StatsPanel'
+import BlogAdmin from './BlogAdmin'
 import clsx from 'clsx'
 
-type Tab = 'overview' | 'users' | 'scraper' | 'featured' | 'categories' | 'settings'
+type Tab = 'overview' | 'stats' | 'users' | 'blog' | 'scraper' | 'featured' | 'categories' | 'settings'
 
 const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
   { key: 'overview', label: 'Pregled', icon: <BarChart3 size={16} /> },
+  { key: 'stats', label: 'Statistike', icon: <LineChart size={16} /> },
   { key: 'users', label: 'Korisnici', icon: <Users size={16} /> },
+  { key: 'blog', label: 'Blog', icon: <Newspaper size={16} /> },
   { key: 'scraper', label: 'Scraper', icon: <RefreshCw size={16} /> },
   { key: 'featured', label: 'Istaknuti', icon: <Star size={16} /> },
   { key: 'categories', label: 'Kategorije', icon: <FolderTree size={16} /> },
@@ -35,7 +39,7 @@ interface UserDetail {
   lists: { id: string; name: string; shareSlug: string; _count?: { items: number }; items: { reservation?: { status: string } | null }[] }[]
 }
 
-function UserCard({ u, onOpen, onToggleRole, isSelf }: { u: AdminUser; onOpen: () => void; onToggleRole?: () => void; isSelf: boolean }) {
+function UserCard({ u, onOpen, onToggleRole, onDelete, isSelf }: { u: AdminUser; onOpen: () => void; onToggleRole?: () => void; onDelete?: () => void; isSelf: boolean }) {
   return (
     <li className="card p-4 flex items-center gap-4 flex-wrap">
       <div className="w-10 h-10 bg-bubble rounded-full flex items-center justify-center flex-shrink-0" aria-hidden>
@@ -58,6 +62,12 @@ function UserCard({ u, onOpen, onToggleRole, isSelf }: { u: AdminUser; onOpen: (
             <Shield size={12} /> {u.role === 'ADMIN' ? 'Ukloni admin' : 'Postavi admin'}
           </button>
         )}
+        {onDelete && !isSelf && (
+          <button onClick={onDelete} aria-label={`Obriši korisnika ${u.name}`}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-sunken text-muted hover:bg-tomato-soft hover:text-tomato-ink transition-colors">
+            <Trash2 size={12} aria-hidden /> Obriši
+          </button>
+        )}
       </div>
     </li>
   )
@@ -78,6 +88,8 @@ export default function AdminPage() {
   const [userPage, setUserPage] = useState(1)
   const [userSearch, setUserSearch] = useState('')
   const [userDetail, setUserDetail] = useState<UserDetail | null>(null)
+  const [deletingUser, setDeletingUser] = useState<AdminUser | null>(null)
+  const [deleteBusy, setDeleteBusy] = useState(false)
   const [featured, setFeatured] = useState<{ id: string; productId: string; product?: Product }[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [productSearch, setProductSearch] = useState('')
@@ -175,6 +187,20 @@ export default function AdminPage() {
 
   const openUser = (id: string) => attempt(async () => setUserDetail((await adminApi.getUser(id)).data))
 
+  const confirmDeleteUser = async () => {
+    if (!deletingUser) return
+    const target = deletingUser
+    setDeleteBusy(true)
+    await attempt(async () => {
+      await adminApi.deleteUser(target.id)
+      setUsers(prev => prev.filter(x => x.id !== target.id))
+      setRecentUsers(prev => prev.filter(x => x.id !== target.id))
+      setUsersTotal(t => Math.max(0, t - 1))
+      setDeletingUser(null)
+    }, `Korisnik ${target.name} je obrisan`)
+    setDeleteBusy(false)
+  }
+
   const createMapping = (data: { externalName: string; shopSlug?: string; categoryId: string }) => attempt(async () => {
     const res = await adminApi.createCategoryMapping(data)
     setMappings(prev => [...prev, res.data])
@@ -235,6 +261,9 @@ export default function AdminPage() {
             </div>
           )}
 
+          {tab === 'stats' && <StatsPanel />}
+          {tab === 'blog' && <BlogAdmin notify={showToast} />}
+
           {tab === 'users' && (
             <div>
               <div className="flex gap-3 mb-5 items-center">
@@ -248,7 +277,7 @@ export default function AdminPage() {
               </div>
               <ul className="space-y-3">
                 {users.map(u => (
-                  <UserCard key={u.id} u={u} isSelf={u.id === user.id} onOpen={() => openUser(u.id)} onToggleRole={() => handleRoleToggle(u)} />
+                  <UserCard key={u.id} u={u} isSelf={u.id === user.id} onOpen={() => openUser(u.id)} onToggleRole={() => handleRoleToggle(u)} onDelete={() => setDeletingUser(u)} />
                 ))}
               </ul>
               {usersTotal > 20 && (
@@ -501,6 +530,26 @@ export default function AdminPage() {
                 })}
               </ul>
             )}
+          </div>
+        </Modal>
+      )}
+      {deletingUser && (
+        <Modal key="delete-user" title="Obrisati korisnika?" onClose={() => !deleteBusy && setDeletingUser(null)}>
+          <div className="px-5 pb-6 sm:px-6">
+            <p className="font-semibold text-ink">{deletingUser.name}</p>
+            <p className="mb-4 break-all text-sm text-muted">{deletingUser.email}</p>
+            <p className="mb-5 rounded-2xl bg-tomato-soft p-3 text-sm font-medium text-tomato-ink">
+              {deletingUser._count.lists > 0
+                ? `Brišu se i liste ovog korisnika (${deletingUser._count.lists}), sa stavkama i rezervacijama gostiju. `
+                : 'Korisnik nema nijednu listu. '}
+              Ovo se ne može poništiti.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={confirmDeleteUser} disabled={deleteBusy} className="btn btn-sm btn-danger">
+                <Trash2 size={15} aria-hidden /> {deleteBusy ? 'Brišem...' : 'Obriši korisnika'}
+              </button>
+              <button onClick={() => setDeletingUser(null)} disabled={deleteBusy} className="btn btn-sm btn-soft">Odustani</button>
+            </div>
           </div>
         </Modal>
       )}
