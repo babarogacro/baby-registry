@@ -26,16 +26,17 @@ export default function HeroMobile({ heroImage }: { heroImage?: string | null })
     { key: 'igracke', x: 0.1, drop: 150, size: 112, href: '/katalog?kategorija=igracke', label: 'Igračke', className: 'hidden sm:block', children: <Block tone="sky" shape={PILL} art="rings" /> },
     { key: 'autosjedalice', x: 0.27, drop: 270, size: 136, href: '/katalog?kategorija=autosjedalice', label: 'Autosjedalice', children: <Block tone="cobalt" shape={ARCH} art="carseat" /> },
     {
-      key: 'kolica', x: 0.5, drop: 90, size: 196, href: '/katalog?kategorija=kolica', label: 'Kolica',
+      // The centrepiece is the admin's hero photo (no category), or a heart/moon when there is none.
+      key: 'srce', x: 0.5, drop: 90, size: 196,
       children: heroImage ? (
         <span className="block aspect-square overflow-hidden rounded-full bg-white shadow-float">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={heroImage} alt="" draggable={false} className="h-full w-full object-cover" />
         </span>
-      ) : <Block tone="tomato" shape={CIRCLE} art="pram" inset="p-[15%]" />,
+      ) : night ? <Block tone="sun" shape={CIRCLE} art="moon" inset="p-[20%]" /> : <Block tone="bubble" shape={CIRCLE} art="heart" inset="p-[20%]" />,
     },
     { key: 'hranjenje', x: 0.73, drop: 310, size: 120, href: '/katalog?kategorija=hranjenje-njega', label: 'Hranjenje', children: <Block tone="mint" shape={SQUARE} art="bottle" /> },
-    { key: 'nebo', x: 0.9, drop: 120, size: 104, className: 'hidden sm:block', children: night ? <Block tone="sun" shape={CIRCLE} art="moon" /> : <Block tone="bubble" shape={SQUARE} art="heart" /> },
+    { key: 'kolica', x: 0.9, drop: 120, size: 112, href: '/katalog?kategorija=kolica', label: 'Kolica', children: <Block tone="tomato" shape={SQUARE} art="pram" inset="p-[15%]" /> },
   ]
 
   return (

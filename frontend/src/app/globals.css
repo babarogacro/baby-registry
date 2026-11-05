@@ -192,13 +192,17 @@
   .btn-ink { background: rgb(var(--ink)); color: rgb(var(--canvas)); }
   .btn-soft { background: rgb(var(--line) / 0.07); color: rgb(var(--ink)); }
   .btn-outline { box-shadow: inset 0 0 0 2px rgb(var(--ink)); color: rgb(var(--ink)); }
+  /* Outline on the coloured hero: fills with the hero ink on hover, so the label has to flip to light. */
+  .btn-outline-hero { box-shadow: inset 0 0 0 2px rgb(var(--hero-ink)); color: rgb(var(--hero-ink)); }
   .btn-danger { background: rgb(var(--tomato-ink)); color: rgb(var(--canvas)); }
   @media (hover: hover) {
     .btn-ink:hover:not(:disabled), .btn-danger:hover:not(:disabled) { transform: translateY(-1px); }
     .btn-soft:hover:not(:disabled) { background: rgb(var(--line) / 0.13); }
     .btn-outline:hover:not(:disabled) { background: rgb(var(--ink)); color: rgb(var(--canvas)); }
+    .btn-outline-hero:hover:not(:disabled) { background: rgb(var(--hero-ink)); color: #fff; }
+    :root[data-theme='night'] .btn-outline-hero:hover:not(:disabled) { color: rgb(var(--hero)); }
   }
-  .btn-ink:active:not(:disabled), .btn-soft:active:not(:disabled), .btn-outline:active:not(:disabled), .btn-danger:active:not(:disabled) { transform: scale(0.97); }
+  .btn-ink:active:not(:disabled), .btn-soft:active:not(:disabled), .btn-outline:active:not(:disabled), .btn-outline-hero:active:not(:disabled), .btn-danger:active:not(:disabled) { transform: scale(0.97); }
 
   .icon-btn {
     @apply inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-ink;

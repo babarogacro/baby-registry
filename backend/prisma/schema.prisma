@@ -43,6 +43,7 @@ model BabyList {
   user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   name        String
   occasion    String?    // "birth", "birthday", "baptism", "confirmation", "other"
+  childName   String?    // full name, so guests can find the list by the child's name
   description String?
   shareSlug   String     @unique @default(cuid())
   isPublic    Boolean    @default(true)

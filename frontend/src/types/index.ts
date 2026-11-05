@@ -103,6 +103,7 @@ export interface BabyList {
   user?: Pick<User, 'name' | 'dueDate' | 'babyGender'>
   name: string
   occasion?: Occasion
+  childName?: string | null
   description?: string
   shareSlug: string
   isPublic: boolean

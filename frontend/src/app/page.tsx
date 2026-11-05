@@ -86,7 +86,7 @@ const FAQ = [
   { q: 'Plaća li se nešto?', a: 'Ne. Bebina Lista je besplatna za roditelje i za goste. Pokloni se kupuju u dućanu, po cijeni dućana.' },
   { q: 'Moraju li se gosti registrirati?', a: 'Ne. Gost otvori link, odabere poklon i upiše svoje ime. To je sve.' },
   { q: 'Što ako proizvod koji želim nije u katalogu?', a: 'Zalijepi link proizvoda iz bilo kojeg web shopa. Lista sama povuče naziv, sliku i cijenu.' },
-  { q: 'Tko vidi moju listu?', a: 'Ljudi kojima pošalješ link, a gosti bez linka mogu je naći po tvom imenu i prezimenu. Google je ne prikazuje. Ako je zaključaš, ne otvara je ni link ni pretraga.' },
+  { q: 'Tko vidi moju listu?', a: 'Ljudi kojima pošalješ link, a gosti bez linka mogu je naći samo ako upišu puno ime i prezime, tvoje ili djetetovo. Google je ne prikazuje. Ako je zaključaš, ne otvara je ni link ni pretraga.' },
   { q: 'Što ako netko rezervira poklon pa odustane?', a: 'Gost rezervaciju može otkazati s uređaja na kojem ju je napravio, a ti je možeš osloboditi u svojoj listi. Poklon je odmah opet slobodan za druge.' },
   { q: 'Kako radi skupljanje zajedno?', a: 'Za skuplji poklon jedan gost pokrene skupljanje, a ostali upišu koliko daju. Novac ne ide preko stranice: svatko svoj dio daje osobi koja naručuje poklon.' },
   { q: 'Radi li i za dječji rođendan?', a: 'Da. Napravi rođendansku listu s onim što dijete želi, pa je pošalji gostima jednako kao i listu za bebu.' },
@@ -126,7 +126,7 @@ export default async function HomePage() {
               </p>
               <div className="page-in mt-8 flex flex-wrap items-center gap-3 [animation-delay:160ms]">
                 <AuthAwareLink guestHref="/registracija" signedInLabel="Moje liste" className="btn btn-lg btn-primary">Napravi listu</AuthAwareLink>
-                <Link href="/katalog" className="btn btn-lg btn-outline !text-hero-ink ![box-shadow:inset_0_0_0_2px_rgb(var(--hero-ink))]">Pogledaj katalog</Link>
+                <Link href="/katalog" className="btn btn-lg btn-outline-hero">Pogledaj katalog</Link>
               </div>
               <p className="page-in mt-5 text-[15px] font-medium [animation-delay:220ms]">
                 Radi i za <AuthAwareLink guestHref="/registracija?occasion=birthday" className="font-bold underline decoration-2 underline-offset-[3px]">dječji rođendan</AuthAwareLink>.

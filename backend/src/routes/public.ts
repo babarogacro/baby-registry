@@ -76,22 +76,47 @@ publicRouter.get('/settings', async (_req, res) => {
   } catch { res.status(500).json({ error: 'Greška na serveru' }) }
 })
 
+// "Đurđa Kračun" and "durda kracun" are the same person to a guest typing on a phone.
+function nameWords(value: string) {
+  return value
+    .toLocaleLowerCase('hr-HR')
+    .replace(/đ/g, 'd')
+    .normalize('NFD').replace(/\p{M}/gu, '')
+    .split(/[^\p{L}]+/u)
+    .filter(Boolean)
+}
+
+/** Every typed word must be a whole word of the name, and there must be at least a first and last name. */
+function matchesFullName(queryWords: string[], name: string | null | undefined) {
+  if (!name) return false
+  const words = new Set(nameWords(name))
+  return queryWords.every(w => words.has(w))
+}
+
 // GET /api/public/pretraga?q=Ana+Horvat
+// Only a full name (parent's or child's) finds a list, so typing "Ana" can't browse everyone's lists.
 publicRouter.get('/pretraga', searchLimiter, async (req, res) => {
   try {
     const q = typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 100) : ''
-    if (q.length < 2) return res.status(400).json({ error: 'Upiši najmanje 2 znaka' })
+    const queryWords = nameWords(q)
+    if (queryWords.length < 2 || queryWords.some(w => w.length < 2)) {
+      return res.status(400).json({ error: 'Upiši ime i prezime, npr. Ana Horvat' })
+    }
+
+    const candidates = await prisma.babyList.findMany({
+      where: { isPublic: true },
+      select: { id: true, childName: true, user: { select: { name: true } } },
+    })
+    const ids = candidates
+      .filter(l => matchesFullName(queryWords, l.user.name) || matchesFullName(queryWords, l.childName))
+      .map(l => l.id)
+      .slice(0, 50)
+    if (ids.length === 0) return res.json([])
 
     const lists = await prisma.babyList.findMany({
-      where: {
-        isPublic: true,
-        OR: [
-          { user: { name: { contains: q, mode: 'insensitive' } } },
-          { name: { contains: q, mode: 'insensitive' } },
-        ],
-      },
+      where: { id: { in: ids } },
       select: {
-        id: true, name: true, occasion: true, shareSlug: true, createdAt: true,
+        id: true, name: true, occasion: true, childName: true, shareSlug: true, createdAt: true,
         user: { select: { name: true, dueDate: true, babyGender: true } },
         _count: { select: { items: true } },
       },

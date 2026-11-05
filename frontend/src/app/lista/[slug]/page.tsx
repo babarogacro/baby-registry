@@ -29,27 +29,26 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const total = list.items.length
   const available = list.items.filter(i => !i.reservation).length
-  const description = `Lista od ${list.user?.name || 'budućih roditelja'}: ${total} poklona, ${available} slobodno. Odaberi poklon i rezerviraj ga.`
-  const ogImage = list.items.find(i => i.product.imageUrl)?.product.imageUrl
+  const shareTitle = list.childName ? `Lista želja za ${list.childName}` : list.name
+  const description = `Lista od ${list.user?.name || 'budućih roditelja'}: ${total} poklona, ${available} slobodno. Odaberi poklon i rezerviraj ga, da se pokloni ne ponavljaju.`
 
+  // The share image itself comes from ./opengraph-image.tsx (list colour and the child's name).
   return {
     title: `${list.name} | Bebina Lista`,
     description,
     robots,
     openGraph: {
-      title: list.name,
+      title: shareTitle,
       description,
       siteName: 'Bebina Lista',
       type: 'website',
       locale: 'hr_HR',
       url: `/lista/${slug}`,
-      ...(ogImage && { images: [{ url: ogImage, width: 600, height: 600, alt: list.name }] }),
     },
     twitter: {
-      card: ogImage ? 'summary_large_image' : 'summary',
-      title: list.name,
+      card: 'summary_large_image',
+      title: shareTitle,
       description,
-      ...(ogImage && { images: [ogImage] }),
     },
   }
 }

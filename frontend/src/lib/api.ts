@@ -71,9 +71,9 @@ export interface CustomProductInput {
 export const listsApi = {
   getAll: () => api.get('/lists'),
   getOne: (id: string) => api.get(`/lists/${id}`),
-  create: (data: { name: string; occasion?: string; description?: string; isPublic?: boolean }) =>
+  create: (data: { name: string; occasion?: string; childName?: string; description?: string; isPublic?: boolean }) =>
     api.post('/lists', data),
-  update: (id: string, data: { name?: string; occasion?: string | null; description?: string | null; isPublic?: boolean }) =>
+  update: (id: string, data: { name?: string; occasion?: string | null; childName?: string | null; description?: string | null; isPublic?: boolean }) =>
     api.patch(`/lists/${id}`, data),
   delete: (id: string) => api.delete(`/lists/${id}`),
   addItem: (listId: string, productId: string, priority: Priority = 'MEDIUM', note?: string) =>
@@ -131,6 +131,7 @@ export const adminApi = {
   getUsers: (params?: { page?: number; q?: string }) => api.get('/admin/users', { params }),
   getUser: (id: string) => api.get(`/admin/users/${id}`),
   setUserRole: (id: string, role: string) => api.patch(`/admin/users/${id}/role`, { role }),
+  deleteUser: (id: string) => api.delete(`/admin/users/${id}`),
   getFeatured: () => api.get('/admin/featured'),
   addFeatured: (productId: string) => api.post('/admin/featured', { productId }),
   removeFeatured: (id: string) => api.delete(`/admin/featured/${id}`),

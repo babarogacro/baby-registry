@@ -89,6 +89,21 @@ adminRouter.patch('/users/:id/role', async (req: AuthRequest, res) => {
   }
 })
 
+// Same cascade as a user deleting their own profile: lists, items and reservations on them go too.
+adminRouter.delete('/users/:id', async (req: AuthRequest, res) => {
+  try {
+    if (req.params.id === req.userId) return res.status(400).json({ error: 'Ne možeš obrisati sam sebe. Za to koristi Profil.' })
+    const user = await prisma.user.findUnique({ where: { id: req.params.id }, select: { id: true, role: true } })
+    if (!user) return res.status(404).json({ error: 'Korisnik nije pronađen' })
+    if (user.role === 'ADMIN') {
+      const admins = await prisma.user.count({ where: { role: 'ADMIN' } })
+      if (admins <= 1) return res.status(400).json({ error: 'Ovo je jedini admin i ne može se obrisati' })
+    }
+    await prisma.user.delete({ where: { id: user.id } })
+    res.json({ success: true })
+  } catch { res.status(500).json({ error: 'Greška na serveru' }) }
+})
+
 adminRouter.get('/shops', async (_req, res) => {
   try {
     const shops = await prisma.scrapedShop.findMany({ orderBy: { name: 'asc' } })
