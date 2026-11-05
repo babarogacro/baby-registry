@@ -25,11 +25,12 @@ async function categoryWithDescendants(where: Prisma.CategoryWhereUniqueInput) {
   return [category.id, ...children.map(c => c.id), ...grandchildren.map(c => c.id)]
 }
 
-// Products visible in the public catalog: still listed by an active scraped shop.
+// Products visible in the public catalog: still listed by an active scraped shop, with a photo.
 // Hand-added products ("custom") belong to individual lists and must not leak to everyone.
+// Rows without a photo (old Baby Center scrapes that can't be refreshed) stay on lists but not here.
 async function catalogShopFilter(): Promise<Prisma.ProductWhereInput> {
   const activeShops = await prisma.scrapedShop.findMany({ where: { isActive: true }, select: { slug: true } })
-  return { shopSlug: { in: activeShops.map(s => s.slug) }, inStock: true }
+  return { shopSlug: { in: activeShops.map(s => s.slug) }, inStock: true, imageUrl: { not: null } }
 }
 
 type Facet = 'shop' | 'brand' | 'category' | 'price' | 'sale'
