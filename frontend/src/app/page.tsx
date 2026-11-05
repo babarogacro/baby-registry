@@ -6,14 +6,19 @@ import Footer from '@/components/Footer'
 import Reveal from '@/components/Reveal'
 import HeroMobile from '@/components/HeroMobile'
 import PoklonLutrija from '@/components/PoklonLutrija'
+import ListDemoPhone from '@/components/ListDemoPhone'
 import { Art } from '@/components/art'
-import { getCategories, getFeaturedProducts, getOnSaleProducts, getPublicSettings } from '@/lib/server'
+import { getBlogPosts, getCategories, getFeaturedProducts, getOnSaleProducts, getPublicSettings } from '@/lib/server'
+import { blogDate, blogImageUrl } from '@/lib/blog'
 import { categoryMeta, sortRootCategories } from '@/lib/categories'
 import { plural } from '@/lib/format'
 import { ArrowRight, Check, Link2, Plus, Search } from 'lucide-react'
 import clsx from 'clsx'
 
 export const revalidate = 300
+
+// Each indexable page names itself as canonical; the root layout can't, or every page would point here.
+export const metadata = { alternates: { canonical: '/' } }
 
 // The tiles differ in size on purpose: the big purchases get the big blocks.
 const BENTO: Record<string, string> = {
@@ -93,7 +98,7 @@ const FAQ = [
 ]
 
 export default async function HomePage() {
-  const [featured, categories, settings, onSale] = await Promise.all([getFeaturedProducts(), getCategories(), getPublicSettings(), getOnSaleProducts()])
+  const [featured, categories, settings, onSale, posts] = await Promise.all([getFeaturedProducts(), getCategories(), getPublicSettings(), getOnSaleProducts(), getBlogPosts(3)])
   const topCategories = sortRootCategories(categories.filter(c => (c.totalCount ?? 0) > 0))
   const totalProducts = topCategories.reduce((sum, c) => sum + (c.totalCount ?? 0), 0)
   const rail = [...featured, ...onSale.filter(p => !featured.some(f => f.id === p.id))].slice(0, 10)
@@ -177,6 +182,23 @@ export default async function HomePage() {
           </ol>
         </section>
 
+        {/* The guest's side, played on a phone */}
+        <section className="mx-auto max-w-7xl px-5 py-14 sm:px-8 sm:py-20" aria-labelledby="kako-izgleda">
+          <div className="grid items-center gap-10 lg:grid-cols-[1fr_auto_0.2fr] [&>*]:min-w-0">
+            <Reveal>
+              <p className="note text-tomato-ink">ovako to izgleda</p>
+              <h2 id="kako-izgleda" className="display mt-1 max-w-xl text-[2.9rem] sm:text-6xl">Ovako gosti vide tvoju listu.</h2>
+              <p className="mt-5 max-w-lg text-lg font-medium leading-snug text-muted">
+                Otvore link na mobitelu, vide što je još slobodno, kliknu Rezerviraj i upišu ime. Svi ostali u istom trenutku vide da je poklon zauzet. Gosti se ne registriraju i ništa ne plaćaju na stranici.
+              </p>
+              <div className="mt-7">
+                <AuthAwareLink guestHref="/registracija" signedInLabel="Moje liste" className="btn btn-lg btn-primary">Napravi listu</AuthAwareLink>
+              </div>
+            </Reveal>
+            <ListDemoPhone />
+          </div>
+        </section>
+
         {/* Categories */}
         {topCategories.length > 0 && (
           <section className="mx-auto max-w-7xl px-5 py-14 sm:px-8 sm:py-20" aria-labelledby="kategorije">
@@ -226,6 +248,32 @@ export default async function HomePage() {
           </Reveal>
         </section>
 
+        {/* From the blog */}
+        {posts.length > 0 && (
+          <section className="mx-auto max-w-7xl px-5 pb-16 sm:px-8" aria-labelledby="iz-bloga">
+            <Reveal className="flex flex-wrap items-end justify-between gap-4">
+              <h2 id="iz-bloga" className="display text-[2.4rem] sm:text-5xl">Iz bloga.</h2>
+              <Link href="/blog" className="btn btn-soft">Svi članci <ArrowRight size={17} aria-hidden /></Link>
+            </Reveal>
+            <ul className="mt-7 grid gap-4 sm:grid-cols-3 [&>*]:min-w-0">
+              {posts.map(post => (
+                <li key={post.id}>
+                  <Link href={`/blog/${post.slug}`} className="card group flex h-full flex-col overflow-hidden transition-transform duration-200 hover:-translate-y-1">
+                    {post.coverImage && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={blogImageUrl(post.coverImage)} alt="" loading="lazy" className="aspect-[16/10] w-full object-cover" />
+                    )}
+                    <div className="p-5">
+                      <p className="text-[13px] font-semibold text-muted">{blogDate(post.publishedAt)}</p>
+                      <p className="mt-1 font-display text-xl font-extrabold leading-tight tracking-tight">{post.title}</p>
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {/* FAQ */}
         <section className="mx-auto max-w-3xl px-5 pb-6 sm:px-8" aria-labelledby="pitanja">
           <Reveal>
@@ -254,11 +302,11 @@ export default async function HomePage() {
           <Reveal className="tone-sky grid items-center gap-8 rounded-5xl bg-tone p-6 text-on-tone sm:p-12 lg:grid-cols-2 [&>*]:min-w-0">
             <div>
               <h2 className="display text-[2.6rem] sm:text-6xl">Netko ti je spomenuo listu, a nemaš link?</h2>
-              <p className="mt-4 max-w-md text-lg font-medium leading-snug">Upiši ime i prezime roditelja ili naziv liste. Vidjet ćeš što je još slobodno i moći ćeš rezervirati poklon.</p>
+              <p className="mt-4 max-w-md text-lg font-medium leading-snug">Upiši puno ime i prezime roditelja ili djeteta. Vidjet ćeš što je još slobodno i moći ćeš rezervirati poklon.</p>
             </div>
             <form action="/pronadi-listu" className="flex flex-col gap-3 sm:flex-row">
-              <label htmlFor="trazi-listu" className="sr-only">Ime roditelja ili naziv liste</label>
-              <input id="trazi-listu" name="q" type="search" minLength={2} required placeholder="npr. Ana Horvat" className="min-h-[58px] w-full flex-1 rounded-full bg-white px-6 text-lg text-coal placeholder:text-coal/50" />
+              <label htmlFor="trazi-listu" className="sr-only">Ime i prezime roditelja ili djeteta</label>
+              <input id="trazi-listu" name="q" type="search" minLength={3} required placeholder="npr. Ana Horvat" className="min-h-[58px] w-full flex-1 rounded-full bg-white px-6 text-lg text-coal placeholder:text-coal/50" />
               <button type="submit" className="btn btn-lg btn-ink !bg-coal !text-white"><Search size={18} aria-hidden /> Traži</button>
             </form>
           </Reveal>

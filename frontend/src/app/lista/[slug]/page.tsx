@@ -23,7 +23,7 @@ type PageProps = { params: Promise<{ slug: string }> }
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params
   const { list } = await getList(slug)
-  // Lists contain names and due dates of private people — keep them out of search engines.
+  // Lists contain names and due dates of private people; keep them out of search engines.
   const robots = { index: false, follow: false }
   if (!list) return { title: 'Lista nije pronađena | Bebina Lista', robots }
 
