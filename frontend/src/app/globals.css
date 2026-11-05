@@ -5,39 +5,39 @@
 :root {
   color-scheme: light;
 
-  --canvas: 255 251 243;
+  --canvas: 255 248 239;
   --surface: 255 255 255;
   --sunken: 246 240 228;
   --ink: 30 21 55;
   --muted: 98 89 120;
   --line: 30 21 55;
   --coal: 30 21 55;
-  --focus: 47 75 255;
+  --focus: 47 87 240;
   --edge: 30 21 55;
 
-  --tomato: 255 90 54;
+  --tomato: 255 90 46;
   --tomato-soft: 255 228 219;
   --tomato-ink: 190 48 14;
-  --cobalt: 47 75 255;
+  --cobalt: 47 87 240;
   --cobalt-soft: 228 232 255;
-  --cobalt-ink: 47 75 255;
+  --cobalt-ink: 47 87 240;
   --on-cobalt: 255 255 255;
-  --sun: 255 201 51;
+  --sun: 255 200 61;
   --sun-soft: 255 242 199;
   --sun-ink: 125 90 0;
-  --mint: 40 200 146;
-  --mint-soft: 214 246 233;
+  --mint: 25 179 142;
+  --mint-soft: 212 242 231;
   --mint-ink: 8 112 78;
-  --bubble: 255 158 199;
+  --bubble: 255 159 206;
   --bubble-soft: 255 228 239;
   --bubble-ink: 178 40 104;
   --sky: 151 212 255;
   --sky-soft: 223 242 255;
   --sky-ink: 12 96 160;
 
-  --hero: 255 201 51;
+  --hero: 255 200 61;
   --hero-ink: 30 21 55;
-  --hero-accent: 47 75 255;
+  --hero-accent: 47 87 240;
 
   --tone: var(--tomato);
   --tone-soft: var(--tomato-soft);
@@ -51,6 +51,9 @@
 
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Fredoka, with the č ć đ it lacks layered in front of it. */
+  --font-heading: var(--font-display-hr), var(--font-display), system-ui, sans-serif;
 }
 
 /* "Noćna smjena": for the people reading this at three in the morning. */
@@ -115,7 +118,8 @@
 .priority-LOW { background: rgb(var(--sun-soft)); color: rgb(var(--sun-ink)); }
 
 @layer base {
-  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  /* Only Fredoka 600 is loaded, so a bold class must not smear it into a fake heavier weight. */
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; font-synthesis-weight: none; }
 
   body {
     background: rgb(var(--canvas));
@@ -129,8 +133,8 @@
   }
 
   h1, h2, h3, h4 {
-    font-family: var(--font-display), system-ui, sans-serif;
-    font-weight: 700;
+    font-family: var(--font-heading);
+    font-weight: 600;
     letter-spacing: -0.02em;
     line-height: 1.08;
     text-wrap: balance;
@@ -149,12 +153,23 @@
 
 @layer components {
   .display {
-    font-family: var(--font-display), system-ui, sans-serif;
-    font-weight: 800;
-    font-stretch: 90%;
-    letter-spacing: -0.04em;
-    line-height: 0.94;
+    font-family: var(--font-heading);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 0.95;
   }
+
+  /* The wordmark from the brand book: dotless i's with lemon and pink dots. */
+  .wordmark {
+    display: inline-block;
+    font-family: var(--font-heading);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .wordmark-i { position: relative; display: inline-block; }
+  .wordmark-i i { position: absolute; left: 50%; top: 0.07em; width: 0.17em; height: 0.17em; border-radius: 50%; transform: translateX(-50%); }
 
   .note {
     font-family: var(--font-note), cursive;
@@ -395,15 +410,23 @@
 }
 .twinkle { animation: twinkle 3s ease-in-out infinite; }
 
-@keyframes logoSwing {
+/* On hover the tag swings from its hole like a gift tag on a string, and the two dots hop. */
+@keyframes tagSwing {
   0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(14deg); }
-  75% { transform: rotate(-14deg); }
+  30% { transform: rotate(-12deg); }
+  60% { transform: rotate(7deg); }
+  80% { transform: rotate(-3deg); }
 }
+@keyframes dotHop {
+  0%, 100% { transform: translate(-50%, 0); }
+  40% { transform: translate(-50%, -0.16em); }
+}
+.logo-tag { transform-origin: 27% 31%; }
 @media (hover: hover) {
-  .group:hover .logo-piece { animation: logoSwing 0.9s ease-in-out; }
-  .group:hover .logo-piece-2 { animation-delay: 0.07s; }
-  .group:hover .logo-piece-3 { animation-delay: 0.14s; }
+  .group:hover .logo-tag { animation: tagSwing 0.9s var(--ease-out); }
+  .group:hover .wordmark-i i { animation: dotHop 0.5s var(--ease-out); }
+  .group:hover .wordmark-i + .wordmark-i i,
+  .group:hover .wordmark-i ~ .wordmark-i i { animation-delay: 0.08s; }
 }
 
 .pb-safe { padding-bottom: env(safe-area-inset-bottom); }

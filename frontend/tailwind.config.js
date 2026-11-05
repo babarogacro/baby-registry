@@ -20,7 +20,7 @@ module.exports = {
     extend: {
       colors: Object.fromEntries(TOKENS.map(name => [name, token(name)])),
       fontFamily: {
-        display: ['var(--font-display)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-display-hr)', 'var(--font-display)', 'system-ui', 'sans-serif'],
         sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
         note: ['var(--font-note)', 'cursive'],
       },

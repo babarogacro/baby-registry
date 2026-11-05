@@ -8,8 +8,8 @@ import { eventsLimiter, publicWriteLimiter } from '../middleware/rateLimit'
  * First-party analytics without cookies:
  *  - POST /api/events       page views, time on page, shares, searches (sent with navigator.sendBeacon)
  *  - GET  /api/go/:id       every "U dućan" link: logs the click, then redirects with UTM tags the shop's
- *                           Google Analytics understands (source bebinalista, medium referral)
- *  - POST /api/conversions  a shop reports a purchase that came from one of our clicks (bl_click)
+ *                           Google Analytics understands (source listica, medium referral)
+ *  - POST /api/conversions  a shop reports a purchase that came from one of our clicks (lc_click)
  */
 export const analyticsRouter = Router()
 
@@ -93,12 +93,12 @@ const SOURCES = new Set(['katalog', 'lista', 'moja-lista', 'naslovnica', 'blog',
 /** The shop link with our tags. GA4 files utm_medium=referral under the Referral channel. */
 function taggedUrl(productUrl: string, from: string, clickId?: string) {
   const url = new URL(productUrl)
-  url.searchParams.set('ref', 'bebinalista')
-  url.searchParams.set('utm_source', 'bebinalista')
+  url.searchParams.set('ref', 'listica')
+  url.searchParams.set('utm_source', 'listica')
   url.searchParams.set('utm_medium', 'referral')
   url.searchParams.set('utm_campaign', from === 'lista' ? 'lista-zelja' : 'katalog')
   url.searchParams.set('utm_content', from)
-  if (clickId) url.searchParams.set('bl_click', clickId)
+  if (clickId) url.searchParams.set('lc_click', clickId)
   return url.toString()
 }
 

@@ -15,16 +15,16 @@ type PageProps = { params: Promise<{ slug: string }> }
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params
   const post = await getBlogPost(slug)
-  if (!post) return { title: 'Članak nije pronađen | Bebina Lista', robots: { index: false } }
+  if (!post) return { title: 'Članak nije pronađen | Listica', robots: { index: false } }
   const title = post.seoTitle || post.title
   const description = post.seoDescription || post.excerpt || undefined
   const image = blogImageUrl(post.coverImage)
   return {
-    title: `${title} | Bebina Lista`,
+    title: `${title} | Listica`,
     description,
     alternates: { canonical: `/blog/${post.slug}` },
     openGraph: {
-      title, description, type: 'article', locale: 'hr_HR', siteName: 'Bebina Lista', url: `/blog/${post.slug}`,
+      title, description, type: 'article', locale: 'hr_HR', siteName: 'Listica', url: `/blog/${post.slug}`,
       publishedTime: post.publishedAt ?? undefined, modifiedTime: post.updatedAt,
       ...(image && { images: [{ url: image, alt: post.title }] }),
     },
@@ -50,8 +50,8 @@ export default async function BlogPostPage({ params }: PageProps) {
     dateModified: post.updatedAt,
     inLanguage: 'hr',
     mainEntityOfPage: `${siteUrl}/blog/${post.slug}`,
-    author: { '@type': 'Organization', name: 'Bebina Lista' },
-    publisher: { '@type': 'Organization', name: 'Bebina Lista' },
+    author: { '@type': 'Organization', name: 'Listica' },
+    publisher: { '@type': 'Organization', name: 'Listica' },
   }
 
   return (
@@ -76,9 +76,9 @@ export default async function BlogPostPage({ params }: PageProps) {
           <BlogContent content={post.content} products={post.products ?? []} />
 
           <aside className="mt-12 rounded-4xl bg-mint-soft p-6 sm:p-8">
-            <p className="font-display text-2xl font-extrabold tracking-tight">Napravi listu prije nego što te počnu pitati.</p>
-            <p className="mt-2 text-muted">Upiši što ti treba, pošalji link obitelji i prijateljima, a oni vide što je već zauzeto. Besplatno je.</p>
-            <Link href="/registracija" className="btn btn-primary mt-5">Napravi listu</Link>
+            <p className="font-display text-2xl font-semibold tracking-tight">Napravi Listicu prije nego te krenu zivkati „što djetetu treba“.</p>
+            <p className="mt-2 text-muted">Upiši točno ono što ti treba, pošalji link obitelji i prijateljima. Besplatno je.</p>
+            <Link href="/registracija" className="btn btn-primary mt-5">Napravi Listicu</Link>
           </aside>
         </article>
 

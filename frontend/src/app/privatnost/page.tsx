@@ -24,7 +24,7 @@ export default function PrivatnostPage() {
               </p>
               <p className="mt-2">
                 Za sva pitanja vezana uz zaštitu osobnih podataka možete nas kontaktirati putem
-                e-maila na adresu: <strong>info@bebinalista.hr</strong>.
+                e-maila na adresu: <strong>info@listica.hr</strong>.
               </p>
             </section>
 
@@ -33,7 +33,7 @@ export default function PrivatnostPage() {
               <p>Prikupljamo sljedeće vrste osobnih podataka:</p>
               <ul className="list-disc pl-5 mt-2 space-y-1">
                 <li><strong>Podatci o računu:</strong> ime i prezime, e-mail adresa, lozinka (kriptirana).</li>
-                <li><strong>Podatci o listi:</strong> naziv liste, odabrani proizvodi, prioriteti, bilješke, prigoda (npr. rođenje, rođendan).</li>
+                <li><strong>Podatci o Listici:</strong> naziv Listice, odabrani proizvodi, prioriteti, bilješke, prigoda (npr. rođenje, rođendan).</li>
                 <li><strong>Podatci o bebi:</strong> planirani termin poroda, spol bebe (opcionalno).</li>
                 <li><strong>Podatci o rezervacijama:</strong> ime osobe koja rezervira poklon, opcionalna poruka.</li>
                 <li><strong>Tehnički podatci:</strong> IP adresa i vrsta preglednika, za sigurnost (ograničenje broja zahtjeva) i za statistiku posjeta opisanu u točki 6.</li>
@@ -45,9 +45,9 @@ export default function PrivatnostPage() {
               <p>Vaše podatke obrađujemo u sljedeće svrhe:</p>
               <ul className="list-disc pl-5 mt-2 space-y-1">
                 <li>Kreiranje i upravljanje korisničkim računom.</li>
-                <li>Omogućavanje kreiranja, dijeljenja i upravljanja listama poklona.</li>
+                <li>Omogućavanje kreiranja, dijeljenja i upravljanja Listicama poklona.</li>
                 <li>Slanje e-mail obavijesti o rezervacijama poklona.</li>
-                <li>Prikaz javne liste posjetiteljima kojima je podijeljen link.</li>
+                <li>Prikaz javne Listice posjetiteljima kojima je podijeljen link.</li>
                 <li>Poboljšanje usluge i korisničkog iskustva.</li>
               </ul>
             </section>
@@ -73,9 +73,9 @@ export default function PrivatnostPage() {
                 <li><strong>Pružatelj hostinga</strong> — za pohranu i posluživanje aplikacije i baze podataka.</li>
               </ul>
               <p className="mt-2">
-                Javna lista poklona vidljiva je svakome tko posjeduje link. Na javnoj listi
-                prikazuje se ime vlasnika liste, naziv liste, odabrani proizvodi i status
-                rezervacija. Ovu postavku možete promijeniti postavljanjem liste na privatnu.
+                Javna Listica poklona vidljiva je svakome tko posjeduje link. Na javnoj Listici
+                prikazuje se ime vlasnika Listice, naziv Listice, odabrani proizvodi i status
+                rezervacija. Ovu postavku možete promijeniti postavljanjem Listice na privatnu.
               </p>
             </section>
 
@@ -100,8 +100,8 @@ export default function PrivatnostPage() {
               </p>
               <p className="mt-2">
                 <strong>Odlazak u dućan.</strong> Kad kliknete na proizvod, link prolazi kroz naš poslužitelj koji zabilježi klik i
-                dućanu proslijedi oznake utm_source=bebinalista, utm_medium=referral i nasumičnu oznaku klika (bl_click). Dućan tako
-                u svojoj analitici vidi da ste došli s Bebine Liste i može nam javiti je li kupnja obavljena, bez ikakvih vaših osobnih podataka.
+                dućanu proslijedi oznake utm_source=listica, utm_medium=referral i nasumičnu oznaku klika (lc_click). Dućan tako
+                u svojoj analitici vidi da ste došli s Listice i može nam javiti je li kupnja obavljena, bez ikakvih vaših osobnih podataka.
               </p>
             </section>
 
@@ -117,9 +117,9 @@ export default function PrivatnostPage() {
                 <li><strong>Prigovor</strong> — uložiti prigovor na obradu podataka.</li>
               </ul>
               <p className="mt-2">
-                Račun i sve povezane liste možete sami trajno obrisati u postavkama profila („Obriši moj profil").
+                Račun i sve povezane Listice možete sami trajno obrisati u postavkama profila („Obriši moj profil").
                 Za ostvarivanje ostalih prava kontaktirajte nas na
-                <strong> info@bebinalista.hr</strong>.
+                <strong> info@listica.hr</strong>.
               </p>
             </section>
 
@@ -128,7 +128,7 @@ export default function PrivatnostPage() {
               <p>
                 Vaše podatke čuvamo dok god koristite uslugu. Po brisanju računa, svi
                 osobni podatci bit će trajno uklonjeni u roku od 30 dana.
-                Rezervacije koje su ostale na listama drugih korisnika bit će anonimizirane.
+                Rezervacije koje su ostale na Listicama drugih korisnika bit će anonimizirane.
               </p>
             </section>
 

@@ -1,5 +1,5 @@
 {
-  "name": "baby-registry-backend",
+  "name": "listica-backend",
   "version": "1.0.0",
   "scripts": {
     "build": "npx prisma generate",

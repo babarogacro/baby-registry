@@ -213,7 +213,7 @@ model AnalyticsEvent {
   @@index([listId])
 }
 
-// A purchase a shop reports back for a click it received from us (click id in bl_click).
+// A purchase a shop reports back for a click it received from us (click id in lc_click).
 model Conversion {
   id         String   @id @default(cuid())
   shopSlug   String

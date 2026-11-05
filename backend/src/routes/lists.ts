@@ -68,7 +68,7 @@ listsRouter.get('/:id', async (req: AuthRequest, res) => {
       where: { id: req.params.id, userId: req.userId! },
       include: { items: { include: listItemInclude, orderBy: itemOrder } },
     })
-    if (!list) return res.status(404).json({ error: 'Lista nije pronađena' })
+    if (!list) return res.status(404).json({ error: 'Listica nije pronađena' })
     res.json(list)
   } catch { res.status(500).json({ error: 'Greška na serveru' }) }
 })
@@ -84,7 +84,7 @@ listsRouter.patch('/:id', async (req: AuthRequest, res) => {
     }).parse(req.body)
 
     const updated = await prisma.babyList.updateMany({ where: { id: req.params.id, userId: req.userId! }, data })
-    if (updated.count === 0) return res.status(404).json({ error: 'Lista nije pronađena' })
+    if (updated.count === 0) return res.status(404).json({ error: 'Listica nije pronađena' })
     res.json(await prisma.babyList.findUnique({ where: { id: req.params.id } }))
   } catch (err) {
     if (err instanceof z.ZodError) return res.status(400).json({ error: firstIssue(err) })
@@ -95,7 +95,7 @@ listsRouter.patch('/:id', async (req: AuthRequest, res) => {
 listsRouter.delete('/:id', async (req: AuthRequest, res) => {
   try {
     const deleted = await prisma.babyList.deleteMany({ where: { id: req.params.id, userId: req.userId! } })
-    if (deleted.count === 0) return res.status(404).json({ error: 'Lista nije pronađena' })
+    if (deleted.count === 0) return res.status(404).json({ error: 'Listica nije pronađena' })
     res.json({ success: true })
   } catch { res.status(500).json({ error: 'Greška na serveru' }) }
 })
@@ -119,7 +119,7 @@ listsRouter.post('/:id/items', async (req: AuthRequest, res) => {
       note: itemNote.optional(),
     }).parse(req.body)
 
-    if (!(await findOwnedList(req.params.id, req.userId!))) return res.status(404).json({ error: 'Lista nije pronađena' })
+    if (!(await findOwnedList(req.params.id, req.userId!))) return res.status(404).json({ error: 'Listica nije pronađena' })
 
     let productId = data.productId
     if (productId) {
@@ -145,7 +145,7 @@ listsRouter.post('/:id/items', async (req: AuthRequest, res) => {
     if (!productId) return res.status(400).json({ error: 'productId ili customProduct je obavezan' })
 
     const existing = await prisma.listItem.findFirst({ where: { listId: req.params.id, productId } })
-    if (existing) return res.status(409).json({ error: 'Proizvod je već na listi' })
+    if (existing) return res.status(409).json({ error: 'Proizvod je već na Listici' })
 
     const item = await prisma.listItem.create({
       data: { productId, priority: data.priority, note: data.note || null, listId: req.params.id },
@@ -245,7 +245,7 @@ listsRouter.patch('/:id/items/:itemId', async (req: AuthRequest, res) => {
       note: itemNote.nullable().optional(),
     }).parse(req.body)
 
-    if (!(await findOwnedList(req.params.id, req.userId!))) return res.status(404).json({ error: 'Lista nije pronađena' })
+    if (!(await findOwnedList(req.params.id, req.userId!))) return res.status(404).json({ error: 'Listica nije pronađena' })
     const updated = await prisma.listItem.updateMany({
       where: { id: req.params.itemId, listId: req.params.id },
       data: { priority: data.priority, note: data.note === undefined ? undefined : data.note || null },
@@ -260,7 +260,7 @@ listsRouter.patch('/:id/items/:itemId', async (req: AuthRequest, res) => {
 
 listsRouter.delete('/:id/items/:itemId', async (req: AuthRequest, res) => {
   try {
-    if (!(await findOwnedList(req.params.id, req.userId!))) return res.status(404).json({ error: 'Lista nije pronađena' })
+    if (!(await findOwnedList(req.params.id, req.userId!))) return res.status(404).json({ error: 'Listica nije pronađena' })
     const deleted = await prisma.listItem.deleteMany({ where: { id: req.params.itemId, listId: req.params.id } })
     if (deleted.count === 0) return res.status(404).json({ error: 'Stavka nije pronađena' })
     res.json({ success: true })
@@ -270,7 +270,7 @@ listsRouter.delete('/:id/items/:itemId', async (req: AuthRequest, res) => {
 // List owner frees up an item someone reserved (e.g. the friend changed their mind).
 listsRouter.delete('/:id/items/:itemId/reservation', async (req: AuthRequest, res) => {
   try {
-    if (!(await findOwnedList(req.params.id, req.userId!))) return res.status(404).json({ error: 'Lista nije pronađena' })
+    if (!(await findOwnedList(req.params.id, req.userId!))) return res.status(404).json({ error: 'Listica nije pronađena' })
     const deleted = await prisma.reservation.deleteMany({
       where: { listItem: { id: req.params.itemId, listId: req.params.id } },
     })

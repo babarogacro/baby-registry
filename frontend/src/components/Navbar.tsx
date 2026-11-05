@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { AnimatePresence, m } from 'motion/react'
 import { useAuthStore, leaveToHome } from '@/lib/store'
 import { setTheme, useTheme } from '@/lib/theme'
-import Logo from '@/components/Logo'
+import Logo, { LogoSymbol, Wordmark } from '@/components/Logo'
 import { LogOut, Menu, Moon, Shield, Sun, X } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -85,14 +85,14 @@ export default function Navbar() {
 
   const links = [
     { href: '/katalog', label: 'Katalog' },
-    { href: '/pronadi-listu', label: 'Pronađi listu' },
+    { href: '/pronadi-listu', label: 'Pronađi Listicu' },
     { href: '/blog', label: 'Blog' },
     ...(user?.role === 'ADMIN' ? [{ href: '/admin', label: 'Admin' }] : []),
   ]
 
   const mobileLinks = [
     ...links,
-    ...(user ? [{ href: '/moja-lista', label: 'Moja lista' }, { href: '/profil', label: 'Profil' }] : [{ href: '/prijava', label: 'Prijava' }, { href: '/registracija', label: 'Napravi listu' }]),
+    ...(user ? [{ href: '/moja-lista', label: 'Moja Listica' }, { href: '/profil', label: 'Profil' }] : [{ href: '/prijava', label: 'Prijava' }, { href: '/registracija', label: 'Napravi Listicu' }]),
   ]
 
   return (
@@ -128,12 +128,12 @@ export default function Navbar() {
                   {user.name.charAt(0).toUpperCase()}
                 </Link>
                 <button onClick={handleLogout} aria-label="Odjava" title="Odjava" className="icon-btn text-muted"><LogOut size={18} /></button>
-                <Link href="/moja-lista" className="btn btn-sm btn-ink ml-1">Moja lista</Link>
+                <Link href="/moja-lista" className="btn btn-sm btn-ink ml-1">Moja Listica</Link>
               </div>
             ) : (
               <div className="hidden items-center gap-1 md:flex">
                 <Link href="/prijava" className="rounded-full px-4 py-2.5 text-[15px] font-semibold text-muted transition-colors hover:text-ink">Prijava</Link>
-                <Link href="/registracija" className="btn btn-sm btn-ink">Napravi listu</Link>
+                <Link href="/registracija" className="btn btn-sm btn-ink">Napravi Listicu</Link>
               </div>
             )}
             <button className="icon-btn md:hidden" onClick={() => setMenuOpen(true)} aria-label="Otvori izbornik" aria-expanded={menuOpen} aria-controls="mobile-menu">
@@ -150,7 +150,10 @@ export default function Navbar() {
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.15 } }}
             className="fixed inset-0 z-modal flex flex-col overflow-y-auto bg-coal px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] text-white md:hidden">
             <div className="flex items-center justify-between">
-              <span className="font-display text-xl font-extrabold tracking-tight">bebina lista</span>
+              <span className="flex items-center gap-2">
+                <LogoSymbol className="h-8 w-8" />
+                <Wordmark className="text-[1.6rem] text-white" />
+              </span>
               <button autoFocus onClick={() => setMenuOpen(false)} aria-label="Zatvori izbornik" className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10"><X size={22} /></button>
             </div>
             <m.ul className="mt-10 flex-1 space-y-1" initial="hidden" animate="show" variants={{ show: { transition: { staggerChildren: 0.05 } } }}>

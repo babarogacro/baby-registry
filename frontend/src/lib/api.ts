@@ -37,8 +37,8 @@ export function apiError(err: unknown, fallback = 'Nešto je pošlo po krivu. Po
 export function addRefToUrl(url: string): string {
   try {
     const u = new URL(url)
-    u.searchParams.set('ref', 'bebinalista')
-    u.searchParams.set('utm_source', 'bebinalista')
+    u.searchParams.set('ref', 'listica')
+    u.searchParams.set('utm_source', 'listica')
     u.searchParams.set('utm_medium', 'wishlist')
     return u.toString()
   } catch {

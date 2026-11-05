@@ -1,6 +1,7 @@
 import type { Tone } from '@/lib/categories'
 
-const LIST_TONES: Tone[] = ['sun', 'sky', 'mint', 'bubble']
+// Gender-neutral only: no pink or baby blue, since a list is for a boy as often as for a girl.
+const LIST_TONES: Tone[] = ['sun', 'mint', 'tomato']
 
 /** Every list keeps one colour, derived from its link, so the page and its share image always match. */
 export function listTone(slug: string): Tone {
@@ -9,10 +10,10 @@ export function listTone(slug: string): Tone {
 
 /** Light-theme colours of the list tones, for places without CSS variables (share images). */
 export const TONE_HEX: Record<string, string> = {
-  sun: '#FFC933',
+  sun: '#FFC83D',
   sky: '#97D4FF',
-  mint: '#28C892',
-  bubble: '#FF9EC7',
-  tomato: '#FF5A36',
-  cobalt: '#2F4BFF',
+  mint: '#19B38E',
+  bubble: '#FF9FCE',
+  tomato: '#FF5A2E',
+  cobalt: '#2F57F0',
 }

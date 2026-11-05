@@ -49,7 +49,7 @@ function PrijavaForm() {
   }
 
   return (
-    <AuthShell headline={<>Vidi što je<br />novo na listi.</>} sub="Prijavi se i provjeri tko je što rezervirao.">
+    <AuthShell headline={<>Vidi što je<br />novo na Listici.</>} sub="Prijavi se i provjeri tko je što rezervirao.">
       <h1 className="display text-5xl">Prijava</h1>
       <p className="mb-7 mt-3 text-muted">
         Nemaš profil?{' '}

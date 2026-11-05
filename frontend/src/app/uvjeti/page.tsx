@@ -18,7 +18,7 @@ export default function UvjetiPage() {
             <section>
               <h2>1. O usluzi</h2>
               <p>
-                Bebina Lista je besplatna online platforma za kreiranje i dijeljenje lista
+                Listica je besplatna online platforma za kreiranje i dijeljenje Listica
                 željenih poklona za bebe i djecu. Uslugu pruža <strong>Babaroga</strong>,
                 vl. Tvrtko Kračun, OIB: 72128351309, Poljski put 16, 53291 Novalja, Hrvatska.
               </p>
@@ -30,11 +30,11 @@ export default function UvjetiPage() {
 
             <section>
               <h2>2. Opis usluge</h2>
-              <p>Bebina Lista omogućuje korisnicima:</p>
+              <p>Listica omogućuje korisnicima:</p>
               <ul className="list-disc pl-5 mt-2 space-y-1">
-                <li>Kreiranje lista željenih poklona za rođenje djeteta, rođendan ili drugu prigodu.</li>
+                <li>Kreiranje Listica željenih poklona za rođenje djeteta, rođendan ili drugu prigodu.</li>
                 <li>Pretraživanje kataloga proizvoda prikupljenih iz javno dostupnih internetskih trgovina.</li>
-                <li>Dijeljenje lista putem jedinstvenog linka s obitelji i prijateljima.</li>
+                <li>Dijeljenje Listica putem jedinstvenog linka s obitelji i prijateljima.</li>
                 <li>Rezervaciju poklona od strane posjetitelja bez potrebe za registracijom.</li>
                 <li>E-mail obavijesti o izvršenim rezervacijama.</li>
               </ul>
@@ -43,7 +43,7 @@ export default function UvjetiPage() {
             <section>
               <h2>3. Registracija i korisnički račun</h2>
               <p>
-                Za korištenje usluge kreacije lista potrebna je registracija putem e-maila
+                Za korištenje usluge kreacije Listica potrebna je registracija putem e-maila
                 ili Google računa. Korisnik je odgovoran za točnost unesenih podataka i
                 čuvanje pristupnih podataka.
               </p>
@@ -56,7 +56,7 @@ export default function UvjetiPage() {
             <section>
               <h2>4. Kupovina proizvoda</h2>
               <p>
-                Bebina Lista <strong>ne prodaje proizvode</strong> niti ne posreduje u kupovini.
+                Listica <strong>ne prodaje proizvode</strong> niti ne posreduje u kupovini.
                 Svi proizvodi prikazani na platformi dolaze iz vanjskih internetskih trgovina
                 (npr. BabyCenter.hr). Klikom na proizvod, korisnik se preusmjerava na web
                 stranicu trgovine gdje se vrši kupovina.
@@ -72,17 +72,17 @@ export default function UvjetiPage() {
               <p>
                 Rezervacija poklona na platformi <strong>nije obvezujući ugovor o kupovini</strong>.
                 To je neformalna oznaka namjere kupovine kako bi se izbjeglo dupliciranje poklona.
-                Bebina Lista ne može garantirati da će rezervirani poklon biti kupljen.
+                Listica ne može garantirati da će rezervirani poklon biti kupljen.
               </p>
             </section>
 
             <section>
-              <h2>6. Javne liste</h2>
+              <h2>6. Javne Listice</h2>
               <p>
-                Liste su prema zadanim postavkama javne i dostupne svakome tko posjeduje
-                jedinstveni link. Korisnik može promijeniti vidljivost liste u postavkama.
-                Dijeleći link na svoju listu, korisnik pristaje da podaci prikazani na
-                javnoj listi (ime, naziv liste, proizvodi) budu vidljivi posjetiteljima.
+                Listice su prema zadanim postavkama javne i dostupne svakome tko posjeduje
+                jedinstveni link. Korisnik može promijeniti vidljivost Listice u postavkama.
+                Dijeleći link na svoju Listicu, korisnik pristaje da podaci prikazani na
+                javnoj Listici (ime, naziv Listice, proizvodi) budu vidljivi posjetiteljima.
               </p>
             </section>
 
@@ -101,7 +101,7 @@ export default function UvjetiPage() {
             <section>
               <h2>8. Intelektualno vlasništvo</h2>
               <p>
-                Dizajn, kod i sadržaj platforme Bebina Lista zaštićeni su autorskim pravima.
+                Dizajn, kod i sadržaj platforme Listica zaštićeni su autorskim pravima.
                 Slike i opisi proizvoda vlasništvo su odgovarajućih trgovina i koriste se
                 isključivo u informativne svrhe.
               </p>
@@ -110,7 +110,7 @@ export default function UvjetiPage() {
             <section>
               <h2>9. Ograničenje odgovornosti</h2>
               <p>
-                Bebina Lista pruža se &quot;kakva jest&quot; (as-is). Ne garantiramo neprekidnu
+                Listica pruža se &quot;kakva jest&quot; (as-is). Ne garantiramo neprekidnu
                 dostupnost, točnost cijena ili dostupnost proizvoda u vanjskim trgovinama.
               </p>
               <p className="mt-2">
@@ -158,7 +158,7 @@ export default function UvjetiPage() {
                 <strong>Babaroga</strong>, vl. Tvrtko Kračun<br />
                 Poljski put 16, 53291 Novalja<br />
                 OIB: 72128351309<br />
-                E-mail: <strong>info@bebinalista.hr</strong>
+                E-mail: <strong>info@listica.hr</strong>
               </p>
             </section>
           </div>

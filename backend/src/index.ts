@@ -62,7 +62,7 @@ app.use((err: Error & { status?: number; type?: string }, _req: Request, res: Re
 })
 
 app.listen(PORT, async () => {
-  console.log(`🚀 Baby Registry API na http://localhost:${PORT}`)
+  console.log(`🚀 Listica API na http://localhost:${PORT}`)
   scheduleScraper()
 
   // Ensure all shops exist in DB so they show in admin panel
@@ -80,6 +80,46 @@ app.listen(PORT, async () => {
 
   // Products saved before the "mixed" catalog order existed have no place in it yet.
   await prisma.$executeRaw`UPDATE "Product" SET "sortKey" = random() WHERE "sortKey" IS NULL`.catch(() => {})
+
+  // The project was renamed from "Bebina lista" to "Listica" (November 2026). Rewrite the old name in texts
+  // the admin wrote (settings, blog posts) in all its Croatian cases. Slugs stay, so published links keep working.
+  // Idempotent: after the first run nothing matches any more.
+  const RENAME: [string, string][] = [
+    ['bebinalista\\.hr', 'listica.hr'],
+    ['bebina\\s+lista', 'Listica'],
+    ['bebine\\s+liste', 'Listice'],
+    ['bebinoj\\s+listi', 'Listici'],
+    ['bebinu\\s+listu', 'Listicu'],
+    ['bebinom\\s+listom', 'Listicom'],
+  ]
+  for (const [from, to] of RENAME) {
+    await prisma.$executeRaw`UPDATE "AppSetting" SET value = regexp_replace(value, ${from}, ${to}, 'gi') WHERE value ~* ${from}`.catch(() => {})
+    await prisma.$executeRaw`UPDATE "BlogPost" SET
+      title = regexp_replace(title, ${from}, ${to}, 'gi'),
+      excerpt = regexp_replace(excerpt, ${from}, ${to}, 'gi'),
+      content = regexp_replace(content, ${from}, ${to}, 'gi'),
+      "seoTitle" = regexp_replace("seoTitle", ${from}, ${to}, 'gi'),
+      "seoDescription" = regexp_replace("seoDescription", ${from}, ${to}, 'gi')
+      WHERE title ~* ${from} OR excerpt ~* ${from} OR content ~* ${from} OR "seoTitle" ~* ${from} OR "seoDescription" ~* ${from}`.catch(() => {})
+  }
+
+  // Once: the product's lists are called "Listica" now, so names made from the old default or placeholder
+  // ("Lista za bebu", "Rođendanska lista", "Lista za Mateja") follow, in every case. A flag keeps it to one run,
+  // so a name someone types with "lista" later stays as they wrote it.
+  const LIST_NAMES_FLAG = 'migration:listica-list-names'
+  const done = await prisma.appSetting.findUnique({ where: { key: LIST_NAMES_FLAG } }).catch(() => null)
+  if (!done) {
+    try {
+      const FORMS: [string, string][] = [['lista', 'Listica'], ['liste', 'Listice'], ['listi', 'Listici'], ['listu', 'Listicu'], ['listom', 'Listicom'], ['listama', 'Listicama']]
+      for (const [from, to] of FORMS) {
+        const re = `\\m${from}\\M`
+        await prisma.$executeRaw`UPDATE "BabyList" SET name = regexp_replace(name, ${re}, ${to}, 'gi') WHERE name ~* ${re}`
+      }
+      await prisma.appSetting.create({ data: { key: LIST_NAMES_FLAG, value: new Date().toISOString() } })
+    } catch (err) {
+      console.error('Preimenovanje naziva lista nije uspjelo:', err)
+    }
+  }
 
   // A restart kills any scrape in progress; don't leave it marked as running forever.
   await prisma.scrapedShop.updateMany({

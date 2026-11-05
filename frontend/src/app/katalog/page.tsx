@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import KatalogClient from './KatalogClient'
 
 export const metadata: Metadata = {
-  title: 'Katalog | Bebina Lista',
+  title: 'Katalog | Listica',
   description: 'Tisuće proizvoda za bebe iz hrvatskih dućana na jednom mjestu: kolica, autosjedalice, nosiljke, igračke i još mnogo toga. Filtriraj po dućanu, kategoriji, brendu i cijeni.',
   alternates: { canonical: '/katalog' },
 }

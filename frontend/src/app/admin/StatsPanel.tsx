@@ -50,7 +50,7 @@ const shortDate = (iso: string) => { const [, m, d] = iso.split('-'); return `${
 
 const OCCASION_LABEL: Record<string, string> = { birth: 'Rođenje', birthday: 'Dječji rođendan', other: 'Ostalo', 'bez prigode': 'Bez prigode' }
 const DEVICE_LABEL: Record<string, string> = { mobile: 'Mobitel', desktop: 'Računalo', tablet: 'Tablet' }
-const SOURCE_LABEL: Record<string, string> = { katalog: 'Katalog', lista: 'Javna lista (gosti)', 'moja-lista': 'Moje liste (roditelji)', naslovnica: 'Naslovnica', blog: 'Blog', dodaj: 'Dodavanje' }
+const SOURCE_LABEL: Record<string, string> = { katalog: 'Katalog', lista: 'Javna Listica (gosti)', 'moja-lista': 'Moje Listice (roditelji)', naslovnica: 'Naslovnica', blog: 'Blog', dodaj: 'Dodavanje' }
 
 type Range = '7' | '30' | '90' | '365' | 'custom'
 type Metric = 'visits' | 'pageviews' | 'reservations' | 'purchased' | 'clicks' | 'items' | 'lists' | 'users'
@@ -58,10 +58,10 @@ const METRICS: { value: Metric; label: string }[] = [
   { value: 'visits', label: 'Posjeti' },
   { value: 'pageviews', label: 'Prikazi' },
   { value: 'clicks', label: 'Klikovi u dućan' },
-  { value: 'items', label: 'Dodano na liste' },
+  { value: 'items', label: 'Dodano na Listice' },
   { value: 'reservations', label: 'Rezervacije' },
   { value: 'purchased', label: 'Kupljeno' },
-  { value: 'lists', label: 'Nove liste' },
+  { value: 'lists', label: 'Nove Listice' },
   { value: 'users', label: 'Novi korisnici' },
 ]
 
@@ -177,12 +177,12 @@ function ConversionKeys({ shops, onUpdate }: { shops: Shop[]; onUpdate: (slug: s
 
   return (
     <Section title="Javljanje kupnji iz dućana"
-      note="Svaki klik u dućan nosi oznaku bl_click. Dućan koji želi javljati kupnje dobiva svoj ključ i na stranici zahvale pošalje kupnju na jedan od ova dva načina. Novi ključ poništava stari.">
+      note="Svaki klik u dućan nosi oznaku lc_click. Dućan koji želi javljati kupnje dobiva svoj ključ i na stranici zahvale pošalje kupnju na jedan od ova dva načina. Novi ključ poništava stari.">
       <ul className="space-y-3">
         {shops.map(shop => {
           const key = shop.conversionKey
-          const pixel = key ? `<img src="${API_URL}/conversions/pixel.gif?key=${key}&click={bl_click}&order={broj_narudzbe}&value={iznos}" width="1" height="1" alt="">` : ''
-          const post = key ? `POST ${API_URL}/conversions\nx-shop-key: ${key}\n{"click":"{bl_click}","order":"{broj_narudzbe}","value":{iznos}}` : ''
+          const pixel = key ? `<img src="${API_URL}/conversions/pixel.gif?key=${key}&click={lc_click}&order={broj_narudzbe}&value={iznos}" width="1" height="1" alt="">` : ''
+          const post = key ? `POST ${API_URL}/conversions\nx-shop-key: ${key}\n{"click":"{lc_click}","order":"{broj_narudzbe}","value":{iznos}}` : ''
           return (
             <li key={shop.slug} className="rounded-2xl border border-line/10 p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -266,7 +266,7 @@ export default function StatsPanel() {
       const url = URL.createObjectURL(res.data)
       const a = document.createElement('a')
       a.href = url
-      a.download = `bebina-lista-statistike-${from}-${to}${shop ? `-${shop}` : ''}.pdf`
+      a.download = `listica-statistike-${from}-${to}${shop ? `-${shop}` : ''}.pdf`
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -336,18 +336,18 @@ export default function StatsPanel() {
           </Section>
 
           <div className="grid gap-5 lg:grid-cols-2">
-            <Section title="Korisnici i liste">
+            <Section title="Korisnici i Listice">
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 <Tile label="Novi korisnici" value={nf.format(s.users.new)} hint={`ukupno ${nf.format(s.users.total)}`} />
-                <Tile label="Korisnika s listom" value={nf.format(s.users.withList)} hint={s.users.total ? `${pct(s.users.withList / s.users.total)} svih` : undefined} />
-                <Tile label="Nove liste" value={nf.format(s.lists.new)} hint={`ukupno ${nf.format(s.lists.total)}`} />
-                <Tile label="Proizvoda po listi" value={dec(s.lists.itemsPerList.avg)} hint={`medijan ${nf.format(s.lists.itemsPerList.median)}`} />
-                <Tile label="Prikazi javnih lista" value={nf.format(s.lists.views)} hint={`${nf.format(s.lists.viewedLists)} različitih lista`} />
+                <Tile label="Korisnika s Listicom" value={nf.format(s.users.withList)} hint={s.users.total ? `${pct(s.users.withList / s.users.total)} svih` : undefined} />
+                <Tile label="Nove Listice" value={nf.format(s.lists.new)} hint={`ukupno ${nf.format(s.lists.total)}`} />
+                <Tile label="Proizvoda po Listici" value={dec(s.lists.itemsPerList.avg)} hint={`medijan ${nf.format(s.lists.itemsPerList.median)}`} />
+                <Tile label="Prikazi javnih Listica" value={nf.format(s.lists.views)} hint={`${nf.format(s.lists.viewedLists)} različitih Listica`} />
                 <Tile label="Dijeljenja" value={nf.format(s.engagement.shares)} hint="otvoren prozor Podijeli" />
               </div>
               <div className="mt-5 grid gap-5 sm:grid-cols-2">
                 <div>
-                  <p className="mb-2 text-sm font-bold">Proizvoda na listi</p>
+                  <p className="mb-2 text-sm font-bold">Proizvoda na Listici</p>
                   <Bars rows={s.lists.itemsPerList.buckets.map(b => ({ label: b.name, value: b.count ?? 0 }))} />
                 </div>
                 <div>
@@ -359,16 +359,16 @@ export default function StatsPanel() {
 
             <Section title="Pokloni" note={shop ? `Samo proizvodi iz dućana ${shopName}.` : undefined}>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <Tile label="Dodano na liste" value={nf.format(s.items.added)} hint={eur(s.items.addedValue)} />
+                <Tile label="Dodano na Listice" value={nf.format(s.items.added)} hint={eur(s.items.addedValue)} />
                 <Tile label="Rezervirano" value={nf.format(s.reservations.count)} hint={eur(s.reservations.value)} />
                 <Tile label="Kupljeno" value={nf.format(s.reservations.purchased)} hint={eur(s.reservations.purchasedValue)} />
                 <Tile label="Skupljanja zajedno" value={nf.format(s.reservations.groupBuys)} hint={`${nf.format(s.reservations.groupContributors)} sudionika`} />
                 <Tile label="Upisano u skupljanjima" value={eur(s.reservations.groupPledged)} />
-                <Tile label="Na listama ukupno" value={nf.format(s.items.total)} hint={`${nf.format(s.reservations.total)} rezervirano`} />
+                <Tile label="Na Listicama ukupno" value={nf.format(s.items.total)} hint={`${nf.format(s.reservations.total)} rezervirano`} />
               </div>
-              <p className="mb-2 mt-5 text-sm font-bold">Od otvaranja liste do kupnje</p>
+              <p className="mb-2 mt-5 text-sm font-bold">Od otvaranja Listice do kupnje</p>
               <Bars rows={[
-                { label: 'Posjeti javnim listama', value: s.lists.listVisits },
+                { label: 'Posjeti javnim Listicama', value: s.lists.listVisits },
                 { label: 'Klik na Rezerviraj', value: s.reservations.starts },
                 { label: 'Rezervirano', value: s.reservations.count },
                 { label: 'Označeno kao kupljeno', value: s.reservations.purchased },
@@ -376,12 +376,12 @@ export default function StatsPanel() {
             </Section>
           </div>
 
-          <Section title="Odlasci u dućan" note="Svaki link prema dućanu ide preko nas s oznakama utm_source=bebinalista i utm_medium=referral, pa dućan taj promet vidi u svom Google Analyticsu kao Referral iz izvora bebinalista.">
+          <Section title="Odlasci u dućan" note="Svaki link prema dućanu ide preko nas s oznakama utm_source=listica i utm_medium=referral, pa dućan taj promet vidi u svom Google Analyticsu kao Referral iz izvora listica.">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <Tile label="Klikovi u dućan" value={nf.format(s.outbound.clicks)} />
               <Tile label="Posjeta s klikom u dućan" value={pct(s.outbound.clickRate)} />
               <Tile label="Kupnje koje su javili dućani" value={nf.format(s.conversions.count)} hint={eur(s.conversions.value)} />
-              <Tile label="Povezano s našim klikom" value={nf.format(s.conversions.matched)} hint="kupnja nosi bl_click" />
+              <Tile label="Povezano s našim klikom" value={nf.format(s.conversions.matched)} hint="kupnja nosi lc_click" />
             </div>
             <div className="mt-5 grid gap-5 lg:grid-cols-2">
               <div>
@@ -441,7 +441,7 @@ export default function StatsPanel() {
             </Section>
             <Section title="Uređaji i pretraga">
               <Bars rows={s.traffic.devices.map(d => ({ label: DEVICE_LABEL[d.name] ?? d.name, value: d.visits ?? 0 }))} />
-              <p className="mb-2 mt-5 text-sm font-bold">Pronađi listu</p>
+              <p className="mb-2 mt-5 text-sm font-bold">Pronađi Listicu</p>
               <Bars rows={[
                 { label: 'Pretrage', value: s.engagement.searches },
                 { label: 'Bez rezultata', value: s.engagement.emptySearches },

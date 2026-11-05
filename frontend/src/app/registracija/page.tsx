@@ -65,7 +65,7 @@ function RegistracijaForm() {
   }
 
   return (
-    <AuthShell headline={<>Registracija<br />traje pola minute.</>} sub="Besplatno je. Kad napraviš listu, šalješ je obitelji i prijateljima jednim linkom.">
+    <AuthShell headline={<>Registracija<br />traje pola minute.</>} sub="Besplatno je. Kad napraviš Listicu, šalješ je obitelji i prijateljima jednim linkom.">
       <h1 className="display text-5xl">Registracija</h1>
       <p className="mb-7 mt-3 text-muted">Već imaš profil? <Link href="/prijava" className="font-semibold text-ink underline underline-offset-2">Prijavi se</Link></p>
 
@@ -95,7 +95,7 @@ function RegistracijaForm() {
           </div>
         </div>
         <fieldset>
-          <legend className="field-label">Za što je lista?</legend>
+          <legend className="field-label">Za što je Listica?</legend>
           <div className="grid grid-cols-2 gap-2">
             {OCCASIONS.map(o => (
               <button key={o.value} type="button" aria-pressed={form.occasion === o.value}

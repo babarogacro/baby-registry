@@ -1,0 +1,12 @@
+{
+  "name": "fredoka-hr",
+  "private": true,
+  "description": "Adds the Croatian letters Fredoka lacks (c caron, c acute, d stroke) for the Listica brand font",
+  "scripts": {
+    "build": "node build.cjs Fredoka-600.ttf out"
+  },
+  "dependencies": {
+    "opentype.js": "1.3.4",
+    "paper": "0.12.18"
+  }
+}

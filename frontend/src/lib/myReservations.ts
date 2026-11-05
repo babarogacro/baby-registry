@@ -6,12 +6,21 @@ export interface MyReservation {
   contributorId?: string
 }
 
-const KEY = 'bebina-lista:my-reservations'
+const KEY = 'listica:my-reservations'
+// Before the rename to Listica; guests who reserved earlier must keep their cancel/purchased tokens.
+const OLD_KEY = 'bebina-lista:my-reservations'
 
 type Store = Record<string, MyReservation>
 
 function read(): Store {
   try {
+    const old = localStorage.getItem(OLD_KEY)
+    if (old !== null) {
+      const merged = { ...(JSON.parse(old) as Store), ...(JSON.parse(localStorage.getItem(KEY) || '{}') as Store) }
+      localStorage.setItem(KEY, JSON.stringify(merged))
+      localStorage.removeItem(OLD_KEY)
+      return merged
+    }
     return JSON.parse(localStorage.getItem(KEY) || '{}') as Store
   } catch {
     return {}

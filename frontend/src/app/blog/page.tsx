@@ -9,7 +9,7 @@ import { blogDate, blogImageUrl } from '@/lib/blog'
 export const revalidate = 60
 
 export const metadata: Metadata = {
-  title: 'Blog | Bebina Lista',
+  title: 'Blog | Listica',
   description: 'Savjeti o opremi za bebu, listama želja, baby showeru i dječjim rođendanima: što stvarno treba, što može čekati i kako izbjeći duple poklone.',
   alternates: { canonical: '/blog' },
 }
@@ -27,7 +27,7 @@ export default async function BlogPage() {
           <header className="max-w-2xl py-10">
             <p className="note text-tomato-ink">što ti fali?</p>
             <h1 className="display mt-2 text-[2.9rem] sm:text-6xl">Blog</h1>
-            <p className="mt-3 text-lg text-muted">Što stvarno treba za bebu, što može čekati i kako složiti listu da se pokloni ne ponavljaju.</p>
+            <p className="mt-3 text-lg text-muted">Što stvarno treba za bebu, što može čekati i kako složiti Listicu da se pokloni ne ponavljaju.</p>
           </header>
 
           {posts.length === 0 ? (

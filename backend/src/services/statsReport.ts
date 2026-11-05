@@ -7,8 +7,8 @@ const FONTS = join(process.cwd(), 'assets', 'fonts')
 const INK = '#1E1537'
 const MUTED = '#625978'
 const LINE = '#E6E1F2'
-const BAR = '#2F4BFF'
-const SOFT = '#F6F0E4'
+const BAR = '#2F57F0'
+const SOFT = '#FFF3E0'
 
 const nf = new Intl.NumberFormat('hr-HR')
 const num = (v: number, digits = 0) => new Intl.NumberFormat('hr-HR', { maximumFractionDigits: digits, minimumFractionDigits: digits }).format(v)
@@ -24,10 +24,11 @@ const hrDate = (iso: string) => {
 }
 
 export function renderStatsPdf(stats: Stats, shopName: string | null): PDFKit.PDFDocument {
-  const doc = new PDFDocument({ size: 'A4', margin: 48, info: { Title: 'Bebina Lista: statistike', Author: 'Bebina Lista' } })
-  doc.registerFont('display', join(FONTS, 'BricolageGrotesque-ExtraBold.ttf'))
-  doc.registerFont('sans', join(FONTS, 'Figtree-SemiBold.ttf'))
-  doc.registerFont('bold', join(FONTS, 'Figtree-ExtraBold.ttf'))
+  const doc = new PDFDocument({ size: 'A4', margin: 48, info: { Title: 'Listica: statistike', Author: 'Listica' } })
+  // Brand fonts: Fredoka 600 (with č ć đ added) for headings and numbers, Nunito for text.
+  doc.registerFont('display', join(FONTS, 'Fredoka-HR-600.otf'))
+  doc.registerFont('sans', join(FONTS, 'Nunito-400.ttf'))
+  doc.registerFont('bold', join(FONTS, 'Nunito-800.ttf'))
 
   const left = doc.page.margins.left
   const width = doc.page.width - left - doc.page.margins.right
@@ -107,7 +108,7 @@ export function renderStatsPdf(stats: Stats, shopName: string | null): PDFKit.PD
   }
 
   // Header
-  doc.font('bold').fontSize(10).fillColor('#28C892').text('BEBINA LISTA', left, 48, { characterSpacing: 1.5 })
+  doc.font('bold').fontSize(10).fillColor('#0B7A5E').text('LISTICA', left, 48, { characterSpacing: 1.5 })
   doc.font('display').fontSize(28).fillColor(INK).text('Statistike', left, doc.y + 2)
   doc.font('sans').fontSize(11).fillColor(MUTED)
     .text(`${hrDate(stats.period.from)} do ${hrDate(stats.period.to)}  ·  ${shopName ? `Dućan: ${shopName}` : 'Svi dućani'}  ·  izrađeno ${new Date().toLocaleString('hr-HR', { timeZone: 'Europe/Zagreb' })}`)
@@ -127,22 +128,22 @@ export function renderStatsPdf(stats: Stats, shopName: string | null): PDFKit.PD
   ])
   barChart('Posjeti po danu', stats.series.map(s => ({ date: s.date, value: s.visits })))
 
-  heading('Korisnici i liste')
+  heading('Korisnici i Listice')
   tiles([
     ['Novi korisnici', nf.format(stats.users.new)],
     ['Korisnika ukupno', nf.format(stats.users.total)],
-    ['Korisnika s listom', nf.format(stats.users.withList)],
-    ['Nove liste', nf.format(stats.lists.new)],
-    ['Lista ukupno', nf.format(stats.lists.total)],
-    ['Proizvoda po listi (prosjek / medijan)', `${num(stats.lists.itemsPerList.avg, 1)} / ${num(stats.lists.itemsPerList.median, 0)}`],
-    ['Prikazi javnih lista', nf.format(stats.lists.views)],
-    ['Različitih lista otvoreno', nf.format(stats.lists.viewedLists)],
-    ['Dijeljenja liste', nf.format(stats.engagement.shares)],
+    ['Korisnika s Listicom', nf.format(stats.users.withList)],
+    ['Nove Listice', nf.format(stats.lists.new)],
+    ['Listica ukupno', nf.format(stats.lists.total)],
+    ['Proizvoda po Listici (prosjek / medijan)', `${num(stats.lists.itemsPerList.avg, 1)} / ${num(stats.lists.itemsPerList.median, 0)}`],
+    ['Prikazi javnih Listica', nf.format(stats.lists.views)],
+    ['Različitih Listica otvoreno', nf.format(stats.lists.viewedLists)],
+    ['Dijeljenja Listice', nf.format(stats.engagement.shares)],
   ])
 
   heading('Pokloni i kupnje')
   tiles([
-    ['Dodano na liste', nf.format(stats.items.added)],
+    ['Dodano na Listice', nf.format(stats.items.added)],
     ['Vrijednost dodanog', eur(stats.items.addedValue)],
     ['Klik na Rezerviraj', nf.format(stats.reservations.starts)],
     ['Rezervirano', nf.format(stats.reservations.count)],
@@ -176,7 +177,7 @@ export function renderStatsPdf(stats: Stats, shopName: string | null): PDFKit.PD
 
   heading('Proizvodi')
   table(['Najviše klikova u dućan', 'Dućan', 'Klikovi'], stats.top.clicked.map(p => [p.name, p.shop, nf.format(p.count)]), [0.62, 0.22, 0.16])
-  table(['Najčešće dodano na liste', 'Dućan', 'Puta'], stats.top.added.map(p => [p.name, p.shop, nf.format(p.count)]), [0.62, 0.22, 0.16])
+  table(['Najčešće dodano na Listice', 'Dućan', 'Puta'], stats.top.added.map(p => [p.name, p.shop, nf.format(p.count)]), [0.62, 0.22, 0.16])
   table(['Najčešće rezervirano', 'Dućan', 'Puta'], stats.top.reserved.map(p => [p.name, p.shop, nf.format(p.count)]), [0.62, 0.22, 0.16])
   table(['Kategorija', 'Dodano'], stats.top.categories.map(c => [c.name, nf.format(c.count)]), [0.8, 0.2])
   table(['Brend', 'Dodano'], stats.top.brands.map(c => [c.name, nf.format(c.count)]), [0.8, 0.2])

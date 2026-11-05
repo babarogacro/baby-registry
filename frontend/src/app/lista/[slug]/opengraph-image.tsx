@@ -4,7 +4,7 @@ import { listTone, TONE_HEX } from '@/lib/listTone'
 import { formatDateHR } from '@/lib/format'
 import type { BabyList } from '@/types'
 
-export const alt = 'Lista želja na Bebinoj Listi'
+export const alt = 'Listica s poklonima: odaberi poklon i rezerviraj ga'
 export const size = OG_SIZE
 export const contentType = 'image/png'
 
@@ -39,8 +39,9 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   // A toy in the same colour as the card would disappear into it.
   const pieces = PIECES.map(p => (p.tone === tone ? { ...p, tone: tone === 'sun' ? 'cobalt' : 'sun' } : p))
   const child = list?.childName?.trim()
-  const title = child || list?.name || 'Lista želja'
-  const lead = child ? 'Lista želja za' : 'Lista želja'
+  const title = child || list?.name || 'Listica želja'
+  // "Listica želja" above a name that already says "Listica za Lanu" would say it twice.
+  const lead = child ? 'Listica želja za' : /^listic/i.test(title) ? null : 'Listica želja'
   const due = list?.user?.dueDate ? new Date(list.user.dueDate) : null
   const chips = [
     due && `${list?.occasion === 'birthday' ? 'Rođendan' : 'Termin'}: ${formatDateHR(due)}`,
@@ -52,8 +53,8 @@ export default async function Image({ params }: { params: Promise<{ slug: string
       <div style={{ width: '100%', height: '100%', display: 'flex', position: 'relative', background: bg, fontFamily: 'Sans' }}>
         <OgMobile pieces={pieces} left={110} width={980} barTop={-4} />
         <div style={{ position: 'absolute', left: 60, right: 60, top: 230, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-          <div style={{ fontSize: 40, fontWeight: 800, color: COAL }}>{lead}</div>
-          <div style={{ marginTop: 8, fontFamily: 'Display', fontWeight: 800, fontSize: nameSize(title), lineHeight: 0.95, letterSpacing: -3, color: COAL, maxWidth: 1080, textAlign: 'center' }}>
+          {lead && <div style={{ fontSize: 40, fontWeight: 800, color: COAL }}>{lead}</div>}
+          <div style={{ marginTop: lead ? 8 : 40, fontFamily: 'Display', fontWeight: 600, fontSize: nameSize(title), lineHeight: 0.98, letterSpacing: -2.5, color: COAL, maxWidth: 1080, textAlign: 'center' }}>
             {title}
           </div>
           {chips.length > 0 && (
@@ -64,7 +65,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
             </div>
           )}
         </div>
-        <div style={{ position: 'absolute', left: 60, bottom: 40, display: 'flex' }}><OgLogo /></div>
+        <div style={{ position: 'absolute', left: 60, bottom: 40, display: 'flex' }}><OgLogo size={38} on={bg} /></div>
         <div style={{ position: 'absolute', right: 60, bottom: 50, display: 'flex', fontSize: 26, fontWeight: 800, color: COAL }}>Odaberi poklon i rezerviraj ga</div>
       </div>
     ),

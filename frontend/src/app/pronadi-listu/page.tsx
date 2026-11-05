@@ -78,7 +78,7 @@ function PronadiListu() {
       <main id="sadrzaj" className="min-h-screen pb-16">
         <section className="tone-sky rounded-b-5xl bg-tone px-5 pb-12 pt-[110px] text-on-tone sm:pb-16 sm:pt-[130px]">
           <div className="page-in mx-auto max-w-2xl text-center">
-            <h1 className="display text-[3.1rem] sm:text-7xl">Pronađi listu</h1>
+            <h1 className="display text-[3.1rem] sm:text-7xl">Pronađi Listicu</h1>
             <p className="mx-auto mt-3 max-w-md text-lg font-medium leading-snug">Upiši puno ime i prezime roditelja ili djeteta, pa odaberi poklon koji želiš kupiti.</p>
             <form className="mt-7 flex flex-col gap-2.5 sm:flex-row" onSubmit={e => { e.preventDefault(); handleSearch(query) }}>
               <div className="relative flex-1">
@@ -104,19 +104,19 @@ function PronadiListu() {
             results.length === 0 ? (
               <div className="py-10 text-center">
                 <div className="tone-bubble mx-auto w-20"><Art name="moon" /></div>
-                <h2 className="mt-3 text-2xl font-extrabold">Nema takve liste.</h2>
+                <h2 className="mt-3 text-2xl font-extrabold">Nema takve Listice.</h2>
                 <p className="mx-auto mt-2 max-w-sm text-muted">Za „{query}" nismo ništa našli. Provjeri kako se pišu ime i prezime ili zamoli roditelje da ti pošalju link.</p>
               </div>
             ) : (
               <>
-                <p className="mb-3 font-display text-lg font-extrabold tracking-tight" aria-live="polite">{results.length} {plural(results.length, 'lista', 'liste', 'lista')}</p>
+                <p className="mb-3 font-display text-lg font-extrabold tracking-tight" aria-live="polite">{results.length} {plural(results.length, 'Listica', 'Listice', 'Listica')}</p>
                 <div className="space-y-2.5">{results.map((list, i) => <ListCard key={list.id} list={list} index={i} />)}</div>
               </>
             )
           )}
           {!searched && (
             <p className="text-center text-muted">
-              Tražiš svoju? <Link href="/moja-lista" className="font-semibold text-ink underline underline-offset-2">Otvori svoje liste</Link>
+              Tražiš svoju? <Link href="/moja-lista" className="font-semibold text-ink underline underline-offset-2">Otvori svoje Listice</Link>
             </p>
           )}
         </div>

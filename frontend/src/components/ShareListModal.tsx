@@ -10,7 +10,7 @@ export default function ShareListModal({ slug, listName, isPublic, onClose }: { 
   const [qrDataUrl, setQrDataUrl] = useState('')
   const [canShare, setCanShare] = useState(false)
   const shareUrl = `${window.location.origin}/lista/${slug}`
-  const shareText = `Pogledaj našu listu želja: „${listName}"`
+  const shareText = `Pogledaj našu Listicu želja: „${listName}"`
 
   useEffect(() => { track('share') }, [])
 
@@ -32,16 +32,16 @@ export default function ShareListModal({ slug, listName, isPublic, onClose }: { 
   const nativeShare = () => navigator.share({ title: listName, text: shareText, url: shareUrl }).catch(() => {})
 
   return (
-    <Modal title="Podijeli listu" onClose={onClose}>
+    <Modal title="Podijeli Listicu" onClose={onClose}>
       <div className="px-5 pb-6 sm:px-7 sm:pb-7">
         {!isPublic && (
           <p className="mb-4 flex items-start gap-2 rounded-2xl bg-tomato-soft p-3 text-[13px] font-medium text-tomato-ink">
             <Lock size={15} aria-hidden className="mt-0.5 flex-shrink-0" />
-            Lista je zaključana. Gosti neće moći otvoriti link dok je ne otključaš u postavkama liste.
+            Listica je zaključana. Gosti neće moći otvoriti link dok je ne otključaš u postavkama Listice.
           </p>
         )}
         <div className="mb-4 flex gap-2">
-          <input type="text" value={shareUrl} readOnly aria-label="Link liste" onFocus={e => e.target.select()} className="field min-w-0 flex-1 truncate !text-[13px]" />
+          <input type="text" value={shareUrl} readOnly aria-label="Link Listice" onFocus={e => e.target.select()} className="field min-w-0 flex-1 truncate !text-[13px]" />
           <button onClick={copyLink} className="btn btn-ink flex-shrink-0 !rounded-2xl !px-4 !text-sm">
             {copied ? <><Check size={16} strokeWidth={3} aria-hidden /> Kopirano</> : <><Copy size={15} aria-hidden /> Kopiraj</>}
           </button>
@@ -62,10 +62,10 @@ export default function ShareListModal({ slug, listName, isPublic, onClose }: { 
             <p className="mb-3 flex items-center justify-center gap-1.5 text-sm font-bold"><QrCode size={15} aria-hidden /> QR kod za pozivnicu</p>
             <div className="inline-block rounded-3xl bg-white p-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={qrDataUrl} alt="QR kod za listu" className="h-40 w-40 sm:h-48 sm:w-48" />
+              <img src={qrDataUrl} alt="QR kod za Listicu" className="h-40 w-40 sm:h-48 sm:w-48" />
             </div>
             <div className="mt-3">
-              <a href={qrDataUrl} download={`bebina-lista-${slug.slice(0, 8)}-qr.png`} className="btn btn-sm btn-soft"><Download size={15} aria-hidden /> Preuzmi QR kod</a>
+              <a href={qrDataUrl} download={`listica-${slug.slice(0, 8)}-qr.png`} className="btn btn-sm btn-soft"><Download size={15} aria-hidden /> Preuzmi QR kod</a>
             </div>
           </div>
         )}

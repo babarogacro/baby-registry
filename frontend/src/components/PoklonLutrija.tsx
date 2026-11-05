@@ -73,11 +73,11 @@ export default function PoklonLutrija() {
     <div ref={rootRef} className="grid items-center gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:gap-14">
       <div>
         <p className="note text-tomato-ink">što ti fali?</p>
-        <h2 className="display mt-2 text-[2.9rem] sm:text-6xl">Bez liste = <span className="block">dupliciranje poklona.</span></h2>
-        <p className="mt-5 max-w-md text-lg text-muted">Svi pitaju isto, svatko kupi po svom, nitko ne zna što su drugi već uzeli. Pogledaj što stigne bez liste, a što s listom.</p>
+        <h2 className="display mt-2 text-[2.9rem] sm:text-6xl">Bez Listice = <span className="block">dupliciranje poklona.</span></h2>
+        <p className="mt-5 max-w-md text-lg text-muted">Svi pitaju isto, svatko kupi po svom, nitko ne zna što su drugi već uzeli. Pogledaj što stigne bez Listice, a što s Listicom.</p>
         <div className="mt-7 flex flex-wrap items-center gap-3">
           <Segmented label="Način izvlačenja" value={mode} onChange={value => { setManual(true); setMode(value) }}
-            options={[{ value: 'bez', label: 'Bez liste' }, { value: 's', label: 'S listom' }]}
+            options={[{ value: 'bez', label: 'Bez Listice' }, { value: 's', label: 'S Listicom' }]}
             thumbClass={mode === 'bez' ? 'bg-tomato' : 'bg-mint'} activeClass="text-coal" />
           <button onClick={() => { setManual(true); setRound(r => r + 1) }} className="btn btn-sm btn-soft" disabled={!done}>
             <RotateCcw size={15} aria-hidden /> Prikaži ponovno
@@ -111,7 +111,7 @@ export default function PoklonLutrija() {
                     {gift.stamp && <span className="stamp stamp-in absolute right-2 top-2 border-current bg-tone text-[11px]">{gift.stamp}</span>}
                     {mode === 's' && (
                       <span className="absolute right-2.5 top-2.5 flex h-7 w-7 items-center justify-center rounded-full bg-coal text-white">
-                        <Check size={15} strokeWidth={3} aria-label="S liste" />
+                        <Check size={15} strokeWidth={3} aria-label="S Listice" />
                       </span>
                     )}
                   </m.div>

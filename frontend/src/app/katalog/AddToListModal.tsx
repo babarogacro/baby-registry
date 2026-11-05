@@ -29,15 +29,15 @@ export default function AddToListModal({ product, lists, onClose, onAdded }: {
     setSaving(true); setError('')
     try {
       await listsApi.addItem(listId, product.id, priority, note.trim() || undefined)
-      onAdded('Dodano na listu.')
+      onAdded('Dodano na Listicu.')
     } catch (err: any) {
-      setError(err?.response?.status === 409 ? 'Ovaj proizvod je već na toj listi.' : apiError(err))
+      setError(err?.response?.status === 409 ? 'Ovaj proizvod je već na toj Listici.' : apiError(err))
       setSaving(false)
     }
   }
 
   return (
-    <Modal title="Dodaj na listu" onClose={onClose} sheet>
+    <Modal title="Dodaj na Listicu" onClose={onClose} sheet>
       <div className="px-5 pb-6 sm:px-7 sm:pb-7">
         <div className={clsx(`tone-${meta.tone}`, 'mb-5 flex gap-3 rounded-3xl bg-tone-soft p-3')}>
           <div className="photo-tile flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl">
@@ -53,14 +53,14 @@ export default function AddToListModal({ product, lists, onClose, onAdded }: {
 
         {lists.length === 0 ? (
           <div className="py-3 text-center">
-            <p className="mb-4 text-muted">Još nemaš listu. Napravi je pa se vrati po ovaj proizvod.</p>
-            <Link href="/moja-lista" className="btn btn-primary">Napravi listu</Link>
+            <p className="mb-4 text-muted">Još nemaš Listicu. Napravi je pa se vrati po ovaj proizvod.</p>
+            <Link href="/moja-lista" className="btn btn-primary">Napravi Listicu</Link>
           </div>
         ) : (
           <div className="space-y-5">
             {lists.length > 1 && (
               <fieldset>
-                <legend className="field-label">Na koju listu?</legend>
+                <legend className="field-label">Na koju Listicu?</legend>
                 <div className="space-y-2">
                   {lists.map(list => (
                     <button key={list.id} type="button" aria-pressed={listId === list.id} onClick={() => setListId(list.id)}
@@ -79,7 +79,7 @@ export default function AddToListModal({ product, lists, onClose, onAdded }: {
             </div>
             {error && <p role="alert" className="field-error">{error}</p>}
             <button onClick={add} disabled={saving || !listId} className="btn btn-primary w-full">
-              {saving ? 'Dodajem...' : 'Dodaj na listu'}
+              {saving ? 'Dodajem...' : 'Dodaj na Listicu'}
             </button>
           </div>
         )}

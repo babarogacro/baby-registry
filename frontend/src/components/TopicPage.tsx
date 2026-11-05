@@ -34,7 +34,7 @@ export default function TopicPage({ content }: { content: TopicContent }) {
       {
         '@type': 'BreadcrumbList',
         itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Bebina Lista', item: SITE_URL },
+          { '@type': 'ListItem', position: 1, name: 'Listica', item: SITE_URL },
           { '@type': 'ListItem', position: 2, name: content.title, item: `${SITE_URL}${content.path}` },
         ],
       },
@@ -58,13 +58,13 @@ export default function TopicPage({ content }: { content: TopicContent }) {
           <div className="mx-auto grid max-w-6xl items-center gap-8 lg:grid-cols-[1.4fr_1fr] [&>*]:min-w-0">
             <div>
               <nav aria-label="Putanja" className="mb-4 text-sm font-semibold opacity-80">
-                <Link href="/" className="underline underline-offset-2">Bebina Lista</Link> <span aria-hidden>/</span> {content.title}
+                <Link href="/" className="underline underline-offset-2">Listica</Link> <span aria-hidden>/</span> {content.title}
               </nav>
               <p className="text-sm font-extrabold uppercase tracking-wide">{content.eyebrow}</p>
               <h1 className="display mt-2 text-[2.9rem] sm:text-7xl">{content.title}</h1>
               <p className="mt-5 max-w-xl text-lg font-medium leading-snug sm:text-xl">{content.lead}</p>
               <div className="mt-7 flex flex-wrap gap-3">
-                <AuthAwareLink guestHref={content.registerHref} signedInLabel="Moje liste" className="btn btn-lg btn-primary">Napravi listu</AuthAwareLink>
+                <AuthAwareLink guestHref={content.registerHref} signedInLabel="Moje Listice" className="btn btn-lg btn-primary">Napravi Listicu</AuthAwareLink>
                 <Link href="/katalog" className="btn btn-lg bg-white/70 text-coal hover:bg-white">Pogledaj katalog</Link>
               </div>
             </div>
@@ -123,10 +123,10 @@ export default function TopicPage({ content }: { content: TopicContent }) {
           </section>
 
           <section className="pt-14 text-center">
-            <h2 className="display text-[2.4rem] sm:text-5xl">Napravi listu prije nego što te počnu pitati.</h2>
+            <h2 className="display text-[2.4rem] sm:text-5xl">Napravi Listicu prije nego što te počnu pitati.</h2>
             <p className="mt-3 text-muted">Besplatno je, a gosti se ne registriraju.</p>
             <div className="mt-6 flex justify-center">
-              <AuthAwareLink guestHref={content.registerHref} signedInLabel="Moje liste" className="btn btn-lg btn-primary">Napravi listu</AuthAwareLink>
+              <AuthAwareLink guestHref={content.registerHref} signedInLabel="Moje Listice" className="btn btn-lg btn-primary">Napravi Listicu</AuthAwareLink>
             </div>
           </section>
 
@@ -135,7 +135,7 @@ export default function TopicPage({ content }: { content: TopicContent }) {
             <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-2">
               {others.map(t => <li key={t.href}><Link href={t.href} className="font-semibold underline underline-offset-2">{t.label}</Link></li>)}
               <li><Link href="/blog" className="font-semibold underline underline-offset-2">Blog</Link></li>
-              <li><Link href="/pronadi-listu" className="font-semibold underline underline-offset-2">Pronađi tuđu listu</Link></li>
+              <li><Link href="/pronadi-listu" className="font-semibold underline underline-offset-2">Pronađi tuđu Listicu</Link></li>
             </ul>
           </nav>
         </div>

@@ -97,13 +97,13 @@ export default function ListDemoPhone() {
   const fingerOn = !reduced && (step === 'tap' || step === 'confirm')
 
   return (
-    <div ref={ref} className="relative mx-auto w-[272px] sm:w-[300px]" aria-label="Primjer: gost na mobitelu rezervira kadicu s liste" role="img">
+    <div ref={ref} className="relative mx-auto w-[272px] sm:w-[300px]" aria-label="Primjer: gost na mobitelu rezervira kadicu s Listice" role="img">
       <div className="relative overflow-hidden rounded-[2.6rem] border-[9px] border-coal bg-coal shadow-lift">
         <div className="absolute left-1/2 top-2 z-30 h-5 w-20 -translate-x-1/2 rounded-full bg-coal" />
         <div className="relative h-[540px] overflow-hidden rounded-[2rem] bg-canvas sm:h-[590px]" aria-hidden>
           <m.div animate={{ y: scrolled ? -150 : 0 }} transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}>
             <div className="tone-bubble rounded-b-[1.6rem] bg-tone px-4 pb-5 pt-9 text-center text-coal">
-              <p className="text-[10px] font-semibold">Lista od Ana Horvat</p>
+              <p className="text-[10px] font-semibold">Listica od Ana Horvat</p>
               <p className="font-display text-[26px] font-extrabold leading-none tracking-tight">Za malu Lanu</p>
               <span className="mt-2 inline-block rounded-full bg-coal/10 px-2 py-0.5 text-[9px] font-semibold">Termin: 14. ožujka</span>
               <p className="mt-3 font-display text-[12px] font-extrabold">

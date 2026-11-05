@@ -2,7 +2,7 @@
 
 help:
 	@echo ""
-	@echo "🍼 Bebina Lista — Dostupne naredbe:"
+	@echo "Listica: dostupne naredbe"
 	@echo ""
 	@echo "  make install    Instaliraj sve ovisnosti (backend + frontend)"
 	@echo "  make db         Pokreni PostgreSQL u Dockeru + kreiraj tablice"

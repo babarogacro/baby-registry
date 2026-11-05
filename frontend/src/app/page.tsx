@@ -49,7 +49,7 @@ function MockRow({ art, tone, name, tag, done }: { art: Parameters<typeof Art>[0
 const STEPS = [
   {
     tone: 'cobalt',
-    title: 'Složi listu.',
+    title: 'Složi Listicu.',
     text: 'Za bebu upiši što ti treba, za rođendan što dijete želi. Biraj iz kataloga hrvatskih dućana ili zalijepi link iz bilo kojeg web shopa, označi koliko ti je što važno i dopiši veličinu ili boju.',
     mock: (
       <div className="space-y-2">
@@ -62,12 +62,12 @@ const STEPS = [
   {
     tone: 'sun',
     title: 'Pošalji link.',
-    text: 'Pošalji ga na WhatsApp ili Viber, ili stavi QR kod na pozivnicu. Gosti ga otvore i odmah vide listu.',
+    text: 'Pošalji ga na WhatsApp ili Viber, ili stavi QR kod na pozivnicu. Gosti ga otvore i odmah vide Listicu.',
     mock: (
       <div className="space-y-2.5">
-        <div className="ml-auto max-w-[85%] rounded-3xl rounded-br-md bg-white p-3.5 text-sm font-medium text-coal">Evo naše liste, da se ne ponavljate.</div>
+        <div className="ml-auto max-w-[85%] rounded-3xl rounded-br-md bg-white p-3.5 text-sm font-medium text-coal">Evo naše Listice, da se ne ponavljate.</div>
         <div className="ml-auto flex max-w-[85%] items-center gap-2 rounded-3xl rounded-br-md bg-coal p-3.5 text-sm font-semibold text-white">
-          <Link2 size={16} aria-hidden className="flex-shrink-0" /> <span className="truncate">bebinalista.hr/lista/nasa-beba</span>
+          <Link2 size={16} aria-hidden className="flex-shrink-0" /> <span className="truncate">listica.hr/lista/nasa-beba</span>
         </div>
         <div className="max-w-[60%] rounded-3xl rounded-bl-md bg-white p-3.5 text-sm font-medium text-coal">Ja uzimam kadicu.</div>
       </div>
@@ -88,13 +88,13 @@ const STEPS = [
 ]
 
 const FAQ = [
-  { q: 'Plaća li se nešto?', a: 'Ne. Bebina Lista je besplatna za roditelje i za goste. Pokloni se kupuju u dućanu, po cijeni dućana.' },
+  { q: 'Plaća li se nešto?', a: 'Ne. Listica je besplatna za roditelje i za goste. Pokloni se kupuju u dućanu, po cijeni dućana.' },
   { q: 'Moraju li se gosti registrirati?', a: 'Ne. Gost otvori link, odabere poklon i upiše svoje ime. To je sve.' },
-  { q: 'Što ako proizvod koji želim nije u katalogu?', a: 'Zalijepi link proizvoda iz bilo kojeg web shopa. Lista sama povuče naziv, sliku i cijenu.' },
-  { q: 'Tko vidi moju listu?', a: 'Ljudi kojima pošalješ link, a gosti bez linka mogu je naći samo ako upišu puno ime i prezime, tvoje ili djetetovo. Google je ne prikazuje. Ako je zaključaš, ne otvara je ni link ni pretraga.' },
-  { q: 'Što ako netko rezervira poklon pa odustane?', a: 'Gost rezervaciju može otkazati s uređaja na kojem ju je napravio, a ti je možeš osloboditi u svojoj listi. Poklon je odmah opet slobodan za druge.' },
+  { q: 'Što ako proizvod koji želim nije u katalogu?', a: 'Zalijepi link proizvoda iz bilo kojeg web shopa. Listica sama povuče naziv, sliku i cijenu.' },
+  { q: 'Tko vidi moju Listicu?', a: 'Ljudi kojima pošalješ link, a gosti bez linka mogu je naći samo ako upišu puno ime i prezime, tvoje ili djetetovo. Google je ne prikazuje. Ako je zaključaš, ne otvara je ni link ni pretraga.' },
+  { q: 'Što ako netko rezervira poklon pa odustane?', a: 'Gost rezervaciju može otkazati s uređaja na kojem ju je napravio, a ti je možeš osloboditi u svojoj Listici. Poklon je odmah opet slobodan za druge.' },
   { q: 'Kako radi skupljanje zajedno?', a: 'Za skuplji poklon jedan gost pokrene skupljanje, a ostali upišu koliko daju. Novac ne ide preko stranice: svatko svoj dio daje osobi koja naručuje poklon.' },
-  { q: 'Radi li i za dječji rođendan?', a: 'Da. Napravi rođendansku listu s onim što dijete želi, pa je pošalji gostima jednako kao i listu za bebu.' },
+  { q: 'Radi li i za dječji rođendan?', a: 'Da. Napravi rođendansku Listicu s onim što dijete želi, pa je pošalji gostima jednako kao i Listicu za bebu.' },
 ]
 
 export default async function HomePage() {
@@ -121,7 +121,7 @@ export default async function HomePage() {
         <section className="relative overflow-hidden rounded-b-5xl bg-hero text-hero-ink">
           <div className="mx-auto grid min-h-[100svh] max-w-7xl grid-rows-[auto_1fr] px-5 sm:px-8 lg:min-h-[820px] lg:grid-cols-[1.08fr_1fr] lg:grid-rows-1 lg:gap-6">
             <div className="relative z-10 order-2 flex flex-col justify-center pb-16 pt-2 lg:order-1 lg:pb-24 lg:pt-28">
-              <p className="page-in mb-3 text-sm font-extrabold uppercase tracking-wide">Lista želja za bebu i dječji rođendan</p>
+              <p className="page-in mb-3 text-sm font-extrabold uppercase tracking-wide">Listica želja za bebu i dječji rođendan</p>
               <h1 className="display page-in text-[clamp(2.4rem,12.6vw,6rem)] lg:text-[clamp(4rem,7vw,6.2rem)]">
                 Izbjegni
                 <span className="block text-[rgb(var(--hero-accent))]">duple poklone.</span>
@@ -130,7 +130,7 @@ export default async function HomePage() {
                 Upiši što ti treba za bebu i pošalji link obitelji i prijateljima. Kad netko odabere poklon, ostali odmah vide da je zauzet. Besplatno je za tebe i za goste, pokloni se kupuju u dućanu.
               </p>
               <div className="page-in mt-8 flex flex-wrap items-center gap-3 [animation-delay:160ms]">
-                <AuthAwareLink guestHref="/registracija" signedInLabel="Moje liste" className="btn btn-lg btn-primary">Napravi listu</AuthAwareLink>
+                <AuthAwareLink guestHref="/registracija" signedInLabel="Moje Listice" className="btn btn-lg btn-primary">Napravi Listicu</AuthAwareLink>
                 <Link href="/katalog" className="btn btn-lg btn-outline-hero">Pogledaj katalog</Link>
               </div>
               <p className="page-in mt-5 text-[15px] font-medium [animation-delay:220ms]">
@@ -187,12 +187,12 @@ export default async function HomePage() {
           <div className="grid items-center gap-10 lg:grid-cols-[1fr_auto_0.2fr] [&>*]:min-w-0">
             <Reveal>
               <p className="note text-tomato-ink">ovako to izgleda</p>
-              <h2 id="kako-izgleda" className="display mt-1 max-w-xl text-[2.9rem] sm:text-6xl">Ovako gosti vide tvoju listu.</h2>
+              <h2 id="kako-izgleda" className="display mt-1 max-w-xl text-[2.9rem] sm:text-6xl">Ovako gosti vide tvoju Listicu.</h2>
               <p className="mt-5 max-w-lg text-lg font-medium leading-snug text-muted">
                 Otvore link na mobitelu, vide što je još slobodno, kliknu Rezerviraj i upišu ime. Svi ostali u istom trenutku vide da je poklon zauzet. Gosti se ne registriraju i ništa ne plaćaju na stranici.
               </p>
               <div className="mt-7">
-                <AuthAwareLink guestHref="/registracija" signedInLabel="Moje liste" className="btn btn-lg btn-primary">Napravi listu</AuthAwareLink>
+                <AuthAwareLink guestHref="/registracija" signedInLabel="Moje Listice" className="btn btn-lg btn-primary">Napravi Listicu</AuthAwareLink>
               </div>
             </Reveal>
             <ListDemoPhone />
@@ -243,7 +243,7 @@ export default async function HomePage() {
         <section className="mx-auto max-w-5xl px-5 py-20 text-center sm:px-8 sm:py-28">
           <Reveal>
             <p className="display text-[2.1rem] leading-[1.04] sm:text-[3.6rem]">
-              Za bebu te pitaju: što ti fali, da ne kupim nešto što već imaš? Za rođendan: što mali ili mala želi? S listom odgovoriš jednom, svima odjednom.
+              Za bebu te pitaju: što ti fali, da ne kupim nešto što već imaš? Za rođendan: što mali ili mala želi? S Listicom odgovoriš jednom, svima odjednom.
             </p>
           </Reveal>
         </section>
@@ -301,7 +301,7 @@ export default async function HomePage() {
         <section className="mx-auto max-w-7xl px-5 sm:px-8">
           <Reveal className="tone-sky grid items-center gap-8 rounded-5xl bg-tone p-6 text-on-tone sm:p-12 lg:grid-cols-2 [&>*]:min-w-0">
             <div>
-              <h2 className="display text-[2.6rem] sm:text-6xl">Netko ti je spomenuo listu, a nemaš link?</h2>
+              <h2 className="display text-[2.6rem] sm:text-6xl">Netko ti je spomenuo Listicu, a nemaš link?</h2>
               <p className="mt-4 max-w-md text-lg font-medium leading-snug">Upiši puno ime i prezime roditelja ili djeteta. Vidjet ćeš što je još slobodno i moći ćeš rezervirati poklon.</p>
             </div>
             <form action="/pronadi-listu" className="flex flex-col gap-3 sm:flex-row">
@@ -315,9 +315,9 @@ export default async function HomePage() {
         {/* Bookend */}
         <section className="mx-auto max-w-7xl px-5 pb-6 pt-14 text-center sm:px-8 sm:pt-20">
           <Reveal>
-            <h2 className="display mx-auto max-w-4xl text-[clamp(3rem,9vw,6.5rem)]">Napravi listu prije nego što te počnu pitati.</h2>
+            <h2 className="display mx-auto max-w-4xl text-[clamp(3rem,9vw,6.5rem)]">Napravi Listicu prije nego što te počnu pitati.</h2>
             <div className="mt-8 flex justify-center">
-              <AuthAwareLink guestHref="/registracija" signedInLabel="Moje liste" className="btn btn-lg btn-primary">Napravi listu</AuthAwareLink>
+              <AuthAwareLink guestHref="/registracija" signedInLabel="Moje Listice" className="btn btn-lg btn-primary">Napravi Listicu</AuthAwareLink>
             </div>
           </Reveal>
         </section>

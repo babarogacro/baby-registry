@@ -28,7 +28,7 @@ export type OutboundSource = 'katalog' | 'lista' | 'moja-lista' | 'naslovnica' |
 
 /**
  * Every link to a shop goes through the API, which counts the click and adds the UTM tags the
- * shop's Google Analytics reads (utm_source=bebinalista, utm_medium=referral).
+ * shop's Google Analytics reads (utm_source=listica, utm_medium=referral).
  */
 export function outboundUrl(productId: string, from: OutboundSource, listSlug?: string) {
   return `${API_URL}/go/${encodeURIComponent(productId)}?from=${from}${listSlug ? `&l=${encodeURIComponent(listSlug)}` : ''}`

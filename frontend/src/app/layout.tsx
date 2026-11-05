@@ -1,20 +1,31 @@
 import type { Metadata, Viewport } from 'next'
-import { Bricolage_Grotesque, Caveat, Figtree } from 'next/font/google'
+import { Caveat, Fredoka, Nunito } from 'next/font/google'
+import localFont from 'next/font/local'
 import Providers from '@/components/Providers'
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL, jsonLd } from '@/lib/site'
 import './globals.css'
 
-const display = Bricolage_Grotesque({ subsets: ['latin', 'latin-ext'], axes: ['opsz', 'wdth'], variable: '--font-display', display: 'swap' })
-const sans = Figtree({ subsets: ['latin', 'latin-ext'], variable: '--font-sans', display: 'swap' })
+// Brand book: Fredoka 600 for headings and the logo, Nunito for text.
+const display = Fredoka({ subsets: ['latin', 'latin-ext'], weight: '600', variable: '--font-display', display: 'swap' })
+// Fredoka has no č, ć or đ; this tiny file adds them in Fredoka's own style and is used for those letters only.
+const displayHr = localFont({
+  src: '../fonts/Fredoka-HR-letters.otf',
+  weight: '600',
+  variable: '--font-display-hr',
+  display: 'swap',
+  adjustFontFallback: false,
+  declarations: [{ prop: 'unicode-range', value: 'U+0106-0107, U+010C-010D, U+0110-0111' }],
+})
+const sans = Nunito({ subsets: ['latin', 'latin-ext'], variable: '--font-sans', display: 'swap' })
 const note = Caveat({ subsets: ['latin', 'latin-ext'], variable: '--font-note', display: 'swap', preload: false })
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: 'Bebina Lista: lista želja za bebu bez duplih poklona',
-  description: 'Napravi listu onoga što ti treba za bebu i pošalji link obitelji i prijateljima. Kad netko odabere poklon, ostali odmah vide da je zauzet. Besplatno je.',
+  title: 'Listica: mala lista za velike želje',
+  description: 'Napravi Listicu onoga što ti treba za bebu i pošalji link obitelji i prijateljima. Kad netko odabere poklon, ostali odmah vide da je zauzet. Besplatno je.',
   applicationName: SITE_NAME,
   openGraph: {
-    title: 'Bebina Lista: izbjegni duple poklone',
+    title: 'Listica: mala lista za velike želje',
     description: 'Besplatna lista želja za bebu i dječji rođendan. Gosti vide što je već zauzeto, pa nitko ne kupi isto.',
     siteName: SITE_NAME,
     locale: 'hr_HR',
@@ -33,7 +44,7 @@ const SITE_JSON_LD = {
       name: SITE_NAME,
       url: SITE_URL,
       logo: `${SITE_URL}/opengraph-image`,
-      email: 'info@bebinalista.hr',
+      email: 'info@listica.hr',
       areaServed: 'HR',
     },
     {
@@ -65,7 +76,7 @@ const SITE_JSON_LD = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#FFFBF3' },
+    { media: '(prefers-color-scheme: light)', color: '#FFF8EF' },
     { media: '(prefers-color-scheme: dark)', color: '#130F26' },
   ],
   width: 'device-width',
@@ -78,7 +89,7 @@ const THEME_SCRIPT = `try{var t=localStorage.getItem('theme');if(t==='night'||(!
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="hr" className={`${display.variable} ${sans.variable} ${note.variable}`} suppressHydrationWarning>
+    <html lang="hr" className={`${display.variable} ${displayHr.variable} ${sans.variable} ${note.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(SITE_JSON_LD)} />

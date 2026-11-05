@@ -4,9 +4,9 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: baby
-      POSTGRES_PASSWORD: baby123
-      POSTGRES_DB: baby_registry
+      POSTGRES_USER: listica
+      POSTGRES_PASSWORD: listica123
+      POSTGRES_DB: listica
     ports:
       - "5432:5432"
     volumes:

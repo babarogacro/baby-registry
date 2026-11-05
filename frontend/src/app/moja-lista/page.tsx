@@ -133,7 +133,7 @@ function SmartPasteModal({ listId, onClose, onAdded }: {
               </div>
             </div>
             <PriorityPicker value={priority} onChange={setPriority} />
-            <button onClick={save} disabled={saving} className="btn btn-primary w-full">{saving ? 'Dodajem...' : 'Dodaj na listu'}</button>
+            <button onClick={save} disabled={saving} className="btn btn-primary w-full">{saving ? 'Dodajem...' : 'Dodaj na Listicu'}</button>
           </m.div>
         )}
       </div>
@@ -289,7 +289,7 @@ function ListItemRow({ item, onDelete, onPriorityChange, onNoteChange, onClearRe
         )}
       </div>
 
-      <button onClick={() => run(onDelete)} aria-label={`Ukloni ${product.name} s liste`} className="icon-btn -mr-1 -mt-1 flex-shrink-0 self-start text-muted hover:text-tomato-ink">
+      <button onClick={() => run(onDelete)} aria-label={`Ukloni ${product.name} s Listice`} className="icon-btn -mr-1 -mt-1 flex-shrink-0 self-start text-muted hover:text-tomato-ink">
         <Trash2 size={17} />
       </button>
     </m.li>
@@ -309,7 +309,7 @@ function EditableListName({ name, onSave }: { name: string; onSave: (newName: st
 
   if (editing) {
     return (
-      <input type="text" autoFocus maxLength={120} value={value} aria-label="Naziv liste"
+      <input type="text" autoFocus maxLength={120} value={value} aria-label="Naziv Listice"
         onChange={e => setValue(e.target.value)} onBlur={save}
         onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') { setEditing(false); setValue(name) } }}
         className="field !min-h-[42px] !py-1.5 font-display !text-xl font-extrabold" />
@@ -338,19 +338,19 @@ function ListSettings({ list, onSave }: { list: BabyList; onSave: (data: { descr
         <div>
           <p className="flex items-center gap-1.5 text-[15px] font-bold">
             {list.isPublic ? <Globe size={15} className="text-mint-ink" aria-hidden /> : <Lock size={15} className="text-muted" aria-hidden />}
-            {list.isPublic ? 'Lista je otključana' : 'Lista je zaključana'}
+            {list.isPublic ? 'Listica je otključana' : 'Listica je zaključana'}
           </p>
           <p className="mt-0.5 text-[13px] text-muted">
             {list.isPublic ? 'Svatko s linkom može je vidjeti i rezervirati poklone, a gosti je mogu naći i po punom imenu i prezimenu, tvom ili djetetovom.' : 'Dok je zaključana, ne otvara je ni link ni pretraga po imenu.'}
           </p>
         </div>
-        <button role="switch" aria-checked={list.isPublic} aria-label="Otključana lista" onClick={() => onSave({ isPublic: !list.isPublic })} className="switch"><span /></button>
+        <button role="switch" aria-checked={list.isPublic} aria-label="Otključana Listica" onClick={() => onSave({ isPublic: !list.isPublic })} className="switch"><span /></button>
       </div>
       <div>
         <label htmlFor={`child-${list.id}`} className="field-label">Ime i prezime djeteta <span className="font-medium text-muted">(ako ga već znate)</span></label>
         <input id={`child-${list.id}`} type="text" maxLength={120} value={childName} onChange={e => setChildName(e.target.value)}
           placeholder="npr. Marin Horvat" className="field !bg-surface" />
-        <p className="field-hint">Gosti mogu pronaći listu i po imenu i prezimenu djeteta. Prikazuje se i na slici kad podijeliš link.</p>
+        <p className="field-hint">Gosti mogu pronaći Listicu i po imenu i prezimenu djeteta. Prikazuje se i na slici kad podijeliš link.</p>
         {childDirty && (
           <button disabled={savingChild} onClick={async () => { setSavingChild(true); await onSave({ childName: childName.trim() || null }).finally(() => setSavingChild(false)) }}
             className="btn btn-sm btn-ink mt-2">
@@ -359,7 +359,7 @@ function ListSettings({ list, onSave }: { list: BabyList; onSave: (data: { descr
         )}
       </div>
       <div>
-        <label htmlFor={`desc-${list.id}`} className="field-label">Poruka za goste <span className="font-medium text-muted">(vidi se na listi)</span></label>
+        <label htmlFor={`desc-${list.id}`} className="field-label">Poruka za goste <span className="font-medium text-muted">(vidi se na Listici)</span></label>
         <textarea id={`desc-${list.id}`} rows={3} maxLength={1000} value={description} onChange={e => setDescription(e.target.value)}
           placeholder="npr. Baby shower je 12.5. kod nas doma. Hvala što ste uz nas."
           className="field resize-none !bg-surface" />
@@ -374,7 +374,7 @@ function ListSettings({ list, onSave }: { list: BabyList; onSave: (data: { descr
   )
 }
 
-const DEFAULT_LIST_NAME: Record<string, string> = { birth: 'Lista za bebu', birthday: 'Rođendanska lista' }
+const DEFAULT_LIST_NAME: Record<string, string> = { birth: 'Listica za bebu', birthday: 'Rođendanska Listica' }
 
 export interface NewListDefaults {
   occasion: string
@@ -422,16 +422,16 @@ function NewListModal({ defaults, onClose, onCreate }: {
   }
 
   return (
-    <Modal title="Nova lista" onClose={onClose}>
+    <Modal title="Nova Listica" onClose={onClose}>
       <form onSubmit={submit} className="space-y-4 px-5 pb-6 sm:px-7 sm:pb-7">
         <div>
-          <label htmlFor="new-list-name" className="field-label">Naziv liste</label>
-          <input id="new-list-name" type="text" maxLength={120} placeholder="npr. Lista za Mateja" value={name}
+          <label htmlFor="new-list-name" className="field-label">Naziv Listice</label>
+          <input id="new-list-name" type="text" maxLength={120} placeholder="npr. Listica za Mateja" value={name}
             onChange={e => { setName(e.target.value); setNameTouched(true) }} className="field" />
         </div>
 
         <fieldset>
-          <legend className="field-label">Za što je lista?</legend>
+          <legend className="field-label">Za što je Listica?</legend>
           <div className="grid grid-cols-2 gap-2">
             {OCCASIONS.map(o => (
               <button key={o.value} type="button" aria-pressed={occasion === o.value} onClick={() => pickOccasion(o.value)}
@@ -447,12 +447,12 @@ function NewListModal({ defaults, onClose, onCreate }: {
           <label htmlFor="new-list-child" className="field-label">Ime i prezime djeteta <span className="font-medium text-muted">(ako ga već znate)</span></label>
           <input id="new-list-child" type="text" maxLength={120} autoComplete="off" placeholder="npr. Marin Horvat" value={childName}
             onChange={e => setChildName(e.target.value)} className="field" />
-          <p className="field-hint">Gosti mogu pronaći listu i po imenu i prezimenu djeteta.</p>
+          <p className="field-hint">Gosti mogu pronaći Listicu i po imenu i prezimenu djeteta.</p>
         </div>
 
         {selectedOcc && (
           <DateField id="new-list-date" label={selectedOcc.dateLabel} value={dateInput} onChange={setDateInput}
-            hint={defaults.dateInput ? 'Upisano pri registraciji. Promijeni ako je lista za drugo dijete.' : undefined} />
+            hint={defaults.dateInput ? 'Upisano pri registraciji. Promijeni ako je Listica za drugo dijete.' : undefined} />
         )}
 
         {occasion === 'birth' && (
@@ -471,7 +471,7 @@ function NewListModal({ defaults, onClose, onCreate }: {
 
         {error && <p role="alert" className="field-error">{error}</p>}
 
-        <button type="submit" disabled={loading} className="btn btn-primary w-full">{loading ? 'Radim...' : 'Napravi listu'}</button>
+        <button type="submit" disabled={loading} className="btn btn-primary w-full">{loading ? 'Radim...' : 'Napravi Listicu'}</button>
       </form>
     </Modal>
   )
@@ -530,7 +530,7 @@ export default function MojaListaPage() {
         setLists(res.data)
         setExpandedList(prev => prev ?? res.data[0]?.id ?? null)
       })
-      .catch(err => setLoadError(apiError(err, 'Liste se trenutno ne mogu učitati.')))
+      .catch(err => setLoadError(apiError(err, 'Listice se trenutno ne mogu učitati.')))
       .finally(() => setLoading(false))
   }, [user, authLoading, router])
 
@@ -560,21 +560,21 @@ export default function MojaListaPage() {
     const newList: BabyList = { ...res.data, items: [], _count: { items: 0 } }
     setLists(prev => [newList, ...prev])
     setExpandedList(newList.id)
-    showToast('Lista je napravljena. Dodaj prve proizvode.')
+    showToast('Listica je napravljena. Dodaj prve proizvode.')
   }
 
   const updateListFields = (list: BabyList, data: { name?: string; description?: string | null; childName?: string | null; isPublic?: boolean }) =>
     withToast(async () => {
       await listsApi.update(list.id, data)
       patchList(list.id, l => ({ ...l, ...data, description: data.description === undefined ? l.description : data.description ?? undefined }))
-    }, data.isPublic === undefined ? 'Spremljeno' : data.isPublic ? 'Lista je otključana' : 'Lista je zaključana')
+    }, data.isPublic === undefined ? 'Spremljeno' : data.isPublic ? 'Listica je otključana' : 'Listica je zaključana')
 
   const confirmDeleteList = async () => {
     if (!deleteList) return
     await withToast(async () => {
       await listsApi.delete(deleteList.id)
       setLists(prev => prev.filter(l => l.id !== deleteList.id))
-    }, 'Lista obrisana.')
+    }, 'Listica obrisana.')
     setDeleteList(null)
   }
 
@@ -586,7 +586,7 @@ export default function MojaListaPage() {
     return (
       <>
         <Navbar />
-        <main className="flex min-h-screen items-center justify-center pt-20"><Loader label="Tražim tvoje liste." /></main>
+        <main className="flex min-h-screen items-center justify-center pt-20"><Loader label="Tražim tvoje Listice." /></main>
       </>
     )
   }
@@ -603,11 +603,11 @@ export default function MojaListaPage() {
             <div className="min-w-0">
               <h1 className="display truncate pb-1 text-[2.9rem] sm:text-7xl">Hej, {user?.name?.split(' ')[0]}.</h1>
               <p className="mt-1.5 font-medium text-muted">
-                {lists.length === 0 ? 'Još nemaš nijednu listu.' : `Imaš ${lists.length} ${plural(lists.length, 'listu', 'liste', 'lista')}.`}
+                {lists.length === 0 ? 'Još nemaš nijednu Listicu.' : `Imaš ${lists.length} ${plural(lists.length, 'Listicu', 'Listice', 'Listica')}.`}
               </p>
             </div>
             <button onClick={() => setShowNewModal(true)} className="btn btn-primary flex-shrink-0 !px-4 sm:!px-6">
-              <Plus size={18} strokeWidth={3} aria-hidden /> <span className="hidden sm:inline">Nova lista</span><span className="sr-only sm:hidden">Nova lista</span>
+              <Plus size={18} strokeWidth={3} aria-hidden /> <span className="hidden sm:inline">Nova Listica</span><span className="sr-only sm:hidden">Nova Listica</span>
             </button>
           </header>
 
@@ -627,9 +627,9 @@ export default function MojaListaPage() {
           {lists.length === 0 && !loadError && (
             <div className="tone-bubble rounded-5xl bg-tone p-8 text-center text-on-tone sm:p-14">
               <div className="mx-auto w-28"><Art name="gift" /></div>
-              <h2 className="display mt-3 text-4xl sm:text-5xl">Napravi prvu listu.</h2>
+              <h2 className="display mt-3 text-4xl sm:text-5xl">Napravi prvu Listicu.</h2>
               <p className="mx-auto mt-3 max-w-sm text-lg font-medium leading-snug">Upiši što ti treba, pošalji link obitelji i prijateljima, i nitko više ne kupuje isto.</p>
-              <button onClick={() => setShowNewModal(true)} className="btn btn-lg btn-ink mt-6 !bg-coal !text-white">Napravi listu</button>
+              <button onClick={() => setShowNewModal(true)} className="btn btn-lg btn-ink mt-6 !bg-coal !text-white">Napravi Listicu</button>
             </div>
           )}
 
@@ -664,14 +664,14 @@ export default function MojaListaPage() {
                     {total > 0 && <ProgressBar value={progress} label="Rezervirano" className="mt-4" />}
 
                     <div className="mt-4 flex flex-wrap items-center gap-2">
-                      <button onClick={() => setShareList(list)} className="btn btn-sm btn-primary"><Share2 size={15} aria-hidden /> Podijeli listu</button>
+                      <button onClick={() => setShareList(list)} className="btn btn-sm btn-primary"><Share2 size={15} aria-hidden /> Podijeli Listicu</button>
                       <a href={`/lista/${list.shareSlug}`} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-soft"><Eye size={15} aria-hidden /> Pogledaj kao gost</a>
                       <span className="flex-1" />
                       <button onClick={() => { setExpandedList(list.id); setSettingsOpen(s => s === list.id ? null : list.id) }}
-                        aria-label="Postavke liste" aria-expanded={settingsOpen === list.id} className={clsx('icon-btn', settingsOpen === list.id && 'bg-line/10')}>
+                        aria-label="Postavke Listice" aria-expanded={settingsOpen === list.id} className={clsx('icon-btn', settingsOpen === list.id && 'bg-line/10')}>
                         <Settings2 size={18} aria-hidden />
                       </button>
-                      <button onClick={() => setDeleteList(list)} aria-label="Obriši listu" className="icon-btn text-muted hover:text-tomato-ink"><Trash2 size={18} aria-hidden /></button>
+                      <button onClick={() => setDeleteList(list)} aria-label="Obriši Listicu" className="icon-btn text-muted hover:text-tomato-ink"><Trash2 size={18} aria-hidden /></button>
                     </div>
                   </div>
 
@@ -689,7 +689,7 @@ export default function MojaListaPage() {
 
                           {total === 0 ? (
                             <div className="px-3 py-8 text-center">
-                              <p className="font-display text-xl font-extrabold tracking-tight">Lista je još prazna.</p>
+                              <p className="font-display text-xl font-extrabold tracking-tight">Listica je još prazna.</p>
                               <p className="mt-1 text-muted">Dodaj prvi proizvod iz kataloga ili zalijepi link iz web shopa.</p>
                             </div>
                           ) : (
@@ -700,7 +700,7 @@ export default function MojaListaPage() {
                                     onDelete={() => withToast(async () => {
                                       await listsApi.removeItem(list.id, item.id)
                                       patchList(list.id, l => ({ ...l, items: l.items.filter(i => i.id !== item.id), _count: { items: Math.max(0, (l._count?.items ?? 1) - 1) } }))
-                                    }, 'Uklonjeno s liste')}
+                                    }, 'Uklonjeno s Listice')}
                                     onPriorityChange={priority => withToast(async () => {
                                       await listsApi.updateItem(list.id, item.id, { priority })
                                       patchList(list.id, l => ({ ...l, items: sortItems(l.items.map(i => i.id === item.id ? { ...i, priority } : i)) }))
@@ -742,8 +742,8 @@ export default function MojaListaPage() {
             onAdded={item => { addItemToState(smartPasteListId, item); setSmartPasteListId(null); showToast('Dodano s linka.') }} />
         )}
         {deleteList && (
-          <ConfirmModal key="delete" title="Obrisati listu?" confirmLabel="Obriši"
-            message={`Lista „${deleteList.name}" i sve rezervacije na njoj bit će trajno obrisane. Link više neće raditi.`}
+          <ConfirmModal key="delete" title="Obrisati Listicu?" confirmLabel="Obriši"
+            message={`Listica „${deleteList.name}" i sve rezervacije na njoj bit će trajno obrisane. Link više neće raditi.`}
             onConfirm={confirmDeleteList} onClose={() => setDeleteList(null)} />
         )}
       </AnimatePresence>

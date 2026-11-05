@@ -121,7 +121,7 @@ adminRouter.get('/stats/report.pdf', async (req, res) => {
     const stats = await computeStats(query)
     const shopName = query.shop ? (await prisma.scrapedShop.findUnique({ where: { slug: query.shop }, select: { name: true } }))?.name ?? query.shop : null
     res.setHeader('Content-Type', 'application/pdf')
-    res.setHeader('Content-Disposition', `attachment; filename="bebina-lista-statistike-${query.from}-${query.to}${query.shop ? `-${query.shop}` : ''}.pdf"`)
+    res.setHeader('Content-Disposition', `attachment; filename="listica-statistike-${query.from}-${query.to}${query.shop ? `-${query.shop}` : ''}.pdf"`)
     renderStatsPdf(stats, shopName).pipe(res)
   } catch (err) {
     console.error('Stats PDF error:', err)

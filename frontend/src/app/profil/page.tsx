@@ -34,7 +34,7 @@ function DeleteAccountModal({ onClose, onDeleted }: { onClose: () => void; onDel
     <Modal title="Obrisati profil?" onClose={onClose}>
       <div className="px-5 pb-6 sm:px-7 sm:pb-7">
         <p className="mb-4 text-muted">
-          Trajno brišemo tvoj profil, sve tvoje liste i rezervacije na njima. Poslani linkovi prestat će raditi. Ovo se ne može poništiti.
+          Trajno brišemo tvoj profil, sve tvoje Listice i rezervacije na njima. Poslani linkovi prestat će raditi. Ovo se ne može poništiti.
         </p>
         <label htmlFor="delete-confirm" className="field-label">Za potvrdu upiši OBRIŠI</label>
         <input id="delete-confirm" type="text" value={confirmText} onChange={e => setConfirmText(e.target.value)} autoComplete="off" className="field mb-4" />
@@ -113,7 +113,7 @@ export default function ProfilPage() {
               </div>
 
               <DateField id="profile-due" label="Termin poroda ili datum rođendana" value={form.dueDate}
-                onChange={value => setForm(p => ({ ...p, dueDate: value }))} hint="Gosti ga vide na tvojim listama." />
+                onChange={value => setForm(p => ({ ...p, dueDate: value }))} hint="Gosti ga vide na tvojim Listicama." />
 
               <fieldset>
                 <legend className="field-label">Spol bebe <span className="font-medium text-muted">(ako želiš)</span></legend>

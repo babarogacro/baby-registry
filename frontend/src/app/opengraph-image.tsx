@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
-import { COAL, OG_SIZE, OgLogo, OgMobile, ogFonts, type Piece } from '@/lib/og'
+import { BRAND, COAL, OG_SIZE, OgLogo, OgMobile, ogFonts, type Piece } from '@/lib/og'
 
-export const alt = 'Bebina Lista: izbjegni duple poklone. Besplatna lista želja za bebu i dječji rođendan.'
+export const alt = 'Listica: mala lista za velike želje. Besplatna lista želja za bebu i dječji rođendan.'
 export const size = OG_SIZE
 export const contentType = 'image/png'
 
@@ -15,15 +15,15 @@ const PIECES: Piece[] = [
 export default async function Image() {
   return new ImageResponse(
     (
-      <div style={{ width: '100%', height: '100%', display: 'flex', position: 'relative', background: '#FFC933', fontFamily: 'Sans' }}>
+      <div style={{ width: '100%', height: '100%', display: 'flex', position: 'relative', background: BRAND.lemon, fontFamily: 'Sans' }}>
         <OgMobile pieces={PIECES} left={730} width={430} />
         <div style={{ position: 'absolute', left: 72, top: 60, bottom: 60, width: 660, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <OgLogo />
+          <OgLogo size={52} on={BRAND.lemon} />
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div style={{ fontFamily: 'Display', fontWeight: 800, fontSize: 92, lineHeight: 0.95, letterSpacing: -3, color: COAL }}>Izbjegni</div>
-            <div style={{ fontFamily: 'Display', fontWeight: 800, fontSize: 92, lineHeight: 0.95, letterSpacing: -3, color: '#2F4BFF' }}>duple poklone.</div>
-            <div style={{ marginTop: 24, fontSize: 30, lineHeight: 1.28, color: COAL, maxWidth: 600 }}>
-              Lista želja za bebu i dječji rođendan. Gosti vide što je već zauzeto, pa nitko ne kupi isto.
+            <div style={{ fontFamily: 'Display', fontWeight: 600, fontSize: 88, lineHeight: 0.98, letterSpacing: -2.2, color: COAL }}>Mala lista</div>
+            <div style={{ fontFamily: 'Display', fontWeight: 600, fontSize: 88, lineHeight: 0.98, letterSpacing: -2.2, color: BRAND.blue }}>za velike želje.</div>
+            <div style={{ marginTop: 24, fontSize: 30, fontWeight: 700, lineHeight: 1.28, color: COAL, maxWidth: 600 }}>
+              Listica želja za bebu i dječji rođendan. Gosti vide što je već zauzeto, pa nitko ne kupi isto.
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>

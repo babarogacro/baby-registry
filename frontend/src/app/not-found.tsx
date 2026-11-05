@@ -15,9 +15,9 @@ export default function NotFound() {
           <span className="twinkle absolute right-8 top-4 h-1 w-1 rounded-full bg-white [animation-delay:2s]" />
         </div>
         <h1 className="display mt-6 text-[clamp(3.2rem,12vw,5.5rem)]">Ove stranice nema.</h1>
-        <p className="mx-auto mt-4 max-w-sm text-lg text-white/75">Link je možda pogrešan ili je lista obrisana. Ako tražiš nečiju listu, potraži je po imenu roditelja.</p>
+        <p className="mx-auto mt-4 max-w-sm text-lg text-white/75">Link je možda pogrešan ili je Listica obrisana. Ako tražiš nečiju Listicu, potraži je po imenu roditelja.</p>
         <div className="mt-7 flex flex-wrap justify-center gap-3">
-          <Link href="/pronadi-listu" className="btn btn-primary">Pronađi listu</Link>
+          <Link href="/pronadi-listu" className="btn btn-primary">Pronađi Listicu</Link>
           <Link href="/" className="btn bg-white/10 text-white">Na početnu</Link>
         </div>
       </div>

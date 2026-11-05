@@ -50,8 +50,8 @@ export default function ProductCard({ product, onAddToList, isOnList, index, fro
         {!product.inStock && <span className="chip absolute bottom-2.5 left-2.5 bg-coal text-white">Nedostupno</span>}
         {onAddToList && (
           <button onClick={() => onAddToList(product)} aria-pressed={isOnList}
-            aria-label={isOnList ? `${displayName(product)} je na listi` : `Dodaj na listu: ${displayName(product)}`}
-            title={isOnList ? 'Na listi' : 'Dodaj na listu'}
+            aria-label={isOnList ? `${displayName(product)} je na Listici` : `Dodaj na Listicu: ${displayName(product)}`}
+            title={isOnList ? 'Na Listici' : 'Dodaj na Listicu'}
             className={clsx('absolute bottom-2 right-2 flex h-11 w-11 items-center justify-center rounded-full shadow-float transition-transform duration-200 hover:scale-110 active:scale-90',
               isOnList ? 'bg-coal text-white' : 'bg-mint text-coal')}>
             {isOnList

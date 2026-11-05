@@ -51,10 +51,10 @@ function UserCard({ u, onOpen, onToggleRole, onDelete, isSelf }: { u: AdminUser;
           {u.role === 'ADMIN' && <span className="px-2 py-0.5 bg-tomato-soft text-tomato-ink text-xs rounded-full font-medium">Admin</span>}
         </div>
         <p className="text-sm text-muted break-all">{u.email}</p>
-        <p className="text-xs text-muted mt-0.5">{u._count.lists} {plural(u._count.lists, 'lista', 'liste', 'lista')} · registriran {new Date(u.createdAt).toLocaleDateString('hr-HR')}</p>
+        <p className="text-xs text-muted mt-0.5">{u._count.lists} {plural(u._count.lists, 'Listica', 'Listice', 'Listica')} · registriran {new Date(u.createdAt).toLocaleDateString('hr-HR')}</p>
       </div>
       <div className="flex gap-2">
-        <button onClick={onOpen} className="px-3 py-1.5 text-xs font-medium bg-mint-soft text-mint-ink rounded-full hover:bg-mint-soft transition-colors">Vidi liste</button>
+        <button onClick={onOpen} className="px-3 py-1.5 text-xs font-medium bg-mint-soft text-mint-ink rounded-full hover:bg-mint-soft transition-colors">Vidi Listice</button>
         {onToggleRole && !isSelf && (
           <button onClick={onToggleRole}
             className={clsx('flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
@@ -240,7 +240,7 @@ export default function AdminPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {[
                     { icon: <Users size={22} />, tone: 'tone-bubble', label: 'Korisnici', value: stats.usersCount },
-                    { icon: <ListChecks size={22} />, tone: 'tone-sun', label: 'Liste', value: stats.listsCount },
+                    { icon: <ListChecks size={22} />, tone: 'tone-sun', label: 'Listice', value: stats.listsCount },
                     { icon: <Package size={22} />, tone: 'tone-sky', label: 'Proizvodi', value: stats.productsCount },
                     { icon: <Gift size={22} />, tone: 'tone-mint', label: 'Rezervacije', value: stats.reservationsCount },
                   ].map(card => (
@@ -484,8 +484,8 @@ export default function AdminPage() {
               <div className="card p-6">
                 <h2 className="font-display font-extrabold text-xl text-ink mb-4">Opće postavke</h2>
                 {[
-                  { key: 'siteName', label: 'Naziv stranice', placeholder: 'Bebina Lista' },
-                  { key: 'contactEmail', label: 'Kontakt email', placeholder: 'info@bebinalista.hr' },
+                  { key: 'siteName', label: 'Naziv stranice', placeholder: 'Listica' },
+                  { key: 'contactEmail', label: 'Kontakt email', placeholder: 'info@listica.hr' },
                 ].map(s => (
                   <div key={s.key} className="mb-4">
                     <label htmlFor={`setting-${s.key}`} className="block text-xs font-medium text-muted mb-1.5 uppercase tracking-wide">{s.label}</label>
@@ -504,11 +504,11 @@ export default function AdminPage() {
 
       <AnimatePresence>
       {userDetail && (
-        <Modal key="user" title={`Liste: ${userDetail.name}`} onClose={() => setUserDetail(null)} wide>
+        <Modal key="user" title={`Listice: ${userDetail.name}`} onClose={() => setUserDetail(null)} wide>
           <div className="px-5 sm:px-6 pb-6">
             <p className="text-sm text-muted mb-4 break-all">{userDetail.email}</p>
             {userDetail.lists.length === 0 ? (
-              <p className="text-muted text-sm text-center py-8">Korisnik nema lista.</p>
+              <p className="text-muted text-sm text-center py-8">Korisnik nema Listica.</p>
             ) : (
               <ul className="space-y-3">
                 {userDetail.lists.map(list => {
@@ -540,8 +540,8 @@ export default function AdminPage() {
             <p className="mb-4 break-all text-sm text-muted">{deletingUser.email}</p>
             <p className="mb-5 rounded-2xl bg-tomato-soft p-3 text-sm font-medium text-tomato-ink">
               {deletingUser._count.lists > 0
-                ? `Brišu se i liste ovog korisnika (${deletingUser._count.lists}), sa stavkama i rezervacijama gostiju. `
-                : 'Korisnik nema nijednu listu. '}
+                ? `Brišu se i Listice ovog korisnika (${deletingUser._count.lists}), sa stavkama i rezervacijama gostiju. `
+                : 'Korisnik nema nijednu Listicu. '}
               Ovo se ne može poništiti.
             </p>
             <div className="flex flex-wrap gap-2">

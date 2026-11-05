@@ -20,8 +20,8 @@ const money = (value: number) => `${value.toFixed(2).replace('.', ',')} €`
 // Resolves a public list item, or sends the error response and returns null.
 async function findPublicListItem(req: Request, res: Response) {
   const list = await prisma.babyList.findUnique({ where: { shareSlug: String(req.params.slug) }, select: { id: true, isPublic: true } })
-  if (!list) { res.status(404).json({ error: 'Lista nije pronađena' }); return null }
-  if (!list.isPublic) { res.status(403).json({ error: 'Lista je privatna' }); return null }
+  if (!list) { res.status(404).json({ error: 'Listica nije pronađena' }); return null }
+  if (!list.isPublic) { res.status(403).json({ error: 'Listica je privatna' }); return null }
   const item = await prisma.listItem.findFirst({
     where: { id: String(req.params.itemId), listId: list.id },
     include: { reservation: { include: { contributors: true } }, product: { select: { price: true } } },
@@ -61,8 +61,8 @@ publicRouter.get('/lista/:slug', async (req, res) => {
         items: { include: listItemInclude, orderBy: [{ priority: 'asc' }, { createdAt: 'asc' }] },
       },
     })
-    if (!list) return res.status(404).json({ error: 'Lista nije pronađena' })
-    if (!list.isPublic) return res.status(403).json({ error: 'Lista je privatna' })
+    if (!list) return res.status(404).json({ error: 'Listica nije pronađena' })
+    if (!list.isPublic) return res.status(403).json({ error: 'Listica je privatna' })
     const { userId, ...publicList } = list
     res.set('Cache-Control', 'no-store').json(publicList)
   } catch { res.status(500).json({ error: 'Greška na serveru' }) }

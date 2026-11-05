@@ -1,4 +1,7 @@
-# 🍼 Bebina Lista — Baby Registry App
+# Listica
+
+Mala lista za velike želje.
+
 
 Roditelji slažu liste želja iz kataloga hrvatskih baby shopova (ili zalijepe link iz bilo kojeg shopa), dijele ih s obitelji i prijateljima, a oni rezerviraju poklone upisivanjem imena, bez registracije. Poklon se može kupiti i zajednički (grupna kupovina).
 
@@ -34,6 +37,8 @@ make dev       # backend na :3001, frontend na :3000
 make scrape    # napuni katalog (traje dugo jer pauzira između zahtjeva prema shopovima)
 make check     # TypeScript provjera
 ```
+
+Lokalna baza se zove `listica` (korisnik `listica`). Docker volumen napravljen prije preimenovanja i dalje ima staru bazu `baby_registry`: ili ostavi stari `DATABASE_URL` u `backend/.env`, ili napravi novu bazu s `docker compose down -v` pa `make db`.
 
 Frontend čita `frontend/.env.local`:
 

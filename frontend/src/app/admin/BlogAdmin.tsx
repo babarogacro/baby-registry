@@ -234,7 +234,7 @@ function Editor({ initial, onClose, onSaved, notify }: { initial: Draft; onClose
               </div>
             ) : (
               <textarea ref={textRef} rows={22} value={draft.content} onChange={e => set('content', e.target.value)}
-                placeholder={'Piši kao u porukama. ## na početku retka je podnaslov, **tekst** je podebljano, - na početku retka je popis.\n\nGumb s kutijom ubacuje proizvod iz kataloga koji se može dodati na listu.'}
+                placeholder={'Piši kao u porukama. ## na početku retka je podnaslov, **tekst** je podebljano, - na početku retka je popis.\n\nGumb s kutijom ubacuje proizvod iz kataloga koji se može dodati na Listicu.'}
                 className="field resize-y font-mono !text-[14px] leading-relaxed" />
             )}
           </div>

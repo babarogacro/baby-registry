@@ -435,9 +435,11 @@ const MOBILE_PIECES: { art: ArtName; tone: Tone; shape: string; x: number; drop:
 ]
 
 /** The list as a mobile: every share of reserved gifts hangs one more toy on it. */
-function ListMobile({ progress, ref }: { progress: number; ref?: React.Ref<VrtuljakHandle> }) {
+function ListMobile({ progress, tone, ref }: { progress: number; tone: Tone; ref?: React.Ref<VrtuljakHandle> }) {
   const filled = Math.round((progress / 100) * MOBILE_PIECES.length)
-  const hangers: Hanger[] = MOBILE_PIECES.map((piece, i) => ({
+  // A toy in the header's own colour would disappear into it.
+  const pieces = MOBILE_PIECES.map(p => (p.tone === tone ? { ...p, tone: (tone === 'sun' ? 'cobalt' : 'sun') as Tone } : p))
+  const hangers: Hanger[] = pieces.map((piece, i) => ({
     key: piece.art,
     x: piece.x,
     drop: piece.drop,
@@ -490,7 +492,7 @@ export default function PublicListClient({ slug, initialList, initialError }: {
       setList(res.data)
       setError(null)
     } catch (err) {
-      if (!hasList.current) setError(apiError(err, 'Lista nije pronađena'))
+      if (!hasList.current) setError(apiError(err, 'Listica nije pronađena'))
     } finally {
       setLoading(false)
     }
@@ -582,7 +584,7 @@ export default function PublicListClient({ slug, initialList, initialError }: {
     return (
       <>
         <Navbar />
-        <main className="flex min-h-screen items-center justify-center"><Loader label="Tražim listu." /></main>
+        <main className="flex min-h-screen items-center justify-center"><Loader label="Tražim Listicu." /></main>
       </>
     )
   }
@@ -594,9 +596,9 @@ export default function PublicListClient({ slug, initialList, initialError }: {
         <main className="flex min-h-[80vh] items-center justify-center p-5 pt-24">
           <div className="max-w-md text-center">
             <div className="tone-bubble mx-auto w-24"><Art name="moon" /></div>
-            <h1 className="display mt-3 text-5xl">Ove liste nema.</h1>
+            <h1 className="display mt-3 text-5xl">Ove Listice nema.</h1>
             <p className="mt-3 text-muted">{error}</p>
-            <Link href="/pronadi-listu" className="btn btn-ink mt-6">Potraži listu po imenu</Link>
+            <Link href="/pronadi-listu" className="btn btn-ink mt-6">Potraži Listicu po imenu</Link>
           </div>
         </main>
       </>
@@ -620,9 +622,9 @@ export default function PublicListClient({ slug, initialList, initialError }: {
       <Navbar />
       <header className={clsx(`tone-${tone}`, 'list-hero rounded-b-5xl px-5 pb-10 sm:px-8 sm:pb-14')}>
         <div className="mx-auto max-w-3xl pt-[72px]">
-          <ListMobile ref={mobileRef} progress={progress} />
+          <ListMobile ref={mobileRef} progress={progress} tone={tone} />
           <div className="page-in text-center">
-            <p className="font-semibold">Lista od {owner.name}</p>
+            <p className="font-semibold">Listica od {owner.name}</p>
             <h1 className="display mt-1.5 break-words text-[clamp(2.9rem,9vw,5.6rem)]">{list.name}</h1>
             <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
               {dueDate && (
@@ -649,10 +651,10 @@ export default function PublicListClient({ slug, initialList, initialError }: {
         {isOwner && (
           <div className="mb-5 flex flex-col gap-3 rounded-3xl bg-mint-soft p-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="font-display text-lg font-extrabold tracking-tight">Lista ti se sviđa? Vrijeme je da je podijeliš s obitelji i prijateljima.</p>
+              <p className="font-display text-lg font-extrabold tracking-tight">Listica ti se sviđa? Vrijeme je da je podijeliš s obitelji i prijateljima.</p>
               <p className="mt-0.5 text-[14px] text-muted">Ovako je vide gosti. Pošalji im link ili QR kod za pozivnicu.</p>
             </div>
-            <button onClick={() => setSharing(true)} className="btn btn-primary flex-shrink-0"><Share2 size={17} aria-hidden /> Podijeli listu</button>
+            <button onClick={() => setSharing(true)} className="btn btn-primary flex-shrink-0"><Share2 size={17} aria-hidden /> Podijeli Listicu</button>
           </div>
         )}
 
@@ -679,7 +681,7 @@ export default function PublicListClient({ slug, initialList, initialError }: {
           <div className="py-12 text-center">
             <div className="tone-sun mx-auto w-20"><Art name="gift" /></div>
             <p className="mt-3 font-display text-xl font-extrabold tracking-tight">
-              {total === 0 ? 'Lista je još prazna.' : filter === 'reserved' ? 'Još ništa nije rezervirano.' : 'Sve je već rezervirano.'}
+              {total === 0 ? 'Listica je još prazna.' : filter === 'reserved' ? 'Još ništa nije rezervirano.' : 'Sve je već rezervirano.'}
             </p>
           </div>
         ) : (
@@ -697,7 +699,7 @@ export default function PublicListClient({ slug, initialList, initialError }: {
         )}
 
         <p className="mt-8 text-center text-[15px] font-medium text-muted">
-          Ovdje se ništa ne plaća, kupuje se izravno u dućanu. <Link href="/" className="font-semibold text-ink underline underline-offset-2">Što je Bebina Lista?</Link>
+          Ovdje se ništa ne plaća, kupuje se izravno u dućanu. <Link href="/" className="font-semibold text-ink underline underline-offset-2">Što je Listica?</Link>
         </p>
       </main>
       <Footer />

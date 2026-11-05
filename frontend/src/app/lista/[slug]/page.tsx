@@ -12,9 +12,9 @@ const getList = cache(async (slug: string): Promise<ListResult> => {
     const res = await fetch(`${API_URL}/public/lista/${encodeURIComponent(slug)}`, { cache: 'no-store' })
     if (res.ok) return { list: await res.json(), error: null }
     const body = await res.json().catch(() => ({}))
-    return { list: null, error: body.error || 'Lista nije pronađena' }
+    return { list: null, error: body.error || 'Listica nije pronađena' }
   } catch {
-    return { list: null, error: 'Lista trenutno nije dostupna. Pokušaj ponovno za trenutak.' }
+    return { list: null, error: 'Listica trenutno nije dostupna. Pokušaj ponovno za trenutak.' }
   }
 })
 
@@ -25,22 +25,22 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { list } = await getList(slug)
   // Lists contain names and due dates of private people; keep them out of search engines.
   const robots = { index: false, follow: false }
-  if (!list) return { title: 'Lista nije pronađena | Bebina Lista', robots }
+  if (!list) return { title: 'Listica nije pronađena | Listica', robots }
 
   const total = list.items.length
   const available = list.items.filter(i => !i.reservation).length
-  const shareTitle = list.childName ? `Lista želja za ${list.childName}` : list.name
-  const description = `Lista od ${list.user?.name || 'budućih roditelja'}: ${total} poklona, ${available} slobodno. Odaberi poklon i rezerviraj ga, da se pokloni ne ponavljaju.`
+  const shareTitle = list.childName ? `Listica želja za ${list.childName}` : list.name
+  const description = `Listica od ${list.user?.name || 'budućih roditelja'}: ${total} poklona, ${available} slobodno. Odaberi poklon i rezerviraj ga, da se pokloni ne ponavljaju.`
 
   // The share image itself comes from ./opengraph-image.tsx (list colour and the child's name).
   return {
-    title: `${list.name} | Bebina Lista`,
+    title: `${list.name} | Listica`,
     description,
     robots,
     openGraph: {
       title: shareTitle,
       description,
-      siteName: 'Bebina Lista',
+      siteName: 'Listica',
       type: 'website',
       locale: 'hr_HR',
       url: `/lista/${slug}`,

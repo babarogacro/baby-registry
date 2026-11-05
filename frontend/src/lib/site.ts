@@ -1,7 +1,7 @@
 /** The public address of the site; canonical links, the sitemap and share images are built from it. */
-export const SITE_URL = (process.env.NEXT_PUBLIC_FRONTEND_URL || process.env.FRONTEND_URL || 'https://bebinalista.hr').replace(/\/$/, '')
+export const SITE_URL = (process.env.NEXT_PUBLIC_FRONTEND_URL || process.env.FRONTEND_URL || 'https://listica.hr').replace(/\/$/, '')
 
-export const SITE_NAME = 'Bebina Lista'
+export const SITE_NAME = 'Listica'
 
 export const SITE_DESCRIPTION = 'Besplatna lista želja za bebu i dječji rođendan. Upiši što ti treba, pošalji link obitelji i prijateljima, a oni vide što je već zauzeto, pa se pokloni ne ponavljaju.'
 
