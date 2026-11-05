@@ -140,83 +140,167 @@ export interface ScrapeTarget {
 
 export type SaveProducts = (products: ScrapedProduct[]) => Promise<number>
 
-interface Shop {
+export interface Shop {
   slug: string
   name: string
   baseUrl: string
 }
 
+export const SHOPS: Record<string, Shop> = {
+  babycenter: { slug: 'babycenter', name: 'Baby Center', baseUrl: 'https://www.babycenter.hr' },
+  svijetbeba: { slug: 'svijetbeba', name: 'Svijet Beba', baseUrl: 'https://www.svijet-beba.hr' },
+}
+
+export interface RunResult {
+  totalScraped: number
+  retired: number
+  failed: string[]
+}
+
 /**
- * Shared run lifecycle: resolves categories, upserts by SKU or URL, records status,
- * and retires products the shop no longer lists (only after a healthy run, so a
- * blocked or broken scrape can never empty the catalog).
+ * Where a scrape run writes its results. The scraper that runs inside the API
+ * writes straight to the database; a scraper running elsewhere (Baby Center
+ * geo-blocks every cloud IP, so it runs from a machine in Croatia) sends the
+ * same calls to the API instead. See remote.ts and routes/scraper.ts.
  */
+export interface RunStore {
+  begin(): Promise<void>
+  save(categorySlug: string, products: ScrapedProduct[]): Promise<number>
+  finish(failed: string[], targetsCount: number): Promise<RunResult>
+  fail(message: string): Promise<void>
+}
+
+/**
+ * Database-backed run: resolves categories, upserts by SKU or URL, records
+ * status, and retires products the shop no longer lists (only after a healthy
+ * run, so a blocked or broken scrape can never empty the catalog).
+ */
+export function dbRunStore(shop: Shop): RunStore {
+  const startedAt = new Date()
+  const seen = new Set<string>()
+  let saveErrors = 0
+  let categoryIds = new Map<string, string>()
+  let bySku = new Map<string, string>()
+  let byUrl = new Map<string, string>()
+  let previousInStock = 0
+
+  return {
+    async begin() {
+      await prisma.scrapedShop.upsert({
+        where: { slug: shop.slug },
+        create: { ...shop, isActive: true, lastStatus: 'running' },
+        update: { lastStatus: 'running', lastRun: startedAt, errorMsg: null },
+      })
+      categoryIds = await ensureCategories()
+      const existing = await prisma.product.findMany({
+        where: { shopSlug: shop.slug },
+        select: { id: true, sku: true, productUrl: true, inStock: true },
+      })
+      bySku = new Map(existing.filter(p => p.sku).map(p => [p.sku!, p.id]))
+      byUrl = new Map(existing.map(p => [p.productUrl, p.id]))
+      previousInStock = existing.filter(p => p.inStock).length
+    },
+
+    async save(categorySlug, products) {
+      const categoryId = categoryIds.get(categorySlug)
+      if (!categoryId) throw new Error(`Nepoznata kategorija: ${categorySlug}`)
+      let saved = 0
+      for (const p of products) {
+        const key = p.sku || p.productUrl
+        if (seen.has(key) || !p.name || !p.productUrl || !(p.price > 0)) continue
+        seen.add(key)
+        const data = {
+          name: p.name.slice(0, 500),
+          price: p.price,
+          originalPrice: p.originalPrice && p.originalPrice > p.price ? p.originalPrice : null,
+          brand: normalizeBrand(p.brand),
+          imageUrl: p.imageUrl?.slice(0, 1000) || null,
+          productUrl: p.productUrl.slice(0, 1000),
+          sku: p.sku ?? null,
+          inStock: true,
+          shopSlug: shop.slug,
+          shopName: shop.name,
+          categoryId,
+          lastScraped: new Date(),
+        }
+        try {
+          const id = (p.sku && bySku.get(p.sku)) || byUrl.get(p.productUrl)
+          if (id) {
+            await prisma.product.update({ where: { id }, data, select: { id: true } })
+          } else {
+            const created = await prisma.product.create({ data: { ...data, sortKey: Math.random() }, select: { id: true } })
+            byUrl.set(p.productUrl, created.id)
+            if (p.sku) bySku.set(p.sku, created.id)
+          }
+          saved++
+        } catch (err) {
+          if (++saveErrors <= 5) console.error(`   ⚠️  ${p.name.slice(0, 40)}: ${(err as Error).message}`)
+        }
+      }
+      return saved
+    },
+
+    async finish(failed, targetsCount) {
+      const healthy = seen.size > 0
+        && seen.size >= previousInStock * 0.5
+        && failed.length <= targetsCount * 0.25
+
+      let retired = 0
+      if (healthy) {
+        const result = await prisma.product.updateMany({
+          where: { shopSlug: shop.slug, inStock: true, lastScraped: { lt: startedAt } },
+          data: { inStock: false },
+        })
+        retired = result.count
+      }
+
+      const problems = [
+        failed.length > 0 && `Neuspjele kategorije (${failed.length}): ${failed.join(', ')}`,
+        saveErrors > 0 && `${saveErrors} grešaka pri spremanju`,
+        !healthy && 'Rezultat je sumnjivo malen pa stari proizvodi nisu uklonjeni',
+      ].filter(Boolean).join(' · ')
+
+      await prisma.scrapedShop.update({
+        where: { slug: shop.slug },
+        data: {
+          lastStatus: seen.size > 0 ? 'success' : 'error',
+          lastRun: new Date(),
+          productsCount: seen.size,
+          errorMsg: problems.slice(0, 1000) || null,
+        },
+      })
+      return { totalScraped: seen.size, retired, failed }
+    },
+
+    async fail(message) {
+      await prisma.scrapedShop.update({
+        where: { slug: shop.slug },
+        data: { lastStatus: 'error', errorMsg: message.slice(0, 1000), lastRun: new Date() },
+      }).catch(() => {})
+    },
+  }
+}
+
+/** Shared run lifecycle: walks the targets and hands every page to the store. */
 export async function runShopScrape<T extends ScrapeTarget>(
   shop: Shop,
   targets: T[],
   scrapeTarget: (target: T, save: SaveProducts) => Promise<void>,
+  store: RunStore = dbRunStore(shop),
 ) {
   const startedAt = new Date()
   console.log(`\n🕷️  ${shop.name} scraper pokrenut:`, startedAt.toLocaleString('hr-HR'))
 
-  await prisma.scrapedShop.upsert({
-    where: { slug: shop.slug },
-    create: { ...shop, isActive: true, lastStatus: 'running' },
-    update: { lastStatus: 'running', lastRun: startedAt, errorMsg: null },
-  })
-
-  const seen = new Set<string>()
   const failed: string[] = []
-  let saveErrors = 0
+  let seen = 0
 
   try {
-    const categoryIds = await ensureCategories()
-    const existing = await prisma.product.findMany({
-      where: { shopSlug: shop.slug },
-      select: { id: true, sku: true, productUrl: true, inStock: true },
-    })
-    const bySku = new Map(existing.filter(p => p.sku).map(p => [p.sku!, p.id]))
-    const byUrl = new Map(existing.map(p => [p.productUrl, p.id]))
-    const previousInStock = existing.filter(p => p.inStock).length
+    await store.begin()
 
     for (const target of targets) {
-      const categoryId = categoryIds.get(target.categorySlug)
-      if (!categoryId) throw new Error(`Nepoznata kategorija: ${target.categorySlug}`)
-
       const save: SaveProducts = async products => {
-        let saved = 0
-        for (const p of products) {
-          const key = p.sku || p.productUrl
-          if (seen.has(key) || !p.name || !p.productUrl || !(p.price > 0)) continue
-          seen.add(key)
-          const data = {
-            name: p.name.slice(0, 500),
-            price: p.price,
-            originalPrice: p.originalPrice && p.originalPrice > p.price ? p.originalPrice : null,
-            brand: normalizeBrand(p.brand),
-            imageUrl: p.imageUrl?.slice(0, 1000) || null,
-            productUrl: p.productUrl.slice(0, 1000),
-            sku: p.sku ?? null,
-            inStock: true,
-            shopSlug: shop.slug,
-            shopName: shop.name,
-            categoryId,
-            lastScraped: new Date(),
-          }
-          try {
-            const id = (p.sku && bySku.get(p.sku)) || byUrl.get(p.productUrl)
-            if (id) {
-              await prisma.product.update({ where: { id }, data, select: { id: true } })
-            } else {
-              const created = await prisma.product.create({ data: { ...data, sortKey: Math.random() }, select: { id: true } })
-              byUrl.set(p.productUrl, created.id)
-              if (p.sku) bySku.set(p.sku, created.id)
-            }
-            saved++
-          } catch (err) {
-            if (++saveErrors <= 5) console.error(`   ⚠️  ${p.name.slice(0, 40)}: ${(err as Error).message}`)
-          }
-        }
+        const saved = await store.save(target.categorySlug, products)
+        seen += saved
         return saved
       }
 
@@ -230,43 +314,12 @@ export async function runShopScrape<T extends ScrapeTarget>(
       await politePause()
     }
 
-    const healthy = seen.size > 0
-      && seen.size >= previousInStock * 0.5
-      && failed.length <= targets.length * 0.25
-
-    let retired = 0
-    if (healthy) {
-      const result = await prisma.product.updateMany({
-        where: { shopSlug: shop.slug, inStock: true, lastScraped: { lt: startedAt } },
-        data: { inStock: false },
-      })
-      retired = result.count
-    }
-
-    const problems = [
-      failed.length > 0 && `Neuspjele kategorije (${failed.length}): ${failed.join(', ')}`,
-      saveErrors > 0 && `${saveErrors} grešaka pri spremanju`,
-      !healthy && 'Rezultat je sumnjivo malen pa stari proizvodi nisu uklonjeni',
-    ].filter(Boolean).join(' · ')
-
-    await prisma.scrapedShop.update({
-      where: { slug: shop.slug },
-      data: {
-        lastStatus: seen.size > 0 ? 'success' : 'error',
-        lastRun: new Date(),
-        productsCount: seen.size,
-        errorMsg: problems.slice(0, 1000) || null,
-      },
-    })
-
-    console.log(`\n✅ ${shop.name} gotovo: ${seen.size} proizvoda, ${retired} povučeno, ${failed.length} neuspjelih kategorija`)
-    return { totalScraped: seen.size, retired, failed }
+    const result = await store.finish(failed, targets.length)
+    console.log(`\n✅ ${shop.name} gotovo: ${result.totalScraped} proizvoda, ${result.retired} povučeno, ${failed.length} neuspjelih kategorija`)
+    return result
   } catch (err) {
     console.error('\n❌ Fatalna greška:', err)
-    await prisma.scrapedShop.update({
-      where: { slug: shop.slug },
-      data: { lastStatus: 'error', errorMsg: String(err).slice(0, 1000), lastRun: new Date() },
-    }).catch(() => {})
-    return { totalScraped: seen.size, retired: 0, failed }
+    await store.fail(String(err))
+    return { totalScraped: seen, retired: 0, failed }
   }
 }

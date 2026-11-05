@@ -76,6 +76,7 @@ Admin: `/api/admin/stats|users|shops|featured|settings|products|category-mapping
 `backend/src/scraper/`: `babycenter.ts` i `svijetbeba.ts` definiraju kategorije i parsiranje, `shared.ts` sadrži zajednički tok rada.
 
 - **Automatski:** svaku noć u 02:00 (Baby Center) i 03:00 (Svijet Beba), po zagrebačkom vremenu. Ručno: admin panel ili `npm run scrape [shop]`.
+- **Baby Center blokira cloud servere** (HTTP 451 i iz SAD-a i iz Amsterdama), pa se skida s računala u Hrvatskoj: `npm run scrape:remote babycenter` skida stranice lokalno i šalje proizvode u API (`POST /api/scraper/runs/:shop/begin|items|finish`, header `x-scraper-key`). Na serveru treba `SCRAPER_KEY` i `SCRAPER_SKIP=babycenter`, na računalu `SCRAPER_KEY` i `SCRAPER_API_URL`.
 - **Podaci:** uz naziv i cijenu spremaju se brend (`normalizeBrand` u `shared.ts` svodi "CYBEX" i "Cybex" na jedan zapis) i cijena prije popusta, ako je dućan prikazuje.
 - **Povlačenje proizvoda:** proizvod koji shop više ne prikazuje dobiva `inStock = false` i nestaje iz kataloga, ali ostaje na listama s upozorenjem. To se događa samo nakon zdravog prolaza, tako da blokiran ili pokvaren scrape ne može isprazniti katalog.
 - **Kad shop promijeni strukturu:** neuspjele kategorije vide se u admin panelu pod *Scraper*. Tada ažuriraj `TARGETS` u odgovarajućoj datoteci.

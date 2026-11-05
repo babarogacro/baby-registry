@@ -7,6 +7,7 @@ import { listsRouter } from './routes/lists'
 import { productsRouter } from './routes/products'
 import { publicRouter } from './routes/public'
 import { adminRouter } from './routes/admin'
+import { scraperRouter } from './routes/scraper'
 import { scheduleScraper } from './scraper/scheduler'
 import { prisma } from './utils/prisma'
 
@@ -27,6 +28,8 @@ app.disable('x-powered-by')
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }))
 app.use(cors({ origin: true, credentials: true }))
+// Before the 100kb parser: the remote scraper posts whole listing pages.
+app.use('/api/scraper', scraperRouter)
 app.use(express.json({ limit: '100kb' }))
 // Express 5 leaves req.body undefined when there is no JSON body; validators expect an object.
 app.use((req, _res, next) => {

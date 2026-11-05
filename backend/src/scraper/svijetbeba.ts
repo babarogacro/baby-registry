@@ -1,5 +1,5 @@
 import * as cheerio from 'cheerio'
-import { absoluteUrl, fetchText, politePause, runShopScrape, ScrapedProduct } from './shared'
+import { absoluteUrl, fetchText, politePause, runShopScrape, RunStore, ScrapedProduct, SHOPS } from './shared'
 
 const BASE_URL = 'https://www.svijet-beba.hr'
 const MAX_PRODUCTS_PER_TARGET = 1200
@@ -84,9 +84,9 @@ export function parseCards(html: string) {
   return products
 }
 
-export function runSvijetBebaScraper() {
+export function runSvijetBebaScraper(store?: RunStore) {
   return runShopScrape(
-    { slug: 'svijetbeba', name: 'Svijet Beba', baseUrl: BASE_URL },
+    SHOPS.svijetbeba,
     TARGETS,
     async (target, save) => {
       const html = await fetchText(BASE_URL + target.path)
@@ -111,5 +111,6 @@ export function runSvijetBebaScraper() {
       }
       console.log(`   ${offset} pregledano, ${saved} novih u ovom prolazu`)
     },
+    store,
   )
 }
