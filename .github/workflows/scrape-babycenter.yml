@@ -1,0 +1,51 @@
+# Baby Center blokira Railwayeve IP adrese (HTTP 451), pa se njegov katalog skida
+# s GitHubova runnera i šalje u API (backend/src/scraper/remote.ts).
+# Tajne u repozitoriju: SCRAPER_KEY (isti kao na Railwayu), SCRAPER_API_URL.
+name: Baby Center scrape
+
+on:
+  schedule:
+    - cron: '0 1 * * *' # 02:00 zimi, 03:00 ljeti po Zagrebu
+  workflow_dispatch:
+  push:
+    branches: [claude/upbeat-aryabhata-06e73d]
+
+concurrency:
+  group: babycenter-scrape
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      SCRAPER_API_URL: ${{ secrets.SCRAPER_API_URL }}
+      SCRAPER_KEY: ${{ secrets.SCRAPER_KEY }}
+    steps:
+      - name: Provjeri da Baby Center pušta ovaj runner
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' -A 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36' https://www.babycenter.hr/kolica/kolica)
+          echo "babycenter.hr odgovorio: HTTP $code"
+          test "$code" = "200"
+
+      - uses: actions/checkout@v4
+        if: env.SCRAPER_KEY != ''
+
+      - uses: actions/setup-node@v4
+        if: env.SCRAPER_KEY != ''
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Instaliraj ovisnosti
+        if: env.SCRAPER_KEY != ''
+        working-directory: backend
+        run: |
+          npm ci --ignore-scripts
+          npx prisma generate
+
+      - name: Skini Baby Center i pošalji u API
+        if: env.SCRAPER_KEY != ''
+        working-directory: backend
+        run: npm run scrape:remote babycenter
