@@ -11,13 +11,15 @@ import { adminApi, productsApi, apiError } from '@/lib/api'
 import { formatPrice, plural } from '@/lib/format'
 import { useAuthStore } from '@/lib/store'
 import { Product, AdminUser, CategoryMapping, Category } from '@/types'
-import { ArrowRight, BarChart3, FolderTree, Gift, ListChecks, Package, RefreshCw, Search, Settings, Shield, Star, Trash2, Users } from 'lucide-react'
+import { ArrowRight, BarChart3, FolderTree, Gift, LineChart, ListChecks, Package, RefreshCw, Search, Settings, Shield, Star, Trash2, Users } from 'lucide-react'
+import StatsPanel from './StatsPanel'
 import clsx from 'clsx'
 
-type Tab = 'overview' | 'users' | 'scraper' | 'featured' | 'categories' | 'settings'
+type Tab = 'overview' | 'stats' | 'users' | 'blog' | 'scraper' | 'featured' | 'categories' | 'settings'
 
 const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
   { key: 'overview', label: 'Pregled', icon: <BarChart3 size={16} /> },
+  { key: 'stats', label: 'Statistike', icon: <LineChart size={16} /> },
   { key: 'users', label: 'Korisnici', icon: <Users size={16} /> },
   { key: 'scraper', label: 'Scraper', icon: <RefreshCw size={16} /> },
   { key: 'featured', label: 'Istaknuti', icon: <Star size={16} /> },
@@ -256,6 +258,8 @@ export default function AdminPage() {
               </div>
             </div>
           )}
+
+          {tab === 'stats' && <StatsPanel />}
 
           {tab === 'users' && (
             <div>

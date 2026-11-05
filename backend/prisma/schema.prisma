@@ -76,6 +76,7 @@ model Reservation {
   reservedBy    String
   reservedAt    DateTime          @default(now())
   status        ReservationStatus @default(RESERVED)
+  purchasedAt   DateTime?
   note          String?
   isGroupBuy    Boolean           @default(false)
   targetAmount  Float?
@@ -179,5 +180,75 @@ model ScrapedShop {
   lastStatus    String?
   errorMsg      String?
   productsCount Int       @default(0)
+  // Secret a shop uses to report purchases that came from our links (POST /api/conversions).
+  conversionKey String?
   createdAt     DateTime  @default(now())
+
+  @@index([conversionKey])
+}
+
+// First-party, cookieless analytics: no identifier is stored in the visitor's browser.
+// visitorId is a hash of IP + user agent with a salt that changes every day, so it
+// can count unique visitors within a day but can't follow anyone across days.
+model AnalyticsEvent {
+  id          String   @id @default(cuid())
+  type        String   // pageview | engagement | outbound | share | search | reserve_start
+  path        String?
+  visitorId   String
+  listId      String?
+  productId   String?
+  shopSlug    String?
+  source      String?  // where an outbound click came from: katalog, lista, moja-lista, blog
+  referrer    String?  // referring host only
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  device      String?  // mobile | tablet | desktop
+  durationMs  Int?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([type, createdAt])
+  @@index([shopSlug, createdAt])
+  @@index([listId])
+}
+
+// A purchase a shop reports back for a click it received from us (click id in bl_click).
+model Conversion {
+  id         String   @id @default(cuid())
+  shopSlug   String
+  clickId    String?
+  orderId    String?
+  value      Float?
+  currency   String   @default("EUR")
+  createdAt  DateTime @default(now())
+
+  @@unique([shopSlug, orderId])
+  @@index([shopSlug, createdAt])
+}
+
+model BlogPost {
+  id             String    @id @default(cuid())
+  slug           String    @unique
+  title          String
+  excerpt        String?
+  content        String    @db.Text // Markdown; [[proizvod:<id>]] embeds a catalog product
+  coverImage     String?   // URL, our own /api/blog/images/<id> or an external one
+  published      Boolean   @default(false)
+  publishedAt    DateTime?
+  seoTitle       String?
+  seoDescription String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([published, publishedAt])
+}
+
+// Blog images live in the database: Railway has no object storage and the blog is small.
+model BlogImage {
+  id        String   @id @default(cuid())
+  mime      String
+  data      Bytes
+  size      Int
+  createdAt DateTime @default(now())
 }

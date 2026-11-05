@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { Art } from '@/components/art'
 import { searchApi, apiError } from '@/lib/api'
+import { track } from '@/lib/analytics'
 import { OCCASIONS, genderLabel } from '@/lib/occasions'
 import { BabyList } from '@/types'
 import { ArrowRight, Loader2, Search, X } from 'lucide-react'
@@ -62,6 +63,8 @@ function PronadiListu() {
     try {
       const res = await searchApi.findLists(q.trim())
       setResults(res.data)
+      // Only whether something was found, never the name that was typed.
+      track('search', { s: res.data.length ? 'nadeno' : 'prazno' })
     } catch (err) {
       setError(apiError(err, 'Greška pri pretrazi'))
     } finally { setLoading(false) }

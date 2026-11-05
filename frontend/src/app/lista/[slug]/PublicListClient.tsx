@@ -2,7 +2,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { AnimatePresence, m } from 'motion/react'
-import { publicApi, listsApi, addRefToUrl, apiError } from '@/lib/api'
+import { publicApi, listsApi, apiError } from '@/lib/api'
+import { outboundUrl, track } from '@/lib/analytics'
 import { listTone } from '@/lib/listTone'
 import { useAuthStore } from '@/lib/store'
 import ShareListModal from '@/components/ShareListModal'
@@ -28,8 +29,8 @@ import clsx from 'clsx'
 type Flow = { step: 'choose' | 'solo' | 'group' | 'join'; item: ListItem } | null
 type MyMap = Record<string, MyReservation>
 
-function shopLink(product: Product) {
-  return product.productUrl ? addRefToUrl(product.productUrl) : undefined
+function shopLink(product: Product, slug: string) {
+  return product.productUrl ? outboundUrl(product.id, 'lista', slug) : undefined
 }
 
 function Thumb({ product, className, children }: { product: Product; className: string; children?: React.ReactNode }) {
@@ -111,7 +112,7 @@ function ReserveStep({ item, slug, onDone, onConflict, onClose }: {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
-  const link = shopLink(item.product)
+  const link = shopLink(item.product, slug)
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -340,8 +341,9 @@ function MyReservationActions({ item, onPurchased, onCancel, busy }: {
   )
 }
 
-function PublicListItem({ item, index, mine, busy, onStart, onPurchased, onCancel, onLeave }: {
+function PublicListItem({ item, slug, index, mine, busy, onStart, onPurchased, onCancel, onLeave }: {
   item: ListItem
+  slug: string
   index: number
   mine?: MyReservation
   busy: boolean
@@ -355,7 +357,7 @@ function PublicListItem({ item, index, mine, busy, onStart, onPurchased, onCance
   const isSolo = !!reservation && !isGroupBuy
   const isMineSolo = isSolo && !!mine && !mine.contributorId
   const purchased = reservation?.status === 'PURCHASED'
-  const link = shopLink(product)
+  const link = shopLink(product, slug)
   const meta = categoryMeta(product.category?.slug)
   const taken = isSolo && !isMineSolo
   const poolTarget = reservation?.targetAmount || 0
@@ -684,8 +686,8 @@ export default function PublicListClient({ slug, initialList, initialError }: {
           <ul className="space-y-3">
             <AnimatePresence initial={false} mode="popLayout">
               {visible.map((item, i) => (
-                <PublicListItem key={item.id} item={item} index={i} mine={mine[item.id]} busy={busyItem === item.id}
-                  onStart={step => setFlow({ step, item })}
+                <PublicListItem key={item.id} item={item} slug={slug} index={i} mine={mine[item.id]} busy={busyItem === item.id}
+                  onStart={step => { if (step === 'choose') track('reserve_start'); setFlow({ step, item }) }}
                   onPurchased={purchased => setPurchased(item, purchased)}
                   onCancel={() => cancelReservation(item)}
                   onLeave={c => leaveGroup(item, c)} />

@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Modal from '@/components/Modal'
+import { track } from '@/lib/analytics'
 import { Check, Copy, Download, Lock, QrCode, Share2 } from 'lucide-react'
 
 /** Link, native share, messenger shortcuts and a QR code for invitations. Used by the owner only. */
@@ -10,6 +11,8 @@ export default function ShareListModal({ slug, listName, isPublic, onClose }: { 
   const [canShare, setCanShare] = useState(false)
   const shareUrl = `${window.location.origin}/lista/${slug}`
   const shareText = `Pogledaj našu listu želja: „${listName}"`
+
+  useEffect(() => { track('share') }, [])
 
   useEffect(() => {
     setCanShare(typeof navigator.share === 'function')

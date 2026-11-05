@@ -283,7 +283,7 @@ publicRouter.patch('/lista/:slug/rezerviraj/:itemId/status', publicWriteLimiter,
       || (reservation.isGroupBuy && reservation.contributors.some(c => tokensMatch(c.ownerToken, token)))
     if (!isOwner) return res.status(403).json({ error: 'Ovo nije tvoja rezervacija' })
 
-    await prisma.reservation.update({ where: { id: reservation.id }, data: { status } })
+    await prisma.reservation.update({ where: { id: reservation.id }, data: { status, purchasedAt: status === 'PURCHASED' ? new Date() : null } })
     res.json({ success: true, status })
   } catch (err) {
     if (err instanceof z.ZodError) return res.status(400).json({ error: firstIssue(err) })

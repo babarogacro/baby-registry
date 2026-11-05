@@ -5,6 +5,9 @@ import { adminAuthMiddleware, AuthRequest } from '../middleware/auth'
 import { runScraper, isScraperRunning, SCRAPERS } from '../scraper/registry'
 import { firstIssue, isUniqueViolation } from '../utils/validation'
 import { httpUrl } from '../utils/urls'
+import { computeStats } from '../services/stats'
+import { renderStatsPdf } from '../services/statsReport'
+import { newConversionKey } from './analytics'
 
 export const adminRouter = Router()
 
@@ -87,6 +90,55 @@ adminRouter.patch('/users/:id/role', async (req: AuthRequest, res) => {
     if (err instanceof z.ZodError) return res.status(400).json({ error: 'Nevažeća uloga' })
     res.status(500).json({ error: 'Greška na serveru' })
   }
+})
+
+// ?from=YYYY-MM-DD&to=YYYY-MM-DD&shop=slug; defaults to the last 30 days in Zagreb time.
+function statsQuery(query: Record<string, unknown>) {
+  const isoDay = /^\d{4}-\d{2}-\d{2}$/
+  const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Zagreb' })
+  const monthAgo = new Date(Date.now() - 29 * 86_400_000).toLocaleDateString('sv-SE', { timeZone: 'Europe/Zagreb' })
+  let from = typeof query.from === 'string' && isoDay.test(query.from) ? query.from : monthAgo
+  let to = typeof query.to === 'string' && isoDay.test(query.to) ? query.to : today
+  if (from > to) [from, to] = [to, from]
+  // A year at most, so one request can't ask the database for decades of daily buckets.
+  if ((Date.parse(to) - Date.parse(from)) / 86_400_000 > 366) from = new Date(Date.parse(to) - 366 * 86_400_000).toISOString().slice(0, 10)
+  const shop = typeof query.shop === 'string' && /^[a-z0-9-]{1,40}$/.test(query.shop) ? query.shop : null
+  return { from, to, shop }
+}
+
+adminRouter.get('/stats/analytics', async (req, res) => {
+  try {
+    res.json(await computeStats(statsQuery(req.query)))
+  } catch (err) {
+    console.error('Stats error:', err)
+    res.status(500).json({ error: 'Greška na serveru' })
+  }
+})
+
+adminRouter.get('/stats/report.pdf', async (req, res) => {
+  try {
+    const query = statsQuery(req.query)
+    const stats = await computeStats(query)
+    const shopName = query.shop ? (await prisma.scrapedShop.findUnique({ where: { slug: query.shop }, select: { name: true } }))?.name ?? query.shop : null
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition', `attachment; filename="bebina-lista-statistike-${query.from}-${query.to}${query.shop ? `-${query.shop}` : ''}.pdf"`)
+    renderStatsPdf(stats, shopName).pipe(res)
+  } catch (err) {
+    console.error('Stats PDF error:', err)
+    if (!res.headersSent) res.status(500).json({ error: 'Greška na serveru' })
+  }
+})
+
+// A shop that wants to report purchases gets a secret key; making a new one revokes the old.
+adminRouter.post('/shops/:slug/conversion-key', async (req, res) => {
+  try {
+    const shop = await prisma.scrapedShop.update({
+      where: { slug: req.params.slug },
+      data: { conversionKey: newConversionKey() },
+      select: { slug: true, conversionKey: true },
+    })
+    res.json(shop)
+  } catch { res.status(404).json({ error: 'Shop nije pronađen' }) }
 })
 
 // Same cascade as a user deleting their own profile: lists, items and reservations on them go too.

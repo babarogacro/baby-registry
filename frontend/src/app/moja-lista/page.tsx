@@ -12,7 +12,8 @@ import ProgressBar from '@/components/ProgressBar'
 import PriorityPicker from '@/components/PriorityPicker'
 import { Art } from '@/components/art'
 import { Toast, useToast } from '@/components/Toast'
-import { listsApi, authApi, addRefToUrl, apiError } from '@/lib/api'
+import { listsApi, authApi, apiError } from '@/lib/api'
+import { outboundUrl } from '@/lib/analytics'
 import { categoryMeta } from '@/lib/categories'
 import { displayName, formatPrice, parseAmount, parseDMY, plural, shopLabel, toDMY } from '@/lib/format'
 import DateField, { DATE_FORMAT_ERROR } from '@/components/DateField'
@@ -152,7 +153,7 @@ function ListItemRow({ item, onDelete, onPriorityChange, onNoteChange, onClearRe
   const [noteValue, setNoteValue] = useState(item.note || '')
   const [confirmClear, setConfirmClear] = useState(false)
   const { product, reservation } = item
-  const shopUrl = product.productUrl ? addRefToUrl(product.productUrl) : undefined
+  const shopUrl = product.productUrl ? outboundUrl(product.id, 'moja-lista') : undefined
   const meta = categoryMeta(product.category?.slug)
 
   const isGroupBuy = !!reservation?.isGroupBuy

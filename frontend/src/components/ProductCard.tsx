@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { ArrowUpRight, Check, Plus } from 'lucide-react'
 import { Art } from '@/components/art'
 import { Product } from '@/types'
-import { addRefToUrl } from '@/lib/api'
+import { outboundUrl, type OutboundSource } from '@/lib/analytics'
 import { categoryMeta } from '@/lib/categories'
 import { discountPercent, displayName, formatPrice } from '@/lib/format'
 import clsx from 'clsx'
@@ -15,9 +15,11 @@ interface ProductCardProps {
   isOnList?: boolean
   /** Position in the grid, for the staggered entrance. */
   index?: number
+  /** Which page the card is on, so shop clicks can be counted per place. */
+  from?: OutboundSource
 }
 
-export default function ProductCard({ product, onAddToList, isOnList, index }: ProductCardProps) {
+export default function ProductCard({ product, onAddToList, isOnList, index, from = 'katalog' }: ProductCardProps) {
   const [imgError, setImgError] = useState(false)
   const [popped, setPopped] = useState(false)
   const wasOnList = useRef(isOnList)
@@ -27,7 +29,7 @@ export default function ProductCard({ product, onAddToList, isOnList, index }: P
     wasOnList.current = isOnList
   }, [isOnList])
 
-  const shopUrl = addRefToUrl(product.productUrl)
+  const shopUrl = outboundUrl(product.id, from)
   const meta = categoryMeta(product.category?.slug)
   const discount = discountPercent(product)
 

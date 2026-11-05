@@ -211,7 +211,7 @@ export default async function HomePage() {
             </Reveal>
             <ul className="no-scrollbar mt-7 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-5 pb-2 sm:px-8 xl:px-[max(2rem,calc((100vw-80rem)/2+2rem))]">
               {rail.map(product => (
-                <li key={product.id} className="w-[62vw] flex-shrink-0 snap-center sm:w-[260px]"><ProductCard product={product} /></li>
+                <li key={product.id} className="w-[62vw] flex-shrink-0 snap-center sm:w-[260px]"><ProductCard product={product} from="naslovnica" /></li>
               ))}
             </ul>
           </section>
