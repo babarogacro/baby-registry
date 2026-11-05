@@ -48,7 +48,7 @@ export default function HeroMobile({ heroImage }: { heroImage?: string | null })
           ))}
         </div>
       )}
-      <Vrtuljak hangers={hangers} heightClass="h-[335px] sm:h-[470px] lg:h-[640px]" stringVar={night ? '247 243 255' : undefined} />
+      <Vrtuljak hangers={hangers} heightClass="h-[365px] sm:h-[470px] lg:h-[640px]" stringVar={night ? '247 243 255' : undefined} />
       <p className="note absolute right-[6%] top-[72%] hidden rotate-[-5deg] lg:block" aria-hidden>
         slobodno povuci
         <svg viewBox="0 0 60 40" className="ml-6 mt-1 h-8 w-12" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
