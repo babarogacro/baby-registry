@@ -2,14 +2,16 @@ import { createHash, randomBytes, timingSafeEqual } from 'crypto'
 import express, { Request, Router } from 'express'
 import { z } from 'zod'
 import { prisma } from '../utils/prisma'
-import { eventsLimiter, publicWriteLimiter } from '../middleware/rateLimit'
+import { conversionLimiter, eventsLimiter, publicWriteLimiter } from '../middleware/rateLimit'
+import { ATTRIBUTION_DAYS, clickPrice } from '../services/pricing'
 
 /**
  * First-party analytics without cookies:
  *  - POST /api/events       page views, time on page, shares, searches (sent with navigator.sendBeacon)
- *  - GET  /api/go/:id       every "U dućan" link: logs the click, then redirects with UTM tags the shop's
- *                           Google Analytics understands (source listica, medium referral)
- *  - POST /api/conversions  a shop reports a purchase that came from one of our clicks (lc_click)
+ *  - GET  /api/go/:id       every "U dućan" link: records the click and what it costs the shop, then
+ *                           redirects with the tags from the merchant presentation (utm_source=listica,
+ *                           utm_medium=wishlist, utm_campaign, utm_content = feed product id, lc_click)
+ *  - GET|POST /api/konverzija  a shop reports a purchase that came from one of our clicks
  */
 export const analyticsRouter = Router()
 
@@ -90,50 +92,68 @@ analyticsRouter.post('/events', eventsLimiter, express.text({ type: '*/*', limit
 
 const SOURCES = new Set(['katalog', 'lista', 'moja-lista', 'naslovnica', 'blog', 'dodaj'])
 
-/** The shop link with our tags. GA4 files utm_medium=referral under the Referral channel. */
-function taggedUrl(productUrl: string, from: string, clickId?: string) {
+/** The shop link with the tags from the merchant presentation; the shop's own link stays as it is. */
+function taggedUrl(productUrl: string, tags: { campaign: string; content: string; clickId?: string }) {
   const url = new URL(productUrl)
-  url.searchParams.set('ref', 'listica')
   url.searchParams.set('utm_source', 'listica')
-  url.searchParams.set('utm_medium', 'referral')
-  url.searchParams.set('utm_campaign', from === 'lista' ? 'lista-zelja' : 'katalog')
-  url.searchParams.set('utm_content', from)
-  if (clickId) url.searchParams.set('lc_click', clickId)
+  url.searchParams.set('utm_medium', 'wishlist')
+  url.searchParams.set('utm_campaign', tags.campaign)
+  url.searchParams.set('utm_content', tags.content)
+  if (tags.clickId) url.searchParams.set('lc_click', tags.clickId)
   return url.toString()
 }
+
+const newClickId = () => `lc_${randomBytes(8).toString('hex')}`
 
 // GET /api/go/:productId?from=lista&l=<shareSlug>
 analyticsRouter.get('/go/:productId', async (req, res) => {
   try {
     const product = await prisma.product.findUnique({
       where: { id: req.params.productId },
-      select: { id: true, productUrl: true, shopSlug: true },
+      select: { id: true, name: true, price: true, sku: true, productUrl: true, shopSlug: true },
     })
     if (!product || !/^https?:\/\//i.test(product.productUrl)) return res.redirect(302, '/')
     const from = typeof req.query.from === 'string' && SOURCES.has(req.query.from) ? req.query.from : 'katalog'
+    const slug = typeof req.query.l === 'string' ? req.query.l.slice(0, 60) : null
+    const list = slug ? await prisma.babyList.findUnique({ where: { shareSlug: slug }, select: { id: true, occasion: true } }) : null
+    // utm_campaign tells the shop which kind of list the visitor came from.
+    const campaign = list ? (list.occasion === 'birthday' ? 'rodjendan' : 'lista') : 'katalog'
 
     let clickId: string | undefined
     if (!isBot(req)) {
-      const slug = typeof req.query.l === 'string' ? req.query.l.slice(0, 60) : null
-      const listId = slug ? (await prisma.babyList.findUnique({ where: { shareSlug: slug }, select: { id: true } }))?.id ?? null : null
-      const event = await prisma.analyticsEvent.create({
+      const visitor = visitorId(req)
+      const device = deviceOf(req.get('user-agent') || '')
+      await prisma.analyticsEvent.create({
+        data: { type: 'outbound', visitorId: visitor, productId: product.id, shopSlug: product.shopSlug, listId: list?.id ?? null, source: from, device },
+      }).catch(() => null)
+      // The visitor id changes every day, so "same device, same product, already clicked" means today.
+      const repeat = await prisma.outboundClick.findFirst({ where: { visitorId: visitor, productId: product.id, billable: true }, select: { id: true } })
+      const billable = !repeat
+      const click = await prisma.outboundClick.create({
         data: {
-          type: 'outbound',
-          visitorId: visitorId(req),
+          id: newClickId(),
           productId: product.id,
+          productName: product.name.slice(0, 300),
+          productSku: product.sku,
           shopSlug: product.shopSlug,
-          listId,
+          listId: list?.id ?? null,
+          campaign,
           source: from,
-          device: deviceOf(req.get('user-agent') || ''),
+          price: product.price,
+          cpc: billable ? clickPrice(product.price) : 0,
+          billable,
+          visitorId: visitor,
+          device,
         },
         select: { id: true },
       }).catch(() => null)
-      clickId = event?.id
+      clickId = click?.id
     }
     res.set('Cache-Control', 'no-store')
     res.set('Referrer-Policy', 'origin')
-    res.redirect(302, taggedUrl(product.productUrl, from, clickId))
-  } catch {
+    res.redirect(302, taggedUrl(product.productUrl, { campaign, content: product.sku || product.id, clickId }))
+  } catch (err) {
+    console.error('Outbound redirect error:', err)
     res.redirect(302, '/')
   }
 })
@@ -143,7 +163,11 @@ const conversionSchema = z.object({
   order: z.string().trim().max(100).optional(),
   value: z.coerce.number().nonnegative().max(1_000_000).optional(),
   currency: z.string().trim().length(3).optional(),
+  // A comma list or, from JSON, an array of the shop's product ids.
+  items: z.union([z.string().trim().max(1000), z.array(z.coerce.string()).max(200)]).optional()
+    .transform(v => (Array.isArray(v) ? v.join(',').slice(0, 1000) : v)),
 })
+type ConversionInput = z.infer<typeof conversionSchema>
 
 async function shopForKey(key: string | undefined) {
   if (!key || key.length < 20) return null
@@ -154,31 +178,96 @@ async function shopForKey(key: string | undefined) {
   return a.length === b.length && timingSafeEqual(a, b) ? shop.slug : null
 }
 
-async function recordConversion(shopSlug: string, data: z.infer<typeof conversionSchema>) {
+/** Our click behind an lc_click value: new lc_ ids, or the event id older links carried. */
+async function findClick(click: string | undefined) {
+  if (!click) return null
+  if (click.startsWith('lc_')) {
+    const c = await prisma.outboundClick.findUnique({ where: { id: click }, select: { shopSlug: true, createdAt: true } })
+    return c ? { shopSlug: c.shopSlug, at: c.createdAt } : null
+  }
+  const e = await prisma.analyticsEvent.findUnique({ where: { id: click }, select: { type: true, shopSlug: true, createdAt: true } })
+  return e?.type === 'outbound' && e.shopSlug ? { shopSlug: e.shopSlug, at: e.createdAt } : null
+}
+
+type Outcome = 'recorded' | 'duplicate' | 'unknown-click' | 'missing-order' | 'wrong-shop'
+
+/**
+ * A purchase report. Without a shop key it must name a real click of ours and an order number, and
+ * the first report of an order wins, so nobody can rewrite an order's value afterwards. With the
+ * shop's key (old endpoint) a report may also correct an order it sent before.
+ */
+async function recordConversion(data: ConversionInput, channel: 'pixel' | 'server' | 'key', keyShop: string | null = null): Promise<Outcome> {
+  const click = await findClick(data.click)
+  if (!keyShop && !click) return 'unknown-click'
+  if (keyShop && click && click.shopSlug !== keyShop) return 'wrong-shop'
+  const shopSlug = keyShop ?? click!.shopSlug
+  const orderId = data.order || null
+  if (!keyShop && !orderId) return 'missing-order'
+
+  const expired = !!click && Date.now() - click.at.getTime() > ATTRIBUTION_DAYS * 86_400_000
   const fields = {
     shopSlug,
     clickId: data.click || null,
-    orderId: data.order || null,
+    orderId,
     value: data.value ?? null,
     currency: (data.currency || 'EUR').toUpperCase(),
+    items: data.items || null,
+    channel,
+    clickAt: click?.at ?? null,
+    status: expired ? 'expired' : 'reported',
   }
-  if (fields.orderId) {
-    await prisma.conversion.upsert({
-      where: { shopSlug_orderId: { shopSlug, orderId: fields.orderId } },
-      create: fields,
-      update: { value: fields.value, currency: fields.currency, clickId: fields.clickId ?? undefined },
-    })
-  } else {
+  if (!orderId) {
     await prisma.conversion.create({ data: fields })
+    return 'recorded'
   }
+  const existing = await prisma.conversion.findUnique({ where: { shopSlug_orderId: { shopSlug, orderId } }, select: { id: true } })
+  if (existing) {
+    if (!keyShop) return 'duplicate'
+    await prisma.conversion.update({ where: { id: existing.id }, data: { value: fields.value, currency: fields.currency, clickId: fields.clickId ?? undefined, items: fields.items ?? undefined } })
+    return 'recorded'
+  }
+  try {
+    await prisma.conversion.create({ data: fields })
+  } catch {
+    return 'duplicate' // the same order reported twice at once
+  }
+  return 'recorded'
 }
 
-// POST /api/conversions  header x-shop-key, body { click, order, value, currency }
+const PIXEL = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64')
+const sendPixel = (res: import('express').Response) => res.set('Content-Type', 'image/gif').set('Cache-Control', 'no-store').end(PIXEL)
+
+// GET /api/konverzija?click=lc_...&order=...&value=...&currency=EUR  the "Listica: kupnja" tag (an image request)
+analyticsRouter.get('/konverzija', conversionLimiter, async (req, res) => {
+  try {
+    await recordConversion(conversionSchema.parse(req.query), 'pixel', await shopForKey(req.get('x-shop-key')))
+  } catch {}
+  sendPixel(res)
+})
+
+// POST /api/konverzija  from the shop's server after the order is confirmed; JSON or form fields
+analyticsRouter.post('/konverzija', conversionLimiter, express.json({ limit: '8kb' }), express.urlencoded({ extended: false, limit: '8kb' }), async (req, res) => {
+  try {
+    const outcome = await recordConversion(conversionSchema.parse(req.body ?? {}), 'server', await shopForKey(req.get('x-shop-key')))
+    if (outcome === 'recorded' || outcome === 'duplicate') return res.json({ ok: true, duplicate: outcome === 'duplicate' })
+    const messages: Record<string, string> = {
+      'unknown-click': 'Klik s tom oznakom ne postoji',
+      'missing-order': 'Nedostaje broj narudžbe (order)',
+      'wrong-shop': 'Klik pripada drugom dućanu',
+    }
+    res.status(422).json({ ok: false, error: messages[outcome] })
+  } catch (err) {
+    if (err instanceof z.ZodError) return res.status(400).json({ ok: false, error: 'Neispravni podaci' })
+    res.status(500).json({ ok: false, error: 'Greška na serveru' })
+  }
+})
+
+// Older endpoints with the shop's key, kept for anyone already set up with them.
 analyticsRouter.post('/conversions', publicWriteLimiter, express.json({ limit: '4kb' }), async (req, res) => {
   try {
     const shopSlug = await shopForKey(req.get('x-shop-key'))
     if (!shopSlug) return res.status(401).json({ error: 'Pogrešan ključ' })
-    await recordConversion(shopSlug, conversionSchema.parse(req.body ?? {}))
+    await recordConversion(conversionSchema.parse(req.body ?? {}), 'key', shopSlug)
     res.json({ ok: true })
   } catch (err) {
     if (err instanceof z.ZodError) return res.status(400).json({ error: 'Neispravni podaci' })
@@ -186,15 +275,12 @@ analyticsRouter.post('/conversions', publicWriteLimiter, express.json({ limit: '
   }
 })
 
-// GET /api/conversions/pixel.gif?key=...&click=...&order=...&value=...  for shops that can only add an <img> to the thank-you page
-const PIXEL = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64')
 analyticsRouter.get('/conversions/pixel.gif', publicWriteLimiter, async (req, res) => {
-  res.set('Content-Type', 'image/gif').set('Cache-Control', 'no-store')
   try {
     const shopSlug = await shopForKey(typeof req.query.key === 'string' ? req.query.key : undefined)
-    if (shopSlug) await recordConversion(shopSlug, conversionSchema.parse(req.query))
+    if (shopSlug) await recordConversion(conversionSchema.parse(req.query), 'key', shopSlug)
   } catch {}
-  res.end(PIXEL)
+  sendPixel(res)
 })
 
 export const newConversionKey = () => randomBytes(24).toString('hex')

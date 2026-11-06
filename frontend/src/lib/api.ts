@@ -141,6 +141,12 @@ export const adminApi = {
   deleteBlogPost: (id: string) => api.delete(`/admin/blog/${id}`),
   uploadBlogImage: (data: string, mime: string) => api.post<{ id: string; url: string }>('/admin/blog/images', { data, mime }),
   createConversionKey: (slug: string) => api.post<{ slug: string; conversionKey: string }>(`/admin/shops/${slug}/conversion-key`),
+  getBilling: (params: { month: string; shop?: string }) => api.get('/admin/billing', { params }),
+  getStatement: (format: 'pdf' | 'csv', params: { month: string; shop: string }) =>
+    api.get<Blob>(`/admin/billing/statement.${format}`, { params, responseType: 'blob' }),
+  addTopUp: (data: { shopSlug: string; amount: number; note?: string; paidAt?: string }) => api.post('/admin/billing/top-ups', data),
+  deleteTopUp: (id: string) => api.delete(`/admin/billing/top-ups/${id}`),
+  setConversionStatus: (id: string, status: string) => api.patch(`/admin/conversions/${id}`, { status }),
   getFeatured: () => api.get('/admin/featured'),
   addFeatured: (productId: string) => api.post('/admin/featured', { productId }),
   removeFeatured: (id: string) => api.delete(`/admin/featured/${id}`),

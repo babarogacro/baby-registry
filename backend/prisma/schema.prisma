@@ -214,6 +214,7 @@ model AnalyticsEvent {
 }
 
 // A purchase a shop reports back for a click it received from us (click id in lc_click).
+// value is what the shop reports: products without VAT and shipping; commission is taken on it.
 model Conversion {
   id         String   @id @default(cuid())
   shopSlug   String
@@ -221,10 +222,49 @@ model Conversion {
   orderId    String?
   value      Float?
   currency   String   @default("EUR")
+  // reported (counts) | returned (goods sent back, not charged) | rejected (duplicate or fake) | expired (more than 30 days after the click)
+  status     String   @default("reported")
+  channel    String?  // pixel (tag in the shop's browser) | server (shop's server) | key (old keyed endpoint)
+  items      String?  // product ids from the shop's feed, as sent
+  clickAt    DateTime?
   createdAt  DateTime @default(now())
 
   @@unique([shopSlug, orderId])
   @@index([shopSlug, createdAt])
+}
+
+// One "U dućan" click as the merchant price list counts it: the click id the shop receives
+// (lc_click), the product price at that moment and what the click costs the shop.
+model OutboundClick {
+  id          String   @id // lc_ + 16 hex characters
+  productId   String?
+  productName String
+  productSku  String?
+  shopSlug    String
+  listId      String?
+  campaign    String   // lista | rodjendan | katalog
+  source      String   // where on Listica the click happened
+  price       Float    // product price when clicked; it decides the click price
+  cpc         Float    // click price in EUR without VAT; 0 when the click is not charged
+  billable    Boolean  // false for a repeat click on the same product from the same device the same day
+  visitorId   String
+  device      String?
+  createdAt   DateTime @default(now())
+
+  @@index([shopSlug, createdAt])
+  @@index([visitorId, productId])
+}
+
+// Money a shop paid in advance for clicks; clicks are deducted from it (prepaid balance).
+model ShopTopUp {
+  id        String   @id @default(cuid())
+  shopSlug  String
+  amount    Float
+  note      String?
+  paidAt    DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([shopSlug])
 }
 
 model BlogPost {

@@ -1,6 +1,8 @@
 'use client'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { adminApi, apiError } from '@/lib/api'
+import { SITE_URL } from '@/lib/site'
+import BillingPanel from './BillingPanel'
 import Segmented from '@/components/Segmented'
 import { Copy, Download, KeyRound, Loader2, RefreshCw } from 'lucide-react'
 import clsx from 'clsx'
@@ -36,7 +38,6 @@ interface Stats {
 
 interface Shop { slug: string; name: string; conversionKey?: string | null }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
 const nf = new Intl.NumberFormat('hr-HR')
 const dec = (v: number, d = 1) => new Intl.NumberFormat('hr-HR', { maximumFractionDigits: d, minimumFractionDigits: d }).format(v)
 const eur = (v: number) => new Intl.NumberFormat('hr-HR', { style: 'currency', currency: 'EUR' }).format(v)
@@ -77,7 +78,7 @@ function Tile({ label, value, hint }: { label: string; value: string; hint?: str
 
 function Section({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) {
   return (
-    <section className="card p-5 sm:p-6">
+    <section className="card min-w-0 p-5 sm:p-6">
       <h2 className="font-display text-xl font-extrabold tracking-tight">{title}</h2>
       {note && <p className="mt-1 text-[13px] text-muted">{note}</p>}
       <div className="mt-4">{children}</div>
@@ -163,6 +164,33 @@ function DailyChart({ series, metric }: { series: Stats['series']; metric: Metri
   )
 }
 
+/** The two Tag Manager tags from the merchant presentation, ready to copy, plus the server-side call. */
+const TAG_A = `<script>
+(function () {
+  var m = location.search.match(/[?&]lc_click=([^&]+)/);
+  if (!m) return;
+  document.cookie = '_lc_click=' + m[1] +
+    '; max-age=2592000; path=/; SameSite=Lax'; // 30 dana
+})();
+</script>`
+
+const tagB = (site: string) => `<script>
+(function () {
+  var c = document.cookie.match(/_lc_click=([^;]+)/);
+  if (!c) return; // narudžba nije s Listice
+  var e = {{DLV - ecommerce}};
+  new Image().src = '${site}/api/konverzija' +
+    '?click=' + c[1] +
+    '&order=' + encodeURIComponent(e.transaction_id) +
+    '&value=' + e.value + '&currency=' + (e.currency || 'EUR');
+})();
+</script>`
+
+const serverCall = (site: string) => `POST ${site}/api/konverzija
+Content-Type: application/json
+
+{"click": "lc_8f3a2b91c4d5e6f7", "order": "100234", "value": 449.00, "currency": "EUR", "items": ["1313865"]}`
+
 function ConversionKeys({ shops, onUpdate }: { shops: Shop[]; onUpdate: (slug: string, key: string) => void }) {
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -174,42 +202,46 @@ function ConversionKeys({ shops, onUpdate }: { shops: Shop[]; onUpdate: (slug: s
     setBusy(slug); setError('')
     try { onUpdate(slug, (await adminApi.createConversionKey(slug)).data.conversionKey) } catch (err) { setError(apiError(err)) } finally { setBusy(null) }
   }
+  const blocks = [
+    { id: 'tag-a', label: 'Tag A: Listica, spremi klik (Custom HTML, okidač All Pages)', text: TAG_A },
+    { id: 'tag-b', label: 'Tag B: Listica, kupnja (Custom HTML, okidač Custom Event purchase)', text: tagB(SITE_URL) },
+    { id: 'server', label: 'Ili javljanje sa servera, nakon potvrde narudžbe (WooCommerce, Shopify)', text: serverCall(SITE_URL) },
+  ]
 
   return (
-    <Section title="Javljanje kupnji iz dućana"
-      note="Svaki klik u dućan nosi oznaku lc_click. Dućan koji želi javljati kupnje dobiva svoj ključ i na stranici zahvale pošalje kupnju na jedan od ova dva načina. Novi ključ poništava stari.">
-      <ul className="space-y-3">
-        {shops.map(shop => {
-          const key = shop.conversionKey
-          const pixel = key ? `<img src="${API_URL}/conversions/pixel.gif?key=${key}&click={lc_click}&order={broj_narudzbe}&value={iznos}" width="1" height="1" alt="">` : ''
-          const post = key ? `POST ${API_URL}/conversions\nx-shop-key: ${key}\n{"click":"{lc_click}","order":"{broj_narudzbe}","value":{iznos}}` : ''
-          return (
-            <li key={shop.slug} className="rounded-2xl border border-line/10 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="font-semibold">{shop.name}</p>
-                <button onClick={() => generate(shop.slug)} disabled={busy === shop.slug} className="btn btn-sm btn-soft">
-                  {busy === shop.slug ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <KeyRound size={15} aria-hidden />}
-                  {key ? 'Novi ključ' : 'Napravi ključ'}
-                </button>
-              </div>
-              {key && (
-                <div className="mt-3 space-y-2">
-                  {[{ id: `${shop.slug}-pixel`, label: 'HTML na stranici zahvale', text: pixel }, { id: `${shop.slug}-post`, label: 'Ili poziv s poslužitelja', text: post }].map(block => (
-                    <div key={block.id}>
-                      <div className="mb-1 flex items-center justify-between">
-                        <p className="text-xs font-semibold text-muted">{block.label}</p>
-                        <button onClick={() => copy(block.text, block.id)} className="flex items-center gap-1 text-xs font-semibold underline underline-offset-2">
-                          <Copy size={12} aria-hidden /> {copied === block.id ? 'Kopirano' : 'Kopiraj'}
-                        </button>
-                      </div>
-                      <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded-xl bg-sunken p-3 text-[11px] leading-relaxed">{block.text}</pre>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </li>
-          )
-        })}
+    <Section title="Praćenje kupnji u dućanu"
+      note="Ovo dućan postavlja na svoj web, kao u prezentaciji za trgovce. Oba taga se pokreću tek uz privolu za marketinške kolačiće. Narudžba se prihvaća samo ako nosi pravi lc_click s Listice, a pripisuje se Listici do 30 dana od klika.">
+      <div className="space-y-3">
+        {blocks.map(block => (
+          <div key={block.id}>
+            <div className="mb-1 flex items-center justify-between gap-3">
+              <p className="text-xs font-semibold text-muted">{block.label}</p>
+              <button onClick={() => copy(block.text, block.id)} className="flex flex-shrink-0 items-center gap-1 text-xs font-semibold underline underline-offset-2">
+                <Copy size={12} aria-hidden /> {copied === block.id ? 'Kopirano' : 'Kopiraj'}
+              </button>
+            </div>
+            <pre className="overflow-x-auto rounded-xl bg-sunken p-3 text-[11px] leading-relaxed">{block.text}</pre>
+          </div>
+        ))}
+      </div>
+
+      <p className="mb-2 mt-6 text-sm font-bold">Ključ dućana (nije obavezan)</p>
+      <p className="mb-3 text-[13px] text-muted">Bez ključa vrijedi prva prijava narudžbe. Dućan koji šalje zaglavlje x-shop-key sa svojim ključem može i ispraviti iznos narudžbe koju je već javio. Novi ključ poništava stari.</p>
+      <ul className="space-y-2">
+        {shops.map(shop => (
+          <li key={shop.slug} className="flex flex-wrap items-center gap-3 rounded-2xl border border-line/10 p-3">
+            <p className="font-semibold">{shop.name}</p>
+            {shop.conversionKey && (
+              <button onClick={() => copy(shop.conversionKey!, shop.slug)} className="flex min-w-0 items-center gap-1 text-xs text-muted">
+                <Copy size={12} aria-hidden /> <span className="truncate font-mono">{copied === shop.slug ? 'Kopirano' : `${shop.conversionKey.slice(0, 10)}...`}</span>
+              </button>
+            )}
+            <button onClick={() => generate(shop.slug)} disabled={busy === shop.slug} className="btn btn-sm btn-soft ml-auto">
+              {busy === shop.slug ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <KeyRound size={15} aria-hidden />}
+              {shop.conversionKey ? 'Novi ključ' : 'Napravi ključ'}
+            </button>
+          </li>
+        ))}
       </ul>
       {error && <p role="alert" className="field-error mt-3">{error}</p>}
     </Section>
@@ -335,7 +367,7 @@ export default function StatsPanel() {
             <DailyChart series={s.series} metric={metric} />
           </Section>
 
-          <div className="grid gap-5 lg:grid-cols-2">
+          <div className="grid gap-5 [&>*]:min-w-0 lg:grid-cols-2">
             <Section title="Korisnici i Listice">
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 <Tile label="Novi korisnici" value={nf.format(s.users.new)} hint={`ukupno ${nf.format(s.users.total)}`} />
@@ -345,7 +377,7 @@ export default function StatsPanel() {
                 <Tile label="Prikazi javnih Listica" value={nf.format(s.lists.views)} hint={`${nf.format(s.lists.viewedLists)} različitih Listica`} />
                 <Tile label="Dijeljenja" value={nf.format(s.engagement.shares)} hint="otvoren prozor Podijeli" />
               </div>
-              <div className="mt-5 grid gap-5 sm:grid-cols-2">
+              <div className="mt-5 grid gap-5 [&>*]:min-w-0 sm:grid-cols-2">
                 <div>
                   <p className="mb-2 text-sm font-bold">Proizvoda na Listici</p>
                   <Bars rows={s.lists.itemsPerList.buckets.map(b => ({ label: b.name, value: b.count ?? 0 }))} />
@@ -376,14 +408,14 @@ export default function StatsPanel() {
             </Section>
           </div>
 
-          <Section title="Odlasci u dućan" note="Svaki link prema dućanu ide preko nas s oznakama utm_source=listica i utm_medium=referral, pa dućan taj promet vidi u svom Google Analyticsu kao Referral iz izvora listica.">
+          <Section title="Odlasci u dućan" note="Svaki link prema dućanu ide preko nas s oznakama utm_source=listica i utm_medium=wishlist, pa dućan taj promet u svom Google Analyticsu vidi kao listica / wishlist. Oznaka lc_click povezuje kupnju s klikom.">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <Tile label="Klikovi u dućan" value={nf.format(s.outbound.clicks)} />
               <Tile label="Posjeta s klikom u dućan" value={pct(s.outbound.clickRate)} />
               <Tile label="Kupnje koje su javili dućani" value={nf.format(s.conversions.count)} hint={eur(s.conversions.value)} />
               <Tile label="Povezano s našim klikom" value={nf.format(s.conversions.matched)} hint="kupnja nosi lc_click" />
             </div>
-            <div className="mt-5 grid gap-5 lg:grid-cols-2">
+            <div className="mt-5 grid gap-5 [&>*]:min-w-0 lg:grid-cols-2">
               <div>
                 <p className="mb-2 text-sm font-bold">Odakle se klika</p>
                 <Bars rows={s.outbound.bySource.map(x => ({ label: SOURCE_LABEL[x.name] ?? x.name, value: x.count ?? 0 }))} />
@@ -422,7 +454,7 @@ export default function StatsPanel() {
             </div>
           </Section>
 
-          <div className="grid gap-5 lg:grid-cols-3">
+          <div className="grid gap-5 [&>*]:min-w-0 lg:grid-cols-3">
             <Section title="Najčešće dodano"><Bars rows={s.top.added.map(p => ({ label: p.name, sub: p.shop, value: p.count }))} /></Section>
             <Section title="Najčešće rezervirano"><Bars rows={s.top.reserved.map(p => ({ label: p.name, sub: p.shop, value: p.count }))} /></Section>
             <Section title="Kategorije i brendovi">
@@ -432,7 +464,7 @@ export default function StatsPanel() {
             </Section>
           </div>
 
-          <div className="grid gap-5 lg:grid-cols-3">
+          <div className="grid gap-5 [&>*]:min-w-0 lg:grid-cols-3">
             <Section title="Najposjećenije stranice">
               <Bars rows={s.traffic.topPages.map(p => ({ label: p.path, sub: p.avgMs ? dur(p.avgMs) : undefined, value: p.views }))} />
             </Section>
@@ -448,6 +480,8 @@ export default function StatsPanel() {
               ]} />
             </Section>
           </div>
+
+          <BillingPanel shop={shop} />
 
           <ConversionKeys shops={shops} onUpdate={(slug, key) => setShops(prev => prev.map(x => (x.slug === slug ? { ...x, conversionKey: key } : x)))} />
         </>

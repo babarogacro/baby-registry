@@ -125,8 +125,9 @@ export async function computeStats({ from, to, shop }: StatsQuery) {
 
     prisma.$queryRaw<{ c: bigint; value: number | null; matched: bigint }[]>`
       SELECT COUNT(*) AS c, SUM(cv.value) AS value,
-             COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM "AnalyticsEvent" e WHERE e.id = cv."clickId")) AS matched
-      FROM "Conversion" cv WHERE ${inRange('cv."createdAt"', from, to)} ${shopIs('cv."shopSlug"', shop)}`,
+             COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM "OutboundClick" oc WHERE oc.id = cv."clickId")
+                                OR EXISTS (SELECT 1 FROM "AnalyticsEvent" e WHERE e.id = cv."clickId")) AS matched
+      FROM "Conversion" cv WHERE cv.status <> 'rejected' AND ${inRange('cv."createdAt"', from, to)} ${shopIs('cv."shopSlug"', shop)}`,
 
     prisma.$queryRaw<{ shop: string; name: string; clicks: bigint; added: bigint; reserved: bigint; purchased: bigint; reserved_value: number | null; conversions: bigint; conversion_value: number | null }[]>`
       SELECT s.slug AS shop, s.name,
@@ -138,8 +139,8 @@ export async function computeStats({ from, to, shop }: StatsQuery) {
           WHERE p."shopSlug" = s.slug AND r.status = 'PURCHASED' AND ${inRange('COALESCE(r."purchasedAt", r."reservedAt")', from, to)}) AS purchased,
         (SELECT SUM(p.price) FROM "Reservation" r JOIN "ListItem" i ON i.id = r."listItemId" JOIN "Product" p ON p.id = i."productId"
           WHERE p."shopSlug" = s.slug AND ${inRange('r."reservedAt"', from, to)}) AS reserved_value,
-        (SELECT COUNT(*) FROM "Conversion" cv WHERE cv."shopSlug" = s.slug AND ${inRange('cv."createdAt"', from, to)}) AS conversions,
-        (SELECT SUM(cv.value) FROM "Conversion" cv WHERE cv."shopSlug" = s.slug AND ${inRange('cv."createdAt"', from, to)}) AS conversion_value
+        (SELECT COUNT(*) FROM "Conversion" cv WHERE cv."shopSlug" = s.slug AND cv.status <> 'rejected' AND ${inRange('cv."createdAt"', from, to)}) AS conversions,
+        (SELECT SUM(cv.value) FROM "Conversion" cv WHERE cv."shopSlug" = s.slug AND cv.status <> 'rejected' AND ${inRange('cv."createdAt"', from, to)}) AS conversion_value
       FROM "ScrapedShop" s ${shop ? Prisma.sql`WHERE s.slug = ${shop}` : Prisma.empty} ORDER BY s.name`,
 
     prisma.$queryRaw<{ id: string; name: string; shop: string; c: bigint }[]>`

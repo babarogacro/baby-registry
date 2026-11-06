@@ -8,6 +8,8 @@ import { httpUrl } from '../utils/urls'
 import { computeStats } from '../services/stats'
 import { renderStatsPdf } from '../services/statsReport'
 import { newConversionKey } from './analytics'
+import { computeBilling, CONVERSION_STATUSES, currentMonth, isMonth } from '../services/billing'
+import { renderStatementCsv, renderStatementPdf } from '../services/billingReport'
 
 export const adminRouter = Router()
 
@@ -126,6 +128,84 @@ adminRouter.get('/stats/report.pdf', async (req, res) => {
   } catch (err) {
     console.error('Stats PDF error:', err)
     if (!res.headersSent) res.status(500).json({ error: 'Greška na serveru' })
+  }
+})
+
+// Monthly statement for shops: clicks with their price, purchases with commission, prepaid balance.
+function billingQuery(query: Record<string, unknown>) {
+  const month = isMonth(query.month) ? query.month : currentMonth()
+  const shop = typeof query.shop === 'string' && /^[a-z0-9-]{1,40}$/.test(query.shop) ? query.shop : null
+  return { month, shop }
+}
+
+adminRouter.get('/billing', async (req, res) => {
+  try {
+    const { month, shop } = billingQuery(req.query)
+    res.json(await computeBilling(month, shop))
+  } catch (err) {
+    console.error('Billing error:', err)
+    res.status(500).json({ error: 'Greška na serveru' })
+  }
+})
+
+adminRouter.get('/billing/statement.:format', async (req, res) => {
+  try {
+    const { month, shop } = billingQuery(req.query)
+    if (!shop) return res.status(400).json({ error: 'Odaberi dućan' })
+    const data = (await computeBilling(month, shop)).shops[0]
+    if (!data) return res.status(404).json({ error: 'Dućan nije pronađen' })
+    const file = `listica-obracun-${shop}-${month}`
+    if (req.params.format === 'csv') {
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8')
+      res.setHeader('Content-Disposition', `attachment; filename="${file}.csv"`)
+      return res.send(renderStatementCsv(data, month))
+    }
+    if (req.params.format !== 'pdf') return res.status(404).json({ error: 'Nepoznat format' })
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition', `attachment; filename="${file}.pdf"`)
+    renderStatementPdf(data, month).pipe(res)
+  } catch (err) {
+    console.error('Statement error:', err)
+    if (!res.headersSent) res.status(500).json({ error: 'Greška na serveru' })
+  }
+})
+
+adminRouter.post('/billing/top-ups', async (req, res) => {
+  try {
+    const data = z.object({
+      shopSlug: z.string().regex(/^[a-z0-9-]{1,40}$/),
+      amount: z.coerce.number().positive('Iznos mora biti veći od nule').max(100_000),
+      note: z.string().trim().max(200).optional(),
+      paidAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    }).parse(req.body)
+    const shop = await prisma.scrapedShop.findUnique({ where: { slug: data.shopSlug }, select: { slug: true } })
+    if (!shop) return res.status(404).json({ error: 'Dućan nije pronađen' })
+    const topUp = await prisma.shopTopUp.create({
+      data: { shopSlug: data.shopSlug, amount: Math.round(data.amount * 100) / 100, note: data.note || null, paidAt: data.paidAt ? new Date(`${data.paidAt}T12:00:00Z`) : new Date() },
+    })
+    res.status(201).json(topUp)
+  } catch (err) {
+    if (err instanceof z.ZodError) return res.status(400).json({ error: firstIssue(err) })
+    res.status(500).json({ error: 'Greška na serveru' })
+  }
+})
+
+adminRouter.delete('/billing/top-ups/:id', async (req, res) => {
+  try {
+    await prisma.shopTopUp.delete({ where: { id: req.params.id } })
+    res.json({ ok: true })
+  } catch { res.status(404).json({ error: 'Uplata nije pronađena' }) }
+})
+
+// Returned goods and fake or duplicate reports are not charged.
+adminRouter.patch('/conversions/:id', async (req, res) => {
+  try {
+    const { status } = z.object({ status: z.enum(CONVERSION_STATUSES) }).parse(req.body)
+    const conversion = await prisma.conversion.update({ where: { id: req.params.id }, data: { status }, select: { id: true, status: true } })
+    res.json(conversion)
+  } catch (err) {
+    if (err instanceof z.ZodError) return res.status(400).json({ error: 'Nepoznat status' })
+    res.status(404).json({ error: 'Narudžba nije pronađena' })
   }
 })
 

@@ -52,3 +52,13 @@ export const smartPasteLimiter = rateLimit({
   legacyHeaders: false,
   message: message('Previše zahtjeva. Pričekaj trenutak.'),
 })
+
+// Purchase reports from shops. Most arrive through listica.hr/api/konverzija, so they share the
+// frontend's address; the limit only stops a flood, as a report must name a real click anyway.
+export const conversionLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 2000,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: message('Previše zahtjeva. Pokušaj ponovno za nekoliko minuta.'),
+})
