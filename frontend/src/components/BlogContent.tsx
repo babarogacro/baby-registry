@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { AnimatePresence } from 'motion/react'
+import clsx from 'clsx'
 import ProductCard from '@/components/ProductCard'
 import AddToListModal from '@/app/katalog/AddToListModal'
 import { Toast, useToast } from '@/components/Toast'
@@ -55,11 +56,13 @@ export default function BlogContent({ content, products }: { content: string; pr
               </ReactMarkdown>
             )
           }
-          const product = byId.get(segment.id)
-          if (!product) return null
+          const found = segment.ids.map(id => byId.get(id)).filter((p): p is Product => !!p)
+          if (found.length === 0) return null
           return (
-            <div key={i} className="not-prose my-8 max-w-[280px]">
-              <ProductCard product={product} from="blog" onAddToList={addToList} isOnList={onList.has(product.id)} />
+            <div key={i} className={clsx('not-prose my-8 grid gap-3 sm:gap-4', found.length === 1 ? 'max-w-[280px]' : 'grid-cols-2 sm:grid-cols-3')}>
+              {found.map(product => (
+                <ProductCard key={product.id} product={product} from="blog" onAddToList={addToList} isOnList={onList.has(product.id)} />
+              ))}
             </div>
           )
         })}

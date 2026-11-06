@@ -11,6 +11,18 @@ const nextConfig = {
       { protocol: 'https', hostname: '**.svijet-beba.hr' },
     ],
   },
+  // The merchant deck is a ready-made static HTML page in public/; it lives at /za-trgovce.
+  async rewrites() {
+    return [{ source: '/za-trgovce', destination: '/za-trgovce.html' }]
+  },
+  // The old topic pages became the gift guides on the blog; 308 keeps their search ranking.
+  async redirects() {
+    return [
+      { source: '/lista-zelja-za-bebu', destination: '/blog/pokloni-za-bebu', permanent: true },
+      { source: '/lista-za-djecji-rodendan', destination: '/blog/pokloni-za-djecji-rodendan', permanent: true },
+      { source: '/baby-shower-lista', destination: '/blog/pokloni-za-baby-shower', permanent: true },
+    ]
+  },
   async headers() {
     return [{
       source: '/:path*',

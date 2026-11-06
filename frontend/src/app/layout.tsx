@@ -75,17 +75,15 @@ const SITE_JSON_LD = {
 }
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#FFF8EF' },
-    { media: '(prefers-color-scheme: dark)', color: '#130F26' },
-  ],
+  themeColor: '#FFF8EF',
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
 }
 
-// Runs before first paint, so night-shift parents never get flashed with a bright page.
-const THEME_SCRIPT = `try{var t=localStorage.getItem('theme');if(t==='night'||(!t&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.dataset.theme='night'}catch(e){}`
+// Runs before first paint. Light is the default; the dark view only comes back if the person chose it
+// (the moon button or the evening suggestion), never from the system setting.
+const THEME_SCRIPT = `try{if(localStorage.getItem('theme')==='night')document.documentElement.dataset.theme='night'}catch(e){}`
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

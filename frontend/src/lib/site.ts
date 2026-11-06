@@ -5,11 +5,14 @@ export const SITE_NAME = 'Listica'
 
 export const SITE_DESCRIPTION = 'Besplatna lista želja za bebu i dječji rođendan. Upiši što ti treba, pošalji link obitelji i prijateljima, a oni vide što je već zauzeto, pa se pokloni ne ponavljaju.'
 
-/** Topic pages written for what people search for; listed in the sitemap, footer and llms.txt. */
+/**
+ * Gift guides written for what people search for: blog posts that the footer and llms.txt link to
+ * and the sitemap ranks above other posts. The old topic pages redirect here (next.config.js).
+ */
 export const TOPIC_PAGES = [
-  { href: '/lista-zelja-za-bebu', label: 'Lista želja za bebu' },
-  { href: '/lista-za-djecji-rodendan', label: 'Lista za dječji rođendan' },
-  { href: '/baby-shower-lista', label: 'Lista za baby shower' },
+  { href: '/blog/pokloni-za-bebu', label: 'Pokloni za bebu' },
+  { href: '/blog/pokloni-za-djecji-rodendan', label: 'Pokloni za dječji rođendan' },
+  { href: '/blog/pokloni-za-baby-shower', label: 'Pokloni za baby shower' },
 ]
 
 export function jsonLd(data: unknown) {

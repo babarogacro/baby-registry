@@ -24,6 +24,8 @@ export default function Footer() {
               <li><Link href="/blog" className="transition-colors hover:text-sun">Blog</Link></li>
               <li><Link href="/registracija" className="transition-colors hover:text-sun">Napravi Listicu</Link></li>
               <li><Link href="/prijava" className="transition-colors hover:text-sun">Prijava</Link></li>
+              {/* A static page (the merchant deck), so a plain link rather than client navigation. */}
+              <li className="pt-3"><a href="/za-trgovce" className="transition-colors hover:text-sun">Za trgovce</a></li>
             </ul>
           </nav>
           <nav aria-label="Teme i pravne informacije">
@@ -37,7 +39,17 @@ export default function Footer() {
           </nav>
         </div>
 
-        <p aria-hidden className="display mt-12 select-none overflow-hidden whitespace-nowrap text-[17.5vw] text-white/[0.09] lg:text-[11.5rem]">listica</p>
+        <div className="mt-12 flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
+          <p aria-hidden className="display min-w-0 select-none overflow-hidden whitespace-nowrap text-[17.5vw] text-white/[0.09] md:text-[11vw] lg:text-[11.5rem]">listica</p>
+          <div className="md:pb-10">
+            <p className="text-sm font-bold uppercase tracking-wide text-white/60">Partneri:</p>
+            <a href="https://www.babycenter.hr" target="_blank" rel="noopener" className="mt-3 inline-block opacity-90 transition-opacity hover:opacity-100">
+              {/* Their only logo file is a small blue PNG; shown white on the dark footer. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/partneri/babycenter.png" alt="Baby Center" width={205} height={38} loading="lazy" className="h-7 w-auto brightness-0 invert" />
+            </a>
+          </div>
+        </div>
 
         <div className="mt-6 flex flex-col justify-between gap-2 border-t border-white/15 pt-5 text-[13px] text-white/65 sm:flex-row">
           <p>Babaroga, vl. Tvrtko Kračun · OIB: 72128351309 · Poljski put 16, Novalja</p>

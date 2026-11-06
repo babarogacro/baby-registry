@@ -5,7 +5,8 @@ export const revalidate = 3600
 
 // A plain-text guide for AI assistants (llmstxt.org): what the service is and where the useful pages are.
 export async function GET() {
-  const posts = await getBlogPosts(30)
+  // The gift guides are listed under Stranice, so the blog list skips them.
+  const posts = (await getBlogPosts(30)).filter(p => !TOPIC_PAGES.some(t => t.href === `/blog/${p.slug}`))
   const lines = [
     '# Listica',
     '',

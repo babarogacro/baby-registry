@@ -10,14 +10,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date()
   const page = (path: string, priority: number, changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency'] = 'weekly', lastModified: Date = now) =>
     ({ url: `${SITE_URL}${path}`, lastModified, changeFrequency, priority })
+  const guides = new Set(TOPIC_PAGES.map(t => t.href))
 
   return [
     page('/', 1, 'daily'),
-    ...TOPIC_PAGES.map(t => page(t.href, 0.9)),
     page('/katalog', 0.8, 'daily'),
     page('/pronadi-listu', 0.6, 'monthly'),
     page('/blog', 0.7, 'weekly'),
-    ...posts.map(p => page(`/blog/${p.slug}`, 0.7, 'monthly', new Date(p.updatedAt))),
+    ...posts.map(p => {
+      const path = `/blog/${p.slug}`
+      return page(path, guides.has(path) ? 0.9 : 0.7, 'monthly', new Date(p.updatedAt))
+    }),
     page('/privatnost', 0.2, 'yearly'),
     page('/uvjeti', 0.2, 'yearly'),
   ]

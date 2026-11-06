@@ -103,6 +103,32 @@ export async function sendReservationEmail(p: ListContext & {
   )
 }
 
+/** A guest marked a reserved gift as bought, so the owner knows it is really coming. */
+export async function sendPurchasedEmail(p: ListContext & {
+  productPrice: number
+  productCurrency: string
+  purchasedBy: string
+  isGroupBuy: boolean
+}) {
+  const body = `
+    <p style="color:#1E1537;font-size:16px;margin:0 0 24px;">Bok, <strong>${esc(p.mamaName)}</strong>.</p>
+    <p style="color:#625978;font-size:15px;margin:0 0 24px;line-height:1.6;">
+      <strong style="color:#1E1537;">${esc(p.purchasedBy)}</strong> ${p.isGroupBuy ? 'javlja da je poklon koji ste skupljali zajedno kupljen.' : 'javlja da je kupio ili kupila poklon s tvoje Listice.'}
+    </p>
+    <div style="background:#FFF8EF;border-radius:16px;padding:20px;margin:0 0 24px;border:1px solid #F1E6D3;">
+      <p style="font-size:13px;color:#625978;margin:0 0 6px;text-transform:uppercase;letter-spacing:0.05em;">Kupljeni poklon</p>
+      <p style="font-size:16px;font-weight:700;color:#1E1537;margin:0 0 6px;">${esc(p.productName)}</p>
+      <p style="font-size:18px;color:#1E1537;font-weight:700;margin:0;">${esc(money(p.productPrice, p.productCurrency))}</p>
+    </div>
+    ${button(`${APP_URL}/moja-lista`, 'Otvori Listicu')}`
+
+  return send(
+    p.mamaEmail,
+    `Kupljen poklon s tvoje Listice: ${p.productName}`,
+    layout({ title: 'Poklon je kupljen', subtitle: `S Listice <strong>${esc(p.listName)}</strong>`, body }),
+  )
+}
+
 export async function sendGroupBuyJoinEmail(p: ListContext & {
   contributorName: string
   contributorAmount: number

@@ -6,17 +6,19 @@ export function blogImageUrl(src?: string | null) {
   return src.startsWith('/blog/images/') ? `${API_URL}${src}` : src
 }
 
-export type BlogSegment = { kind: 'markdown'; text: string } | { kind: 'product'; id: string }
+export type BlogSegment = { kind: 'markdown'; text: string } | { kind: 'products'; ids: string[] }
 
-/** Splits an article at [[proizvod:<id>]] markers, which become product cards. */
+/** Splits an article at [[proizvod:<id>]] markers, which become product cards; markers next to each other form one row. */
 export function splitBlogContent(content: string): BlogSegment[] {
   const segments: BlogSegment[] = []
   const pattern = /\[\[proizvod:([a-z0-9]{10,40})\]\]/gi
   let last = 0
   for (const match of content.matchAll(pattern)) {
     const before = content.slice(last, match.index)
+    const prev = segments[segments.length - 1]
     if (before.trim()) segments.push({ kind: 'markdown', text: before })
-    segments.push({ kind: 'product', id: match[1] })
+    else if (prev?.kind === 'products') { prev.ids.push(match[1]); last = (match.index ?? 0) + match[0].length; continue }
+    segments.push({ kind: 'products', ids: [match[1]] })
     last = (match.index ?? 0) + match[0].length
   }
   const rest = content.slice(last)

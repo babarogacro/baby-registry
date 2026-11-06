@@ -24,7 +24,7 @@ export function ThemeToggle({ className }: { className?: string }) {
   )
 }
 
-/** Between midnight and five, the app politely offers to stop blinding you. */
+/** In the evening and at night (21:00 to 05:00) the app offers the dark view; the default stays light. */
 function NightShiftTip() {
   const { theme } = useTheme()
   const [show, setShow] = useState(false)
@@ -33,7 +33,7 @@ function NightShiftTip() {
     const hour = new Date().getHours()
     let seen = true
     try { seen = !!sessionStorage.getItem('night-tip') } catch {}
-    if (hour < 5 && !seen) setShow(true)
+    if ((hour >= 21 || hour < 5) && !seen) setShow(true)
   }, [])
 
   const dismiss = () => {
@@ -47,7 +47,7 @@ function NightShiftTip() {
         <m.div initial={{ opacity: 0, y: -14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
           className="pointer-events-auto mx-auto mt-2 flex max-w-md items-center gap-3 rounded-3xl bg-coal px-4 py-3 text-sm text-white shadow-lift">
           <Moon size={18} className="flex-shrink-0 text-sun" aria-hidden />
-          <p className="flex-1">Kasno je. Da prigušimo ekran?</p>
+          <p className="flex-1">{new Date().getHours() >= 21 ? 'Večer je.' : 'Kasno je.'} Da prigušimo ekran?</p>
           <button onClick={() => { setTheme('night'); dismiss() }} className="rounded-full bg-sun px-3 py-1.5 text-[13px] font-bold text-coal">Može</button>
           <button onClick={dismiss} aria-label="Ne treba" className="p-1 opacity-70 hover:opacity-100"><X size={16} /></button>
         </m.div>

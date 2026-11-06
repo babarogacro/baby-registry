@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express'
 import { z } from 'zod'
 import { prisma } from '../utils/prisma'
-import { sendReservationEmail, sendGroupBuyJoinEmail } from '../services/email'
+import { sendReservationEmail, sendGroupBuyJoinEmail, sendPurchasedEmail } from '../services/email'
 import { publicWriteLimiter, searchLimiter } from '../middleware/rateLimit'
 import { newOwnerToken, tokensMatch } from '../utils/tokens'
 import { firstIssue, isUniqueViolation } from '../utils/validation'
@@ -285,6 +285,10 @@ publicRouter.patch('/lista/:slug/rezerviraj/:itemId/status', publicWriteLimiter,
 
     await prisma.reservation.update({ where: { id: reservation.id }, data: { status, purchasedAt: status === 'PURCHASED' ? new Date() : null } })
     res.json({ success: true, status })
+    // The owner hears about it once, when the gift first becomes bought.
+    if (status === 'PURCHASED' && reservation.status !== 'PURCHASED') {
+      notifyOwner(found.list.id, found.item.id, ctx => sendPurchasedEmail({ ...ctx, purchasedBy: reservation.reservedBy, isGroupBuy: reservation.isGroupBuy })).catch(console.error)
+    }
   } catch (err) {
     if (err instanceof z.ZodError) return res.status(400).json({ error: firstIssue(err) })
     res.status(500).json({ error: 'Greška na serveru' })
