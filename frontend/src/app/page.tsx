@@ -155,9 +155,21 @@ export default async function HomePage() {
           </ul>
         </div>
 
-        {/* Poklon lutrija */}
-        <section className="mx-auto max-w-7xl px-5 py-14 sm:px-8 sm:py-20">
-          <PoklonLutrija />
+        {/* The guest's side, played on a phone */}
+        <section className="mx-auto max-w-7xl px-5 py-14 sm:px-8 sm:py-20" aria-labelledby="kako-izgleda">
+          <div className="grid items-center gap-10 lg:grid-cols-[1fr_auto_0.2fr] [&>*]:min-w-0">
+            <Reveal>
+              <p className="note text-tomato-ink">ovako to izgleda</p>
+              <h2 id="kako-izgleda" className="display mt-1 max-w-xl text-[2.9rem] sm:text-6xl">Ovako gosti vide tvoju Listicu.</h2>
+              <p className="mt-5 max-w-lg text-lg font-medium leading-snug text-muted">
+                Otvore link na mobitelu, vide što je još slobodno, kliknu Rezerviraj i upišu ime. Svi ostali u istom trenutku vide da je poklon zauzet. Gosti se ne registriraju i ništa ne plaćaju na stranici.
+              </p>
+              <div className="mt-7">
+                <AuthAwareLink guestHref="/registracija" signedInLabel="Moje Listice" className="btn btn-lg btn-primary">Napravi Listicu</AuthAwareLink>
+              </div>
+            </Reveal>
+            <ListDemoPhone />
+          </div>
         </section>
 
         {/* Three steps, stacked like blocks */}
@@ -182,21 +194,9 @@ export default async function HomePage() {
           </ol>
         </section>
 
-        {/* The guest's side, played on a phone */}
-        <section className="mx-auto max-w-7xl px-5 py-14 sm:px-8 sm:py-20" aria-labelledby="kako-izgleda">
-          <div className="grid items-center gap-10 lg:grid-cols-[1fr_auto_0.2fr] [&>*]:min-w-0">
-            <Reveal>
-              <p className="note text-tomato-ink">ovako to izgleda</p>
-              <h2 id="kako-izgleda" className="display mt-1 max-w-xl text-[2.9rem] sm:text-6xl">Ovako gosti vide tvoju Listicu.</h2>
-              <p className="mt-5 max-w-lg text-lg font-medium leading-snug text-muted">
-                Otvore link na mobitelu, vide što je još slobodno, kliknu Rezerviraj i upišu ime. Svi ostali u istom trenutku vide da je poklon zauzet. Gosti se ne registriraju i ništa ne plaćaju na stranici.
-              </p>
-              <div className="mt-7">
-                <AuthAwareLink guestHref="/registracija" signedInLabel="Moje Listice" className="btn btn-lg btn-primary">Napravi Listicu</AuthAwareLink>
-              </div>
-            </Reveal>
-            <ListDemoPhone />
-          </div>
+        {/* Poklon lutrija */}
+        <section className="mx-auto max-w-7xl px-5 py-14 sm:px-8 sm:py-20">
+          <PoklonLutrija />
         </section>
 
         {/* Categories */}
